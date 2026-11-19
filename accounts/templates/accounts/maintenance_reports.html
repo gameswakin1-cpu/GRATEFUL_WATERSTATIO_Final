@@ -1,0 +1,1083 @@
+∟{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Reports - Grateful Water Station</title>
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<script src="{% static 'accounts/js/table_pagination.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% include "accounts/admin_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN ─────────────────────────────────── -->
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <h1><i class="fas fa-clipboard-list"></i> Maintenance Reports</h1>
+        
+            <div class='header-actions dashboard-topbar-actions'>
+                {% include 'accounts/dashboard_header_actions.html' %}
+            </div>
+        </header>
+
+        <div class="report-log-tabs" role="tablist" aria-label="Maintenance report logs">
+            <button class="report-log-tab active" type="button" data-log-tab="maintenance-log" role="tab" aria-selected="true">
+                <i class="fas fa-clipboard-list"></i> Maintenance Reports
+            </button>
+            <button class="report-log-tab" type="button" data-log-tab="cleaning-log" role="tab" aria-selected="false">
+                <i class="fas fa-calendar-check"></i> Cleaning Reports
+            </button>
+        </div>
+
+        <!-- Reports Log Table -->
+        <div class="maint-card full-width report-log-panel active" id="maintenance-log" role="tabpanel">
+            <div class="maint-table-header">
+                <div>
+                    <h3><i class="fas fa-history"></i> Maintenance Reports Log</h3>
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="maint-table" id="reportsTable">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div class="column-filter">
+                                    <button class="column-filter-toggle" type="button" aria-expanded="false">Category <i class="fas fa-chevron-down"></i></button>
+                                    <div class="column-filter-menu" hidden>
+                                        <label for="reports-category">Filter category</label>
+                                        <select class="maint-input small" id="reports-category" aria-label="Filter by category">
+                                            <option value="">All categories</option>
+                                            <option>Filter System</option>
+                                            <option>Water Pump</option>
+                                            <option>Pipes &amp; Fittings</option>
+                                            <option>Electrical</option>
+                                            <option>Dispenser Unit</option>
+                                            <option>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div class="column-filter">
+                                    <button class="column-filter-toggle" type="button" aria-expanded="false">Staff Name <i class="fas fa-chevron-down"></i></button>
+                                    <div class="column-filter-menu" hidden>
+                                        <label for="reports-staff">Filter staff name</label>
+                                        <select class="maint-input small" id="reports-staff" aria-label="Filter by staff name">
+                                            <option value="">All staff</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </th>
+                            <th>Description</th>
+                            <th>
+                                <div class="column-filter">
+                                    <button class="column-filter-toggle" type="button" aria-expanded="false">Priority <i class="fas fa-chevron-down"></i></button>
+                                    <div class="column-filter-menu" hidden>
+                                        <label for="reports-priority">Filter priority</label>
+                                        <select class="maint-input small" id="reports-priority" aria-label="Filter by priority">
+                                            <option value="">All priorities</option>
+                                            <option>Low</option>
+                                            <option>Medium</option>
+                                            <option>High</option>
+                                            <option>Critical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div class="column-filter">
+                                    <button class="column-filter-toggle" type="button" aria-expanded="false">Date <i class="fas fa-chevron-down"></i></button>
+                                    <div class="column-filter-menu" hidden>
+                                        <label for="reports-sort">Sort reports</label>
+                                        <select class="maint-input small" id="reports-sort" aria-label="Sort maintenance reports">
+                                            <option value="date-desc">Newest first</option>
+                                            <option value="date-asc">Oldest first</option>
+                                            <option value="priority-desc">Priority: highest first</option>
+                                            <option value="priority-asc">Priority: lowest first</option>
+                                            <option value="category-asc">Category: A to Z</option>
+                                        </select>
+                                        <label for="reports-date-from">From</label>
+                                        <input class="maint-input small" id="reports-date-from" type="date" aria-label="Reports from date">
+                                        <label for="reports-date-to">To</label>
+                                        <input class="maint-input small" id="reports-date-to" type="date" aria-label="Reports to date">
+                                    </div>
+                                </div>
+                            </th>
+                            <th>Status</th>
+                            <th>Due Date</th>
+                            <th>Photo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTableBody">
+                        <tr class="empty-row"><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem;">Loading reports...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-bar" data-pagination-for="reportsTable" data-page-size="8">
+                <span class="pagination-info">Showing — of — results</span>
+                <div class="pagination-controls"></div>
+            </div>
+        </div>
+
+        <div class="maint-card full-width report-log-panel" id="cleaning-log" role="tabpanel" hidden>
+            <div class="maint-table-header">
+                <h3><i class="fas fa-calendar-check"></i> Cleaning Schedule Report Log</h3>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="maint-table" id="cleaningScheduleTable">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div class="column-filter">
+                                    <button class="column-filter-toggle" type="button" aria-expanded="false">Cleaning Task <i class="fas fa-chevron-down"></i></button>
+                                    <div class="column-filter-menu" hidden>
+                                        <label for="cleaning-task-filter">Filter by equipment cleaning option</label>
+                                        <select class="maint-input small" id="cleaning-task-filter" aria-label="Filter cleaning tasks by equipment cleaning option">
+                                            <option value="">All cleaning tasks</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div class="column-filter">
+                                    <button class="column-filter-toggle" type="button" aria-expanded="false">Staff Name <i class="fas fa-chevron-down"></i></button>
+                                    <div class="column-filter-menu" hidden>
+                                        <label for="cleaning-staff">Filter staff name</label>
+                                        <select class="maint-input small" id="cleaning-staff" aria-label="Filter cleaning tasks by staff name">
+                                            <option value="">All staff</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </th>
+                            <th>Description</th>
+                            <th>
+                                <div class="column-filter">
+                                    <button class="column-filter-toggle" type="button" aria-expanded="false">Scheduled Date <i class="fas fa-chevron-down"></i></button>
+                                    <div class="column-filter-menu" hidden>
+                                        <label for="cleaning-sort">Sort date</label>
+                                        <select class="maint-input small" id="cleaning-sort" aria-label="Sort cleaning schedules">
+                                            <option value="date-desc">Scheduled: newest first</option>
+                                            <option value="date-asc">Scheduled: oldest first</option>
+                                            <option value="completed-desc">Completed: newest first</option>
+                                            <option value="completed-asc">Completed: oldest first</option>
+                                        </select>
+                                        <label for="cleaning-date-from">From</label>
+                                        <input class="maint-input small" id="cleaning-date-from" type="date" aria-label="Schedules from date">
+                                        <label for="cleaning-date-to">To</label>
+                                        <input class="maint-input small" id="cleaning-date-to" type="date" aria-label="Schedules to date">
+                                    </div>
+                                </div>
+                            </th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cleaningScheduleTableBody">
+                        <tr class="empty-row"><td colspan="5" style="text-align:center;color:#94a3b8;padding:2rem;">Loading completed schedules...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-bar" data-pagination-for="cleaningScheduleTable" data-page-size="8">
+                <span class="pagination-info">Showing — of — results</span>
+                <div class="pagination-controls"></div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    let reportsData = [];
+    let completedTasksData = [];
+    const equipmentCleaningOptions = [
+        'Clean and sanitize filter system',
+        'Replace filter cartridges',
+        'Inspect and service water pump',
+        'Inspect pipes and fittings',
+        'Sanitize water storage tank',
+        'Inspect electrical system',
+        'Clean and inspect dispenser unit',
+        'Deep clean station',
+        'Other',
+    ];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.report-log-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.report-log-tab').forEach(item => {
+                    item.classList.toggle('active', item === this);
+                    item.setAttribute('aria-selected', item === this ? 'true' : 'false');
+                });
+                document.querySelectorAll('.report-log-panel').forEach(panel => {
+                    panel.hidden = panel.id !== this.dataset.logTab;
+                    panel.classList.toggle('active', panel.id === this.dataset.logTab);
+                });
+            });
+        });
+        loadReports();
+    });
+
+    async function loadReports() {
+        try {
+            const response = await fetch("{% url 'get_maintenance_reports' %}");
+            const data = await response.json();
+            if (data.success) {
+                reportsData = (data.reports || []).filter(report => report.status === 'Resolved');
+                completedTasksData = data.completed_tasks || [];
+                updateReportsStaffFilter();
+                updateCleaningStaffFilter();
+                updateCleaningTaskFilter();
+                updateReportsTable();
+                updateCleaningScheduleTable();
+            }
+
+        } catch (error) {
+            console.error('Error loading reports:', error);
+        }
+    }
+
+    document.addEventListener('gws:live-update', function(event) {
+        if (event.detail.maintenanceChanged) loadReports();
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        [
+            'reports-staff', 'reports-category', 'reports-priority',
+            'reports-sort', 'reports-date-from', 'reports-date-to'
+        ].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateReportsTable);
+            document.getElementById(id).addEventListener('change', updateReportsTable);
+        });
+        document.querySelectorAll('.report-log-panel .column-filter-toggle').forEach(button => {
+            button.addEventListener('click', () => toggleColumnFilter(button));
+        });
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.report-log-panel .column-filter')) closeColumnFilters();
+        });
+        window.addEventListener('resize', positionOpenColumnFilter);
+        window.addEventListener('scroll', positionOpenColumnFilter, true);
+        [
+            'cleaning-task-filter', 'cleaning-staff',
+            'cleaning-sort', 'cleaning-date-from', 'cleaning-date-to'
+        ].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateCleaningScheduleTable);
+            document.getElementById(id).addEventListener('change', updateCleaningScheduleTable);
+        });
+    });
+
+    function toggleColumnFilter(button) {
+        const filter = button.closest('.column-filter');
+        const menu = filter.querySelector('.column-filter-menu');
+        const shouldOpen = menu.hidden;
+        closeColumnFilters();
+        if (shouldOpen) {
+            menu.hidden = false;
+            button.setAttribute('aria-expanded', 'true');
+            positionColumnFilterMenu(filter);
+        }
+    }
+
+    function closeColumnFilters() {
+        document.querySelectorAll('.report-log-panel .column-filter-menu:not([hidden])').forEach(menu => {
+            menu.hidden = true;
+            menu.closest('.column-filter').querySelector('.column-filter-toggle').setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    function positionColumnFilterMenu(filter) {
+        const button = filter.querySelector('.column-filter-toggle');
+        const menu = filter.querySelector('.column-filter-menu');
+        const buttonRect = button.getBoundingClientRect();
+        const menuWidth = Math.min(250, window.innerWidth - 24);
+        const left = Math.max(12, Math.min(buttonRect.left, window.innerWidth - menuWidth - 12));
+        menu.style.width = `${menuWidth}px`;
+        const top = buttonRect.bottom + menu.offsetHeight + 6 > window.innerHeight
+            ? Math.max(12, buttonRect.top - menu.offsetHeight - 6)
+            : buttonRect.bottom + 6;
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+    }
+
+    function positionOpenColumnFilter() {
+        const menu = document.querySelector('.report-log-panel .column-filter-menu:not([hidden])');
+        if (menu) positionColumnFilterMenu(menu.closest('.column-filter'));
+    }
+
+    function updateReportsStaffFilter() {
+        const staffFilter = document.getElementById('reports-staff');
+        const selectedStaff = staffFilter.value;
+        const staffNames = [...new Set(
+            reportsData.map(report => (report.staff_name || '').trim()).filter(Boolean)
+        )].sort((a, b) => a.localeCompare(b));
+
+        staffFilter.replaceChildren(new Option('All staff', ''));
+        staffNames.forEach(name => staffFilter.add(new Option(name, name)));
+        staffFilter.value = [...staffFilter.options].some(option => option.value === selectedStaff)
+            ? selectedStaff
+            : '';
+    }
+
+    function updateCleaningStaffFilter() {
+        const staffFilter = document.getElementById('cleaning-staff');
+        const selectedStaff = staffFilter.value;
+        const staffNames = [...new Set(
+            completedTasksData.map(task => (task.staff_name || '').trim()).filter(Boolean)
+        )].sort((a, b) => a.localeCompare(b));
+
+        staffFilter.replaceChildren(new Option('All staff', ''));
+        staffNames.forEach(name => staffFilter.add(new Option(name, name)));
+        staffFilter.value = [...staffFilter.options].some(option => option.value === selectedStaff)
+            ? selectedStaff
+            : '';
+    }
+
+    function updateCleaningTaskFilter() {
+        const taskFilter = document.getElementById('cleaning-task-filter');
+        const selectedTask = taskFilter.value;
+        taskFilter.replaceChildren(new Option('All cleaning tasks', ''));
+        equipmentCleaningOptions.forEach(task => taskFilter.add(new Option(task, task)));
+        taskFilter.value = [...taskFilter.options].some(option => option.value === selectedTask)
+            ? selectedTask
+            : '';
+    }
+
+    function updateCleaningScheduleTable() {
+        const tableBody = document.getElementById('cleaningScheduleTableBody');
+        const selectedTask = document.getElementById('cleaning-task-filter').value;
+        const staff = document.getElementById('cleaning-staff').value;
+        const dateFrom = document.getElementById('cleaning-date-from').value;
+        const dateTo = document.getElementById('cleaning-date-to').value;
+        const sort = document.getElementById('cleaning-sort').value;
+        const tasks = completedTasksData.filter(task => {
+            const taskName = (task.task || '').trim().toLowerCase();
+            const staffName = (task.staff_name || '').trim();
+            const isKnownOption = equipmentCleaningOptions
+                .filter(option => option !== 'Other')
+                .some(option => option.toLowerCase() === taskName);
+            const matchesTask = !selectedTask ||
+                (selectedTask === 'Other'
+                    ? !isKnownOption
+                    : taskName === selectedTask.toLowerCase());
+            return matchesTask &&
+                (!staff || staffName === staff) &&
+                (!dateFrom || task.date >= dateFrom) &&
+                (!dateTo || task.date <= dateTo);
+        }).sort((a, b) => {
+            if (sort === 'date-asc') return a.date.localeCompare(b.date);
+            if (sort === 'completed-asc') return a.completed_at.localeCompare(b.completed_at);
+            if (sort === 'completed-desc') return b.completed_at.localeCompare(a.completed_at);
+            if (sort === 'task-asc') return a.task.localeCompare(b.task);
+            return b.date.localeCompare(a.date);
+        });
+        if (!tasks.length) {
+            const emptyMessage = completedTasksData.length
+                ? 'No cleaning schedules match your filters.'
+                : 'No completed cleaning schedules yet.';
+            tableBody.innerHTML = `<tr class="empty-row"><td colspan="5" style="text-align:center;color:#94a3b8;padding:2rem;">${emptyMessage}</td></tr>`;
+            document.querySelector('.pagination-bar[data-pagination-for="cleaningScheduleTable"]')?.refresh?.();
+            return;
+        }
+
+        tableBody.innerHTML = tasks.map(task => `
+            <tr>
+                <td><strong>${escapeHtml(task.task)}</strong></td>
+                <td>${escapeHtml(task.staff_name || '—')}</td>
+                <td style="max-width: 300px;">${escapeHtml(task.description || '—')}</td>
+                <td style="white-space: nowrap;">${escapeHtml(task.date)}</td>
+                <td><span class="status-badge resolved">Resolved</span></td>
+            </tr>
+        `).join('');
+        document.querySelector('.pagination-bar[data-pagination-for="cleaningScheduleTable"]')?.refresh?.();
+    }
+
+    function updateReportsTable() {
+        const tableBody = document.getElementById('reportsTableBody');
+        const staff = document.getElementById('reports-staff').value;
+        const category = document.getElementById('reports-category').value;
+        const priority = document.getElementById('reports-priority').value;
+        const dateFrom = document.getElementById('reports-date-from').value;
+        const dateTo = document.getElementById('reports-date-to').value;
+        const sort = document.getElementById('reports-sort').value;
+        const priorityOrder = { Low: 1, Medium: 2, High: 3, Critical: 4 };
+        const filteredReports = reportsData.filter(report => {
+            const staffName = (report.staff_name || '').trim();
+            const date = String(report.date || '').slice(0, 10);
+            return (!staff || staffName === staff) &&
+                (!category || report.category === category) &&
+                (!priority || report.priority === priority) &&
+                (!dateFrom || date >= dateFrom) &&
+                (!dateTo || date <= dateTo);
+        }).sort((a, b) => {
+            if (sort === 'date-asc') return a.date.localeCompare(b.date);
+            if (sort === 'priority-desc') return priorityOrder[b.priority] - priorityOrder[a.priority];
+            if (sort === 'priority-asc') return priorityOrder[a.priority] - priorityOrder[b.priority];
+            if (sort === 'category-asc') return a.category.localeCompare(b.category);
+            return b.date.localeCompare(a.date);
+        });
+        if (!filteredReports.length) {
+            const emptyMessage = 'No resolved maintenance reports match your filters.';
+            tableBody.innerHTML = `<tr class="empty-row"><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem;">${emptyMessage}</td></tr>`;
+            document.querySelector('.pagination-bar[data-pagination-for="reportsTable"]')?.refresh?.();
+            return;
+        }
+
+        tableBody.innerHTML = filteredReports.map(report => `
+            <tr>
+                <td><span class="category-badge">${escapeHtml(report.category)}</span></td>
+                <td>${escapeHtml(report.staff_name || '—')}</td>
+                <td style="max-width: 300px;">${escapeHtml((report.description || '').substring(0, 80))}${(report.description || '').length > 80 ? '...' : ''}</td>
+                <td>
+                    <span class="priority-badge ${escapeHtml(report.priority.toLowerCase())}">${escapeHtml(report.priority)}</span>
+                </td>
+                <td style="white-space: nowrap;">${escapeHtml(report.date)}</td>
+                <td>
+                    <span class="status-badge ${escapeHtml(report.status.toLowerCase().replace(/\s+/g, '-'))}">${escapeHtml(formatStatusLabel(report.status))}</span>
+                </td>
+                <td style="white-space: nowrap;">${escapeHtml(report.due_date || '—')}</td>
+                <td>
+                    <div class="maintenance-photo-stack">
+                        ${report.photo_urls && report.photo_urls.length ? report.photo_urls.map(photoUrl => `<button type="button" class="maintenance-photo-thumb" data-gallery-group="report-${report.id}" data-gallery-src="${escapeHtml(photoUrl)}" aria-label="View maintenance photo"><img src="${escapeHtml(photoUrl)}" alt="Maintenance issue: ${escapeHtml(report.category)}"></button>`).join('') : '—'}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        document.querySelector('.pagination-bar[data-pagination-for="reportsTable"]')?.refresh?.();
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function formatStatusLabel(status) {
+        if (status === 'Open') return 'Pending';
+        return status;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function logMaintenanceReport() {
+        const category = document.getElementById('maint-category').value;
+        const priority = document.getElementById('maint-priority').value;
+        const description = document.getElementById('maint-description').value.trim();
+
+        if (!category || !description) {
+            showNotification('Please fill in all required fields (Category and Description)', 'error');
+            return;
+        }
+
+        const submitBtn = event.target;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+        try {
+            const response = await fetch("{% url 'create_maintenance_report' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ category, description, priority })
+            });
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('maint-category').value = '';
+                document.getElementById('maint-priority').value = 'Medium';
+                document.getElementById('maint-description').value = '';
+                await loadReports();
+                showNotification('Maintenance report logged successfully!', 'success');
+            } else {
+                showNotification(data.message || 'Error logging report', 'error');
+            }
+        } catch (error) {
+            showNotification('Error logging report', 'error');
+            console.error(error);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
+    async function deleteReport(id) {
+        if (confirm('Are you sure you want to delete this report?')) {
+            try {
+                const response = await fetch(`{% url 'delete_maintenance_report' 0 %}`.replace('0', id), {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    await loadReports();
+                    showNotification('Report deleted successfully!', 'success');
+                } else {
+                    showNotification(data.message || 'Error deleting report', 'error');
+                }
+            } catch (error) {
+                showNotification('Error deleting report', 'error');
+                console.error(error);
+            }
+        }
+    }
+
+    function filterReports() {
+        const filterValue = document.getElementById('filter-status').value;
+        const rows = document.querySelectorAll('#reportsTableBody tr');
+        rows.forEach(row => {
+            if (row.classList.contains('empty-row')) return;
+            const statusCell = row.querySelector('td:nth-child(5)');
+            if (filterValue === 'all') {
+                row.style.display = '';
+            } else if (statusCell && statusCell.textContent.trim() === filterValue) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1rem;">&times;</button>
+        `;
+        const container = document.querySelector('.main-content');
+        container.insertBefore(notification, container.firstChild);
+        setTimeout(() => { if (notification.parentElement) notification.remove(); }, 5000);
+    }
+
+    // Mobile sidebar toggle
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.createElement('button');
+        btn.className = 'menu-toggle';
+        btn.innerHTML = '<i class="fas fa-bars"></i>';
+        const ov = document.createElement('div');
+        ov.className = 'sidebar-overlay';
+        document.body.append(btn, ov);
+        const sb = document.querySelector('.sidebar');
+        const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+        const open = () => { sb.classList.add('active'); ov.classList.add('active'); btn.querySelector('i').className = 'fas fa-times'; };
+        btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+        ov.addEventListener('click', close);
+        
+        // Reports dropdown toggle handler
+        const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+        if (reportsToggle) {
+            reportsToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                reportsToggle.parentElement.classList.toggle('active');
+            });
+        }
+    });
+</script>
+
+<div class="maintenance-gallery" id="maintenance-gallery" role="dialog" aria-modal="true" aria-label="Maintenance photos">
+    <div class="maintenance-gallery-content">
+        <button type="button" class="maintenance-gallery-close" aria-label="Close">&times;</button>
+        <img class="maintenance-gallery-image" alt="Maintenance photo">
+    </div>
+    <button type="button" class="maintenance-gallery-nav maintenance-gallery-prev" aria-label="Previous photo">&#8249;</button>
+    <button type="button" class="maintenance-gallery-nav maintenance-gallery-next" aria-label="Next photo">&#8250;</button>
+    <span class="maintenance-gallery-counter"></span>
+</div>
+<script>
+(() => {
+    const gallery = document.getElementById('maintenance-gallery');
+    const image = gallery.querySelector('.maintenance-gallery-image');
+    const counter = gallery.querySelector('.maintenance-gallery-counter');
+    let items = [];
+    let index = 0;
+    const render = () => {
+        image.src = items[index];
+        counter.textContent = `${index + 1} / ${items.length}`;
+    };
+    const close = () => gallery.classList.remove('is-open');
+    const move = step => {
+        if (!items.length) return;
+        index = (index + step + items.length) % items.length;
+        render();
+    };
+    document.addEventListener('click', event => {
+        const thumb = event.target.closest('.maintenance-photo-thumb');
+        if (thumb) {
+            items = [...document.querySelectorAll(`[data-gallery-group="${thumb.dataset.galleryGroup}"]`)]
+                .map(item => item.dataset.gallerySrc);
+            index = Math.max(0, items.indexOf(thumb.dataset.gallerySrc));
+            render();
+            gallery.classList.add('is-open');
+            return;
+        }
+        if (event.target === gallery || event.target.closest('.maintenance-gallery-close')) close();
+        if (event.target.closest('.maintenance-gallery-prev')) move(-1);
+        if (event.target.closest('.maintenance-gallery-next')) move(1);
+    });
+    document.addEventListener('keydown', event => {
+        if (!gallery.classList.contains('is-open')) return;
+        if (event.key === 'Escape') close();
+        if (event.key === 'ArrowLeft') move(-1);
+        if (event.key === 'ArrowRight') move(1);
+    });
+})();
+</script>
+
+<style>
+    .reports-log-note {
+        margin: .25rem 0 0 1.55rem;
+        color: var(--text-muted);
+        font-size: .75rem;
+    }
+    .report-log-tabs {
+        display: flex;
+        gap: 1.8rem;
+        margin-top: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        padding: 0 .7rem;
+    }
+    .report-log-tab {
+        position: relative;
+        padding: .8rem .3rem .75rem;
+        border: 0;
+        background: transparent;
+        color: #8aa9c2;
+        cursor: pointer;
+        font-size: .95rem;
+        font-weight: 600;
+    }
+    .report-log-tab.active {
+        color: #075985;
+    }
+    .report-log-tab.active::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: -1px;
+        left: 0;
+        height: 2px;
+        background: #075985;
+    }
+    .report-log-tab i { margin-right: .35rem; }
+    .report-log-panel { margin-top: 1.5rem; }
+    .report-log-panel[hidden] { display: none; }
+    /* ── MAINTENANCE CARD & FORM ── */
+    .maintenance-grid { display: grid; gap: 1.5rem; }
+
+    .maint-card {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .maint-card h3 {
+        margin: 0 0 1.25rem 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+    }
+
+    .maint-card h3 i { color: var(--primary); }
+
+    .maint-form { display: flex; flex-direction: column; gap: 1.1rem; }
+
+    .form-row { display: flex; flex-direction: column; gap: .4rem; }
+
+    .form-row label {
+        font-size: .8rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .required { color: var(--danger); }
+
+    .maint-input {
+        padding: .65rem .9rem;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        font-size: .9rem;
+        color: var(--text);
+        background: var(--surface);
+        transition: var(--trans);
+        width: 100%;
+        font-family: inherit;
+    }
+
+    .maint-input.small { width: auto; min-width: 140px; }
+
+    .maint-input:hover { border-color: var(--border-mid); background: var(--card-bg); }
+
+    .maint-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: var(--card-bg);
+        box-shadow: 0 0 0 3px rgba(26,138,212,.1);
+    }
+
+    .maint-btn {
+        padding: .65rem 1.5rem;
+        border: 1.5px solid var(--border);
+        background: var(--surface);
+        border-radius: var(--radius);
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        transition: var(--trans);
+        font-size: .875rem;
+        color: var(--text-sub);
+        font-family: inherit;
+    }
+
+    .maint-btn:hover { background: var(--card-bg); border-color: var(--border-mid); color: var(--text); }
+
+    .maint-btn.primary {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(26,138,212,.25);
+    }
+
+    .maint-btn.primary:hover:not(:disabled) {
+        background: var(--secondary);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(26,138,212,.35);
+    }
+
+    .maint-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* ── TABLE ── */
+    .maint-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .report-log-filters {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: .55rem;
+        flex: 1 1 600px;
+    }
+
+    .report-log-filters .maint-input.small { min-width: 150px; }
+
+    .report-date-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        color: var(--text-muted);
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+
+    .report-date-filter .maint-input.small { min-width: 135px; }
+
+    .column-filter-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        cursor: pointer;
+    }
+
+    .column-filter-toggle i {
+        color: var(--primary);
+        font-size: .68rem;
+        transition: transform .15s ease;
+    }
+
+    .column-filter-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+
+    .column-filter-menu {
+        position: fixed;
+        z-index: 1200;
+        display: flex;
+        flex-direction: column;
+        gap: .45rem;
+        padding: .8rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card-bg);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+        color: var(--text);
+        text-transform: none;
+        letter-spacing: normal;
+    }
+
+    .column-filter-menu[hidden] { display: none; }
+
+    .column-filter-menu label {
+        color: var(--text-muted);
+        font-size: .72rem;
+        font-weight: 600;
+    }
+
+    .column-filter-menu .maint-input.small {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+    }
+
+    .maint-table { width: 100%; border-collapse: collapse; }
+    .maintenance-photo-stack {
+        display: flex;
+        align-items: center;
+        min-width: 150px;
+        height: 58px;
+    }
+    .maintenance-photo-thumb {
+        width: 56px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid #fff;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #eef2f7;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+        transition: transform .15s, z-index .15s;
+    }
+    .maintenance-photo-thumb + .maintenance-photo-thumb { margin-left: -42px; }
+    .maintenance-photo-thumb:hover { transform: translateY(-3px); z-index: 2; }
+    .maintenance-photo-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .maintenance-gallery {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(15, 23, 42, .82);
+    }
+    .maintenance-gallery.is-open { display: flex; }
+    .maintenance-gallery-content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 90vw;
+        max-height: 88vh;
+    }
+    .maintenance-gallery-image {
+        display: block;
+        max-width: 82vw;
+        max-height: 82vh;
+        border-radius: 10px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+    }
+    .maintenance-gallery-close,
+    .maintenance-gallery-nav {
+        border: 0;
+        color: #fff;
+        background: rgba(255, 255, 255, .16);
+        cursor: pointer;
+    }
+    .maintenance-gallery-close {
+        position: absolute;
+        top: -42px;
+        right: 0;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-size: 22px;
+    }
+    .maintenance-gallery-nav {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 56px;
+        border-radius: 8px;
+        font-size: 28px;
+    }
+    .maintenance-gallery-prev { left: 24px; }
+    .maintenance-gallery-next { right: 24px; }
+    .maintenance-gallery-counter {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        font-size: 13px;
+    }
+
+    .maint-table thead { border-bottom: 2px solid var(--border); }
+
+    .maint-table th {
+        padding: .75rem 1rem;
+        text-align: left;
+        font-size: .75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .maint-table td {
+        padding: .85rem 1rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        font-size: .875rem;
+        vertical-align: middle;
+    }
+
+    .maint-table tbody tr:hover { background: var(--surface); }
+
+    /* ── BADGES ── */
+    .status-badge, .priority-badge, .category-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: .22rem .65rem;
+        border-radius: 20px;
+        font-size: .72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .status-badge.open         { background: #fee2e2; color: var(--danger); }
+    .status-badge.in-progress  { background: #fef3c7; color: var(--warning); }
+    .status-badge.resolved     { background: #dcfce7; color: var(--success); }
+    .status-badge.closed       { background: var(--border); color: var(--text-sub); }
+
+    .priority-badge.low      { background: #dcfce7; color: var(--success); }
+    .priority-badge.medium   { background: #fef3c7; color: var(--warning); }
+    .priority-badge.high     { background: #fee2e2; color: var(--danger); }
+    .priority-badge.critical { background: #fecaca; color: #7f1d1d; }
+
+    .category-badge { background: var(--blue-50); color: var(--primary); border: 1px solid var(--blue-100); }
+
+    /* ── ACTION BUTTONS ── */
+    .action-btn {
+        padding: .38rem .8rem;
+        border: 1.5px solid var(--border);
+        background: var(--surface);
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: .8rem;
+        transition: var(--trans);
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        color: var(--text-sub);
+        font-family: inherit;
+    }
+
+    .action-btn:hover { background: var(--card-bg); border-color: var(--border-mid); color: var(--text); }
+    .action-btn.delete { color: var(--danger); }
+    .action-btn.delete:hover { background: #fee2e2; border-color: #fca5a5; }
+
+    /* ── ALERTS ── */
+    .alert {
+        padding: .85rem 1.1rem;
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        font-size: .875rem;
+        border: 1px solid;
+    }
+
+    .alert-success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+    .alert-error   { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+        .maint-table-header { flex-direction: column; align-items: flex-start; }
+        .maint-table-header > div { width: 100%; }
+        .maint-table-header h3 { margin-bottom: .5rem; }
+        .maint-table-header { gap: .6rem; margin-bottom: .75rem; }
+        .report-log-filters {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            justify-content: stretch;
+            gap: .5rem;
+            flex: none;
+        }
+        .report-log-filters .maint-input.small {
+            width: 100%;
+            min-width: 0;
+            margin: 0;
+        }
+        .report-date-filter {
+            width: 100%;
+            justify-content: space-between;
+            gap: .6rem;
+        }
+        .report-date-filter .maint-input.small {
+            flex: 1;
+            width: auto;
+            min-width: 0;
+            margin: 0;
+        }
+        .maint-input.small { width: 100%; }
+        /* Table scroll */
+        .maint-card { overflow-x: auto; }
+        .maint-table { min-width: 560px; }
+        .maint-table th, .maint-table td { padding: .65rem .6rem; }
+    }
+
+    @media (max-width: 480px) {
+        .maint-card { padding: 1rem; }
+        .maint-table { min-width: 480px; }
+    }
+</style>
+
+</body>
+</html>

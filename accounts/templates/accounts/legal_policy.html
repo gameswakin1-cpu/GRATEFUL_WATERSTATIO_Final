@@ -1,0 +1,116 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Policies{% endblock %} - Grateful Water Station</title>
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body.policy-page {
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem 1rem;
+            background: #f3f7fb;
+            color: #24364a;
+            font-family: Inter, sans-serif;
+        }
+        .policy-card {
+            width: min(820px, 100%);
+            margin: 0 auto;
+            padding: clamp(1.25rem, 4vw, 2.5rem);
+            border: 1px solid #dce6ef;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 12px 34px rgba(25, 55, 85, .08);
+        }
+        .policy-back {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            margin-bottom: 1.5rem;
+            padding: .7rem 1rem;
+            border: 1px solid #1673ce;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #2488ef, #1265c2);
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 5px 14px rgba(22, 101, 194, .24);
+            transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .policy-back:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #1678db, #0c55a9);
+            box-shadow: 0 8px 18px rgba(22, 101, 194, .32);
+        }
+        .policy-back:focus-visible {
+            outline: 3px solid rgba(36, 136, 239, .35);
+            outline-offset: 3px;
+        }
+        .policy-back i {
+            transition: transform .2s ease;
+        }
+        .policy-back:hover i {
+            transform: translateX(-3px);
+        }
+        .policy-card h1 {
+            margin: 0 0 .5rem;
+            color: #17324d;
+            font-size: clamp(1.6rem, 4vw, 2.2rem);
+        }
+        .policy-intro {
+            margin: 0 0 1.5rem;
+            color: #60758a;
+            line-height: 1.65;
+        }
+        .policy-draft-note {
+            margin: 1.5rem 0;
+            padding: .9rem 1rem;
+            border-left: 4px solid #e6a23c;
+            border-radius: 8px;
+            background: #fff8e8;
+            color: #6b542c;
+            font-size: .9rem;
+            line-height: 1.55;
+        }
+        .policy-section {
+            padding: 1rem 0;
+            border-top: 1px solid #e8eef4;
+        }
+        .policy-section h2 {
+            margin: 0 0 .45rem;
+            color: #1a7db7;
+            font-size: 1.08rem;
+        }
+        .policy-section p,
+        .policy-section li {
+            color: #455a70;
+            line-height: 1.7;
+        }
+        .policy-section p { margin: .4rem 0; }
+        .policy-section ul { margin: .5rem 0; padding-left: 1.3rem; }
+    </style>
+</head>
+<body class="policy-page">
+    <main class="policy-card">
+        <a class="policy-back" href="{% url 'register' %}">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Register Account
+        </a>
+        <h1>{% block heading %}Policies{% endblock %}</h1>
+        <p class="policy-intro">{% block intro %}{% endblock %}</p>
+        <div class="policy-draft-note">
+            Draft policy for review: Grateful Water Station should confirm these terms and practices before treating this page as its final legal policy.
+        </div>
+        {% block policy_content %}{% endblock %}
+        <div class="policy-section">
+            <h2>Questions or requests</h2>
+            <p>For questions about these policies or your account information, contact Grateful Water Station through the <a href="{% url 'home' %}#contact">Contact Us</a> section.</p>
+        </div>
+    </main>
+</body>
+</html>

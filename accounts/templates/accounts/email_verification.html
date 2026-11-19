@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Email - Grateful Water Station</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container { max-width: 450px; width: 100%; }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        h2 { color: #1e293b; margin-bottom: 10px; }
+        .email { background: #f1f5f9; padding: 10px; border-radius: 10px; margin: 20px 0; color: #0ea5e9; }
+        .otp-group { display: flex; gap: 10px; justify-content: center; margin: 30px 0; }
+        .otp-input {
+            width: 50px; height: 60px; text-align: center; font-size: 24px;
+            border: 2px solid #e2e8f0; border-radius: 10px;
+        }
+        .otp-input:focus { outline: none; border-color: #0ea5e9; }
+        .btn {
+            width: 100%; padding: 14px; background: #0ea5e9; color: white;
+            border: none; border-radius: 10px; font-size: 16px; cursor: pointer;
+        }
+        .btn:hover { background: #0284c7; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .resend { margin-top: 20px; font-size: 14px; color: #64748b; }
+        .resend button { background: none; border: none; color: #0ea5e9; cursor: pointer; }
+        .error { color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+        .success { color: #059669; background: #d1fae5; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2>Verify Your Email</h2>
+            <div class="email">{{ email }}</div>
+            <p>Enter the 6-digit code sent to your email</p>
+            
+            <div id="alert"></div>
+            
+            <div class="otp-group">
+                <input type="text" maxlength="1" class="otp-input" id="otp1" onkeyup="moveNext(this, 'otp2')">
+                <input type="text" maxlength="1" class="otp-input" id="otp2" onkeyup="moveNext(this, 'otp3')">
+                <input type="text" maxlength="1" class="otp-input" id="otp3" onkeyup="moveNext(this, 'otp4')">
+                <input type="text" maxlength="1" class="otp-input" id="otp4" onkeyup="moveNext(this, 'otp5')">
+                <input type="text" maxlength="1" class="otp-input" id="otp5" onkeyup="moveNext(this, 'otp6')">
+                <input type="text" maxlength="1" class="otp-input" id="otp6" onkeyup="verify()">
+            </div>
+            
+            <button class="btn" id="verifyBtn" onclick="verifyOTP()">Verify & Create Account</button>
+            
+            <div class="resend">
+                Didn't receive code? <button id="resendBtn" onclick="resendOTP()">Resend</button>
+                <span id="timer"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cooldown = false;
+        let timerInterval = null;
+        
+        document.getElementById('otp1').focus();
+        
+        function moveNext(current, nextId) {
+            if (current.value.length === 1 && nextId) {
+                document.getElementById(nextId).focus();
+            }
+        }
+        
+        function getOTP() {
+            let otp = '';
+            for (let i = 1; i <= 6; i++) {
+                otp += document.getElementById(`otp${i}`).value;
+            }
+            return otp;
+        }
+        
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => { alertDiv.innerHTML = ''; }, 5000);
+        }
+        
+        async function verifyOTP() {
+            const otp = getOTP();
+            if (otp.length !== 6) {
+                showAlert('Please enter complete code', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('verifyBtn');
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+            
+            try {
+                const response = await fetch("{% url 'verify_email' %}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ otp: otp })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => { window.location.href = data.redirect_url; }, 1500);
+                } else {
+                    showAlert(data.message, 'error');
+                    // Clear OTP inputs
+                    for (let i = 1; i <= 6; i++) {
+                        document.getElementById(`otp${i}`).value = '';
+                    }
+                    document.getElementById('otp1').focus();
+                }
+            } catch (error) {
+                showAlert('Error occurred. Please try again.', 'error');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Verify & Create Account';
+        }
+        
+        async function resendOTP() {
+            if (cooldown) {
+                showAlert('Please wait before requesting again', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('resendBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch("{% url 'resend_otp' %}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    startCooldown();
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to resend code', 'error');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Resend';
+        }
+        
+        function startCooldown() {
+            cooldown = true;
+            let seconds = 30;
+            const timerSpan = document.getElementById('timer');
+            timerSpan.textContent = `(${seconds}s)`;
+            
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerSpan.textContent = '';
+                    cooldown = false;
+                } else {
+                    timerSpan.textContent = `(${seconds}s)`;
+                }
+            }, 1000);
+        }
+        
+        function verify() {
+            if (getOTP().length === 6) verifyOTP();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    {% if show_google_profile_modal %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    {% endif %}
+    <script src="{% static 'accounts/js/dashboard_topbar.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Dashboard-specific styles only - CSS variables are in shared styles.css */
+
+        /* Enhanced Welcome Banner for Dashboard */
+        .welcome-banner {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            color: white;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(26, 138, 212, 0.15);
+        }
+
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        .welcome-banner::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+            animation: pulse 6s ease-in-out infinite reverse;
+        }
+
+        .welcome-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .welcome-text h2 {
+            font-size: clamp(1.4rem, 2vw, 2rem);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            line-height: 1.25;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .welcome-text p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .station-status-sentence {
+            display: block;
+            margin-top: 0.35rem;
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        /* Enhanced Analytics Grid */
+        .analytics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 1rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .analytics-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1rem !important;
+            padding: 1.5rem !important;
+            text-align: center !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            border: 0 !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .analytics-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+            pointer-events: none;
+        }
+
+        .analytics-card:hover {
+            transform: translateY(-8px) !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .analytics-card i {
+            font-size: 2rem !important;
+            margin-bottom: 0.75rem !important;
+            opacity: 0.95 !important;
+            display: block !important;
+        }
+
+        .analytics-card > div:nth-child(2) {
+            font-size: 2.5rem !important;
+            font-weight: 800 !important;
+            margin: 0.75rem 0 !important;
+            letter-spacing: -0.02em;
+        }
+
+        .analytics-card > div:nth-child(3) {
+            font-size: 0.9rem !important;
+            opacity: 0.95 !important;
+            font-weight: 500 !important;
+        }
+
+        /* Weekly Activity Chart Enhancement */
+        .activity-chart {
+            background: white !important;
+            border-radius: 1rem !important;
+            padding: 1.5rem !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .activity-chart h3 {
+            font-size: 1.1rem !important;
+            color: #1e293b !important;
+            margin-bottom: 1.5rem !important;
+            font-weight: 700 !important;
+        }
+
+        .chart-wrapper {
+            position: relative !important;
+            height: 180px !important;
+            padding: 1.5rem 0.5rem 0.5rem 0.5rem !important;
+        }
+
+        .chart-container {
+            display: flex !important;
+            align-items: flex-end !important;
+            justify-content: space-around !important;
+            height: 100% !important;
+            gap: 0.75rem !important;
+        }
+
+        .chart-bar-wrapper {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            max-width: 60px !important;
+        }
+
+        .chart-bar {
+            width: 100% !important;
+            max-width: 45px !important;
+            background: linear-gradient(to top, #0ea5e9, #06b6d4) !important;
+            border-radius: 8px 8px 0 0 !important;
+            min-height: 8px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2) !important;
+        }
+
+        .chart-bar-wrapper:hover .chart-bar {
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35) !important;
+            transform: scaleY(1.05) !important;
+        }
+
+        .chart-bar-wrapper span:nth-child(2) {
+            font-size: 0.8rem !important;
+            color: #64748b !important;
+            font-weight: 600 !important;
+        }
+
+        .chart-bar-wrapper span:nth-child(3) {
+            font-size: 0.7rem !important;
+            color: #94a3b8 !important;
+            font-weight: 500 !important;
+        }
+
+        /* Enhanced Order Status Badges */
+        .order-status {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            padding: 0.6rem 1.2rem !important;
+            border-radius: 50px !important;
+            font-size: 0.8rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.03em !important;
+            border: 1.5px solid transparent !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .order-status::before {
+            content: '' !important;
+            width: 8px !important;
+            height: 8px !important;
+            border-radius: 50% !important;
+            background: currentColor !important;
+            animation: pulse-dot 2s infinite !important;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .order-status.pending { background: #fef3c7 !important; color: #92400e !important; border-color: #fcd34d !important; }
+        .order-status.processing { background: #dbeafe !important; color: #1e40af !important; border-color: #93c5fd !important; }
+        .order-status.out_for_delivery { background: #fed7aa !important; color: #9a3412 !important; border-color: #fdba74 !important; }
+        .order-status.delivered { background: #d1fae5 !important; color: #065f46 !important; border-color: #6ee7b7 !important; }
+        .order-status.cancelled { background: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important; }
+
+        /* Enhanced Table Design */
+        .data-table table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            background: white !important;
+            border-radius: 1rem !important;
+            overflow: hidden !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .data-table thead {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9) !important;
+            border-bottom: 2px solid #e2e8f0 !important;
+        }
+
+        .data-table th {
+            padding: 1.2rem !important;
+            text-align: left !important;
+            font-weight: 700 !important;
+            color: #475569 !important;
+            font-size: 0.85rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+        }
+
+        .data-table td {
+            padding: 1rem 1.2rem !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            color: #334155 !important;
+        }
+
+        .data-table tbody tr {
+            transition: all 0.2s ease !important;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8fafc !important;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none !important;
+        }
+
+        /* Enhanced Action Buttons */
+        .btn-order {
+            padding: 0.6rem 1.2rem !important;
+            font-size: 0.85rem !important;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 0.5rem !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.4rem !important;
+            font-weight: 600 !important;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2) !important;
+            text-decoration: none !important;
+        }
+
+        .btn-order:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3) !important;
+        }
+
+        .btn-outline {
+            background: white !important;
+            border: 2px solid var(--primary) !important;
+            color: var(--primary) !important;
+            padding: 0.6rem 1.5rem !important;
+            border-radius: 0.5rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 700 !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            cursor: pointer !important;
+        }
+
+        .btn-outline:hover {
+            background: var(--primary) !important;
+            color: white !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3) !important;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center !important;
+            padding: 4rem 2rem !important;
+            color: #94a3b8 !important;
+        }
+
+        .empty-state i {
+            font-size: 4rem !important;
+            margin-bottom: 1.5rem !important;
+            opacity: 0.4 !important;
+            background: linear-gradient(135deg, #cbd5e1, #94a3b8) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+        }
+
+        .empty-state p {
+            font-size: 1.125rem !important;
+            margin-bottom: 1.5rem !important;
+            font-weight: 500 !important;
+        }
+
+        /* Staggered Animations */
+        .welcome-banner, .activity-chart, .data-table {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .analytics-card {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .analytics-card:nth-child(1) { animation-delay: 0.1s; }
+        .analytics-card:nth-child(2) { animation-delay: 0.2s; }
+        .analytics-card:nth-child(3) { animation-delay: 0.3s; }
+        .analytics-card:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Table Header Enhancement */
+        .table-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            margin-bottom: 1.5rem !important;
+            padding-bottom: 1rem !important;
+            border-bottom: 2px solid #e2e8f0 !important;
+        }
+
+        .table-header h2 {
+            font-size: 1.3rem !important;
+            font-weight: 800 !important;
+            color: #1e293b !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.75rem !important;
+        }
+
+        .table-header h2 i {
+            color: var(--primary) !important;
+            font-size: 1.5rem !important;
+        }
+
+        /* Analytics Section Container */
+        .analytics-section {
+            background: white !important;
+            backdrop-filter: blur(20px) !important;
+            border-radius: 1rem !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 2rem !important;
+            margin-bottom: 2rem !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+            animation: fadeInUp 0.6s ease-out !important;
+        }
+
+        .purchase-analytics-layout {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: stretch;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .purchase-analytics-layout .analytics-section {
+            min-width: 0;
+            margin-bottom: 0 !important;
+        }
+
+        .purchase-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+            min-width: 0;
+            height: 320px;
+            gap: 12px;
+        }
+        .purchase-stats-grid.analytics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            margin-bottom: 0 !important;
+        }
+
+        .purchase-stats-grid .analytics-card {
+            display: flex;
+            min-width: 0;
+            min-height: 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem !important;
+        }
+
+        .weekly-activity-section {
+            margin: 0 0 2rem;
+        }
+
+        .customer-announcement {
+            position: relative;
+            min-width: 0;
+            height: 320px;
+            min-height: 320px;
+            overflow: hidden;
+            touch-action: pan-y;
+            border: 1px solid #d9e7f8;
+            border-radius: 1rem;
+            background: #eef6fc;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            aspect-ratio: auto;
+        }
+
+        .customer-announcement-slide {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 450ms ease;
+        }
+
+        .customer-announcement-slide.is-active {
+            opacity: 1;
+        }
+        .customer-announcement-slide[hidden] { display: none; }
+        .customer-announcement-slide.has-image {
+            background: #0f172a;
+        }
+        .customer-announcement-image {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .customer-announcement-content {
+            position: absolute;
+            inset: 0 0 auto;
+            z-index: 1;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .65rem;
+            min-height: 0;
+            padding: 1.25rem 3.25rem 2rem;
+            background: linear-gradient(rgba(7, 31, 53, .82), rgba(7, 31, 53, .48) 72%, transparent);
+            color: #fff;
+            text-align: center;
+        }
+        .customer-announcement-content.no-image {
+            position: absolute;
+            inset: 0;
+            justify-content: flex-start;
+            padding: 2rem 1.5rem;
+            background: linear-gradient(140deg, #0f6a9f, #38b6bd);
+        }
+        .customer-announcement-category {
+            display: inline-flex;
+            align-items: center;
+            gap: .38rem;
+            padding: .3rem .55rem;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 999px;
+            background: rgba(255,255,255,.15);
+            font-size: .64rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            align-self: center;
+        }
+        .customer-announcement-content h3 {
+            margin: 0;
+            color: #fff;
+            font-size: clamp(1rem, 1.8vw, 1.4rem);
+            line-height: 1.18;
+        }
+        .customer-announcement-content p {
+            margin: 0;
+            color: rgba(255,255,255,.9);
+            font-size: .8rem;
+            line-height: 1.45;
+            max-width: 34rem;
+        }
+        .customer-announcement-empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1.5rem;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .customer-announcement-empty i {
+            color: #2794d2;
+            font-size: 2rem;
+        }
+
+        .customer-announcement-controls {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0.75rem;
+            pointer-events: none;
+        }
+
+        .customer-announcement-controls button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(15, 35, 58, 0.58);
+            color: #fff;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .customer-announcement-controls button:hover,
+        .customer-announcement-controls button:focus-visible {
+            background: rgba(15, 35, 58, 0.82);
+        }
+
+        .customer-announcement-dots {
+            position: absolute;
+            right: 0;
+            bottom: 0.8rem;
+            left: 0;
+            z-index: 3;
+            display: flex;
+            justify-content: center;
+            gap: 0.45rem;
+        }
+
+        .customer-announcement-dot {
+            width: 0.55rem;
+            height: 0.55rem;
+            padding: 0;
+            border: 1px solid #fff;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.55);
+            cursor: pointer;
+        }
+
+        .customer-announcement-dot.is-active {
+            background: #fff;
+            transform: scale(1.2);
+        }
+
+        /* Dashboard Responsive */
+        @media (max-width: 1100px) {
+            .purchase-analytics-layout {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .customer-announcement {
+                height: 320px;
+                min-height: 320px;
+                aspect-ratio: auto;
+            }
+            .purchase-stats-grid {
+                height: 320px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .btn-back, .mobile-back, .page-back, .header-back { display: none !important; }
+            .customer-announcement-controls {
+                display: none;
+            }
+            .purchase-analytics-layout {
+                grid-template-columns: 1fr;
+            }
+            .welcome-banner {
+                padding: 1.1rem 1rem 1rem !important;
+                border-radius: .8rem !important;
+                display: block !important;
+            }
+            .welcome-text {
+                position: relative !important;
+                z-index: 1;
+                padding-right: 0;
+            }
+            .welcome-text h2 {
+                font-size: clamp(1.15rem, 3vw, 1.6rem) !important;
+                margin-bottom: 0.35rem !important;
+            }
+            .welcome-text p {
+                font-size: 0.76rem !important;
+                line-height: 1.4 !important;
+            }
+            .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .purchase-stats-grid { height: 320px; }
+            .purchase-analytics-layout { gap: 1rem; }
+            .customer-announcement {
+                height: 320px;
+                min-height: 320px;
+                aspect-ratio: auto;
+            }
+            .customer-announcement-content:not(.no-image) {
+                padding: 1.1rem 2.75rem 1.75rem;
+            }
+            .table-header { flex-direction: column !important; gap: 1rem !important; text-align: center !important; }
+            .analytics-card > div:nth-child(2) { font-size: 1.65rem !important; }
+            .data-table { overflow-x: auto; }
+            .data-table table { min-width: 560px; }
+        }
+
+        @media (max-width: 480px) {
+            .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .welcome-text h2 { font-size: 1.15rem !important; }
+            .analytics-card > div:nth-child(2) { font-size: 1.45rem !important; }
+            .chart-wrapper { height: 140px !important; }
+            .welcome-banner { padding: 1rem !important; border-radius: .75rem !important; }
+            .welcome-text { padding-right: 0; }
+        }
+
+        /* Simple, minimalist card treatment */
+        .analytics-card,
+        .analytics-card:nth-child(1),
+        .analytics-card:nth-child(2),
+        .analytics-card:nth-child(3),
+        .analytics-card:nth-child(4) {
+            background: #fff !important;
+            color: #19324d !important;
+            border: 1px solid #d9e7f8 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 3px 14px rgba(19, 73, 139, .09) !important;
+        }
+        .analytics-card::before { display: none !important; }
+        .analytics-card:hover {
+            transform: translateY(-3px) !important;
+            border-color: #9fc4eb !important;
+            box-shadow: 0 8px 24px rgba(19, 73, 139, .14) !important;
+        }
+        .analytics-card i { color: #1769d1 !important; opacity: 1 !important; }
+        .analytics-card > div:nth-child(2) {
+            color: #19324d !important;
+            font-weight: 700 !important;
+        }
+        .analytics-card > div:nth-child(3) {
+            color: #56718f !important;
+            opacity: 1 !important;
+        }
+        .chart-bar {
+            background: #3b91d8 !important;
+            box-shadow: none !important;
+            border-radius: 5px 5px 0 0 !important;
+        }
+
+        /* Consistent analytics cards */
+        .analytics-card,
+        .analytics-card:nth-child(1),
+        .analytics-card:nth-child(2),
+        .analytics-card:nth-child(3),
+        .analytics-card:nth-child(4) {
+            min-height: 148px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.2rem !important;
+            padding: 1.25rem !important;
+            border: none !important;
+            border-radius: 1.5rem !important;
+            color: #fff !important;
+            box-shadow: 0 12px 24px rgba(31, 71, 112, 0.16) !important;
+        }
+
+        .analytics-card:nth-child(1) {
+            background: linear-gradient(135deg, #1479b8 0%, #075a94 100%) !important;
+        }
+
+        .analytics-card:nth-child(2) {
+            background: linear-gradient(135deg, #13a963 0%, #078248 100%) !important;
+        }
+
+        .analytics-card:nth-child(3) {
+            background: linear-gradient(135deg, #7629c9 0%, #50169b 100%) !important;
+        }
+
+        .analytics-card:nth-child(4) {
+            background: linear-gradient(135deg, #d96c00 0%, #b94c00 100%) !important;
+        }
+
+        .analytics-card i {
+            display: none !important;
+        }
+
+        .analytics-card > div:nth-child(2) {
+            position: relative !important;
+            z-index: 1 !important;
+            order: 2 !important;
+            color: #fff !important;
+            font-size: 2.5rem !important;
+            font-weight: 800 !important;
+            line-height: 1.1 !important;
+            margin: 0.25rem 0 !important;
+        }
+
+        .analytics-card > div:nth-child(3) {
+            position: relative !important;
+            z-index: 1 !important;
+            order: 1 !important;
+            color: rgba(255, 255, 255, 0.95) !important;
+            font-size: 0.9rem !important;
+            font-weight: 600 !important;
+        }
+
+        @media (max-width: 480px) {
+            .analytics-card,
+            .analytics-card:nth-child(1),
+            .analytics-card:nth-child(2),
+            .analytics-card:nth-child(3),
+            .analytics-card:nth-child(4) {
+                min-height: 132px !important;
+                padding: 0.75rem 0.5rem !important;
+                border-radius: 1.25rem !important;
+            }
+
+            .analytics-card > div:nth-child(2) {
+                font-size: 1.75rem !important;
+                line-height: 1.05 !important;
+                margin: 0.2rem 0 0 !important;
+                max-width: 100% !important;
+                white-space: nowrap !important;
+            }
+
+            .analytics-card > div:nth-child(3) {
+                max-width: 100% !important;
+                font-size: 0.8rem !important;
+                line-height: 1.3 !important;
+                text-align: center !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .analytics-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                gap: 1.25rem !important;
+            }
+
+            .analytics-card,
+            .analytics-card:nth-child(1),
+            .analytics-card:nth-child(2),
+            .analytics-card:nth-child(3),
+            .analytics-card:nth-child(4) {
+                min-height: 98px !important;
+                flex-direction: row !important;
+                justify-content: flex-start !important;
+                gap: 0.9rem !important;
+                padding: 1rem 1.35rem !important;
+                border-radius: 1.15rem !important;
+            }
+
+            .analytics-card > div:nth-child(2) {
+                order: 1 !important;
+                flex: 0 0 auto !important;
+                font-size: 1.75rem !important;
+                line-height: 1 !important;
+                margin: 0 !important;
+                white-space: nowrap !important;
+            }
+
+            .analytics-card > div:nth-child(3) {
+                order: 2 !important;
+                font-size: 0.8rem !important;
+                line-height: 1.25 !important;
+                text-align: left !important;
+                white-space: nowrap !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .purchase-stats-grid.analytics-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+                gap: 12px !important;
+            }
+
+            .purchase-stats-grid .analytics-card,
+            .purchase-stats-grid .analytics-card:nth-child(n) {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 0.9rem !important;
+                min-height: 120px !important;
+                padding: 1.15rem 1.2rem !important;
+                border: 1px solid #dde5ee !important;
+                border-radius: 15px !important;
+                background: rgba(255, 255, 255, .88) !important;
+                color: #19324d !important;
+                text-align: left !important;
+                box-shadow: 0 8px 24px rgba(55, 80, 111, .055) !important;
+            }
+
+            .purchase-stats-grid .analytics-card i {
+                display: inline-flex !important;
+                flex: 0 0 50px !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 50px !important;
+                height: 50px !important;
+                margin: 0 !important;
+                border-radius: 10px !important;
+                background: #eef6fc !important;
+                color: #236ee8 !important;
+                font-size: 1.25rem !important;
+            }
+
+            .purchase-stats-grid .analytics-card-copy {
+                display: flex !important;
+                min-width: 0;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.25rem !important;
+                margin: 0 !important;
+                font-size: initial !important;
+            }
+
+            .purchase-stats-grid .analytics-card-value {
+                max-width: 100% !important;
+                margin: 0 !important;
+                color: #19324d !important;
+                font-size: 1.65rem !important;
+                font-weight: 700 !important;
+                line-height: 1.1 !important;
+                text-align: left !important;
+                white-space: normal !important;
+                overflow-wrap: anywhere;
+            }
+
+            .purchase-stats-grid .analytics-card-label {
+                max-width: 100% !important;
+                color: #91a0af !important;
+                font-size: 0.8rem !important;
+                font-weight: 600 !important;
+                line-height: 1.25 !important;
+                letter-spacing: 0.55px;
+                text-align: left !important;
+                white-space: normal !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .purchase-analytics-layout {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+
+            .customer-announcement {
+                height: 220px !important;
+                min-height: 220px !important;
+            }
+
+            .purchase-stats-grid.analytics-grid {
+                height: auto !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                grid-template-rows: repeat(2, minmax(108px, auto)) !important;
+                gap: 12px !important;
+            }
+
+            .purchase-stats-grid .analytics-card,
+            .purchase-stats-grid .analytics-card:nth-child(n) {
+                min-height: 108px !important;
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr) !important;
+                grid-template-rows: auto 1fr auto !important;
+                align-items: center !important;
+                justify-content: initial !important;
+                column-gap: 5px !important;
+                row-gap: 0 !important;
+                padding: 0.9rem !important;
+                border: 1px solid #d9e7f8 !important;
+                border-radius: 15px !important;
+                background: rgba(255, 255, 255, .92) !important;
+                color: #19324d !important;
+                text-align: left !important;
+                box-shadow: 0 8px 24px rgba(55, 80, 111, .055) !important;
+            }
+
+            .purchase-stats-grid .analytics-card i {
+                display: inline-flex !important;
+                grid-column: 2 !important;
+                grid-row: 2 !important;
+                align-items: center;
+                justify-content: center;
+                width: 38px;
+                height: 38px;
+                margin: 0 !important;
+                border-radius: 10px;
+                background: #eef6fc;
+                color: #236ee8 !important;
+                font-size: 0.9rem !important;
+            }
+
+            .purchase-stats-grid .analytics-card-copy {
+                display: contents !important;
+                margin: 0 !important;
+                font-size: initial !important;
+            }
+
+            .purchase-stats-grid .analytics-card-value {
+                grid-column: 3 !important;
+                grid-row: 2 !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                color: #19324d !important;
+                font-size: 1.3rem !important;
+                font-weight: 700 !important;
+                line-height: 1.1 !important;
+                text-align: left !important;
+                white-space: normal !important;
+                overflow-wrap: anywhere;
+                justify-self: start !important;
+            }
+
+            .purchase-stats-grid .analytics-card-label {
+                grid-column: 1 / -1 !important;
+                grid-row: 1 !important;
+                max-width: 100% !important;
+                padding-top: 0 !important;
+                color: #71859b !important;
+                font-size: 0.62rem !important;
+                font-weight: 600 !important;
+                line-height: 1.25 !important;
+                text-align: center !important;
+                white-space: normal !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .purchase-stats-grid.analytics-grid {
+                grid-template-rows: repeat(2, minmax(88px, auto)) !important;
+            }
+
+            .purchase-stats-grid .analytics-card,
+            .purchase-stats-grid .analytics-card:nth-child(n) {
+                min-height: 88px !important;
+                grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr) !important;
+                column-gap: 5px !important;
+                row-gap: 0 !important;
+                padding: 0.65rem !important;
+            }
+
+            .purchase-stats-grid .analytics-card i {
+                width: 32px;
+                height: 32px;
+                font-size: 0.78rem !important;
+            }
+
+            .purchase-stats-grid .analytics-card-value {
+                font-size: 1.1rem !important;
+            }
+        }
+
+        .purchase-stats-grid .analytics-card,
+        .purchase-stats-grid .analytics-card:nth-child(n) {
+            border: 1px solid #b6d4f5 !important;
+        }
+
+        .purchase-stats-grid .analytics-card,
+        .purchase-stats-grid .analytics-card:nth-child(n) {
+            min-width: 0;
+            min-height: 108px !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: .9rem !important;
+            padding: 1rem 1.05rem !important;
+            border: 1px solid #b6d4f5 !important;
+            border-radius: 15px !important;
+            background: transparent !important;
+            color: #19324d !important;
+            text-align: left !important;
+            box-shadow: 0 8px 24px rgba(55, 80, 111, .055) !important;
+        }
+        .purchase-stats-grid .analytics-card::before { display: none !important; }
+        .purchase-stats-grid .analytics-card i {
+            display: inline-flex !important;
+            flex: 0 0 38px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 38px !important;
+            height: 38px !important;
+            margin: 0 !important;
+            border-radius: 10px !important;
+            background: #e5f3ff !important;
+            color: #1677d2 !important;
+            font-size: .9rem !important;
+        }
+        .purchase-stats-grid .analytics-card:nth-child(2) i { background: #eaf9f0 !important; color: #15803d !important; }
+        .purchase-stats-grid .analytics-card:nth-child(3) i { background: #fff7e6 !important; color: #d97706 !important; }
+        .purchase-stats-grid .analytics-card:nth-child(4) i { background: #e5f3ff !important; color: #1677d2 !important; }
+        .purchase-stats-grid .analytics-card-copy {
+            display: flex !important;
+            min-width: 0;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: .25rem !important;
+            margin: 0 !important;
+            font-size: initial !important;
+            text-align: left !important;
+        }
+        .purchase-stats-grid .analytics-card-label {
+            max-width: 100% !important;
+            color: #91a0af !important;
+            font-size: .62rem !important;
+            font-weight: 400 !important;
+            line-height: 1.2 !important;
+            letter-spacing: .45px !important;
+            text-align: left !important;
+            white-space: normal !important;
+        }
+        .purchase-stats-grid .analytics-card-value {
+            max-width: 100% !important;
+            margin: 0 !important;
+            color: #19324d !important;
+            font-size: 1.32rem !important;
+            font-weight: 700 !important;
+            line-height: 1.1 !important;
+            text-align: left !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+        @media (min-width: 901px) {
+            .purchase-stats-grid .analytics-card,
+            .purchase-stats-grid .analytics-card:nth-child(n) {
+                min-height: 120px !important;
+                padding: 1.15rem 1.2rem !important;
+            }
+            .purchase-stats-grid .analytics-card i {
+                flex-basis: 50px !important;
+                width: 50px !important;
+                height: 50px !important;
+                font-size: 1.25rem !important;
+            }
+            .purchase-stats-grid .analytics-card-label {
+                font-size: .8rem !important;
+                font-weight: 600 !important;
+                letter-spacing: .55px !important;
+            }
+            .purchase-stats-grid .analytics-card-value {
+                font-size: 1.65rem !important;
+            }
+        }
+        @media (max-width: 640px) {
+            .purchase-stats-grid.analytics-grid {
+                height: auto !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                grid-template-rows: repeat(2, minmax(88px, auto)) !important;
+                gap: .55rem !important;
+            }
+            .purchase-stats-grid .analytics-card,
+            .purchase-stats-grid .analytics-card:nth-child(n) {
+                min-height: 0 !important;
+                gap: .5rem !important;
+                padding: .7rem !important;
+                border: 1px solid #dde5ee !important;
+                border-radius: 14px !important;
+                background: rgba(255, 255, 255, .92) !important;
+                box-shadow: 0 8px 24px rgba(55, 80, 111, .055) !important;
+            }
+            .purchase-stats-grid .analytics-card i {
+                flex-basis: 32px !important;
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 11px !important;
+                font-size: .9rem !important;
+            }
+            .purchase-stats-grid .analytics-card-copy {
+                display: flex !important;
+                min-width: 0 !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: .2rem !important;
+            }
+            .purchase-stats-grid .analytics-card-label {
+                color: var(--text-sub) !important;
+                font-size: .66rem !important;
+                font-weight: 400 !important;
+                line-height: 1.2 !important;
+                letter-spacing: normal !important;
+            }
+            .purchase-stats-grid .analytics-card-value {
+                font-size: 1.05rem !important;
+                line-height: 1.1 !important;
+            }
+        }
+
+        .google-profile-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: grid;
+            place-items: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.68);
+        }
+
+        .google-profile-modal {
+            width: min(100%, 480px);
+            max-height: min(94vh, 850px);
+            overflow-y: auto;
+            padding: 2rem;
+            border-radius: 1rem;
+            background: #fff;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+        }
+
+        .google-profile-modal h2 {
+            margin: 0 0 0.5rem;
+            color: #0f172a;
+        }
+
+        .google-profile-modal > p {
+            margin: 0 0 1.5rem;
+            color: #64748b;
+        }
+
+        .google-profile-field {
+            display: grid;
+            gap: 0.45rem;
+            margin-bottom: 1rem;
+        }
+
+        .google-profile-field label {
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .google-profile-field input {
+            width: 100%;
+            min-height: 46px;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.55rem;
+            font: inherit;
+        }
+
+        .google-profile-locate,
+        .google-profile-submit {
+            min-height: 46px;
+            border: 0;
+            border-radius: 0.55rem;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .google-profile-locate {
+            width: 100%;
+            margin-top: 0.6rem;
+            color: #0369a1;
+            background: #e0f2fe;
+        }
+
+        .google-profile-map {
+            width: 100%;
+            height: 260px;
+            margin-top: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.65rem;
+            z-index: 1;
+        }
+
+        .google-profile-confirm {
+            width: 100%;
+            min-height: 44px;
+            margin-top: 0.6rem;
+            border: 0;
+            border-radius: 0.55rem;
+            color: #0369a1;
+            background: #e0f2fe;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .google-profile-confirm:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .google-profile-submit {
+            width: 100%;
+            margin-top: 0.5rem;
+            color: white;
+            background: #0284c7;
+        }
+
+        .google-profile-status {
+            display: block;
+            min-height: 1.3rem;
+            margin-top: 0.5rem;
+            color: #475569;
+            font-size: 0.9rem;
+        }
+
+        .google-profile-status.error {
+            color: #b91c1c;
+        }
+
+        .google-profile-status.success {
+            color: #15803d;
+        }
+
+        @media (max-width: 480px) {
+            .google-profile-modal {
+                padding: 1.35rem;
+            }
+        }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+{% if show_google_profile_modal %}
+<div class="google-profile-overlay">
+    <section class="google-profile-modal" role="dialog" aria-modal="true" aria-labelledby="googleProfileTitle">
+        <h2 id="googleProfileTitle">Complete your customer profile</h2>
+        <p>Add your phone number, delivery address, and map pin so they are ready when you place an order.</p>
+        <form id="googleProfileForm" method="post" action="{% url 'complete_google_profile' %}">
+            {% csrf_token %}
+            <div class="google-profile-field">
+                <label for="googleProfilePhone">Phone Number</label>
+                <input id="googleProfilePhone" name="phone_number" type="tel" autocomplete="tel"
+                       placeholder="+63 XXX XXX XXXX" maxlength="15"
+                       value="{{ request.user.profile.phone_number|default:'' }}" required>
+            </div>
+            <div class="google-profile-field">
+                <label for="googleProfileAddress">Delivery Address</label>
+                <input id="googleProfileAddress" name="address" type="text" autocomplete="street-address"
+                       placeholder="House/unit, street, barangay, city" maxlength="500"
+                       value="{{ request.user.profile.address|default:'' }}" required>
+                <button class="google-profile-locate" id="googleProfileLocate" type="button">
+                    <i class="fas fa-crosshairs" aria-hidden="true"></i> <span>Locate Me</span>
+                </button>
+                <div id="googleProfileMap" class="google-profile-map" aria-label="Delivery location map"></div>
+                <button class="google-profile-confirm" id="googleProfileConfirm" type="button" disabled>
+                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i> Confirm Location
+                </button>
+                <span class="google-profile-status" id="googleProfileLocationStatus" role="status" aria-live="polite">
+                    Use Locate Me or tap the map to place your delivery pin, then confirm it.
+                </span>
+            </div>
+            <input id="googleProfileLatitude" name="default_latitude" type="hidden"
+                   value="{{ request.user.profile.default_latitude|default:'' }}">
+            <input id="googleProfileLongitude" name="default_longitude" type="hidden"
+                   value="{{ request.user.profile.default_longitude|default:'' }}">
+            <button class="google-profile-submit" id="googleProfileSubmit" type="submit" disabled>Save and Continue</button>
+        </form>
+    </section>
+</div>
+{% endif %}
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        <ul class="nav-links">
+                       <li><a href="{% url 'customer_dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="{% url 'customer_order' %}"><i class="fas fa-shopping-cart"></i> Place Order</a></li>
+            <li><a href="{% url 'customer_orders' %}"><i class="fas fa-history"></i> My Orders</a></li>
+            <li><a href="{% url 'customer_returns' %}"><i class="fas fa-undo"></i> Return</a></li>
+            <li><a href="{% url 'messaging_inbox' %}"><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+            <li><a href="{% url 'customer_profile' %}"><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name }}!</p>
+            <p class="role-badge customer">Customer</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────── -->
+    <main class="main-content">
+
+        {% include "accounts/dashboard_topbar.html" %}
+
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <div class="welcome-text">
+                <h2>Welcome, {{ request.user.first_name|default:request.user.username }}!</h2>
+                <p>Stay hydrated with Grateful Water Station</p>
+                <span class="station-status-sentence" id="stationAvailabilityBadge" aria-label="{% if station_is_open %}We're open now{% else %}We're closed now{% endif %}">{% if station_is_open %}We're open now{% else %}We're closed now{% endif %}</span>
+            </div>
+        </div>
+
+        
+       
+
+        <!-- Analytics Dashboard -->
+        <div class="purchase-analytics-layout">
+            <aside class="customer-announcement" aria-label="Station announcements">
+                {% for announcement in announcements %}
+                    <article
+                        id="customer-announcement-{{ announcement.id }}"
+                        class="customer-announcement-slide{% if forloop.first %} is-active{% endif %}{% if announcement.image %} has-image{% endif %}"
+                        aria-label="{{ announcement.get_category_display }}: {{ announcement.headline }}"
+                        aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}"
+                        {% if not forloop.first %}hidden{% endif %}
+                    >
+                        {% if announcement.image %}
+                            <img class="customer-announcement-image" src="{{ announcement.image.url }}" alt="">
+                        {% endif %}
+                        {% if announcement.headline or announcement.description %}
+                        <div class="customer-announcement-content{% if not announcement.image %} no-image{% endif %}">
+                            <span class="customer-announcement-category">
+                                {% if announcement.category == "promo" or announcement.category == "offer" %}
+                                    <i class="fas fa-tag" aria-hidden="true"></i>
+                                {% elif announcement.category == "hours" %}
+                                    <i class="far fa-clock" aria-hidden="true"></i>
+                                {% elif announcement.category == "delivery" %}
+                                    <i class="fas fa-truck" aria-hidden="true"></i>
+                                {% elif announcement.category == "featured" or announcement.category == "new_product" %}
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                {% elif announcement.category == "store_info" %}
+                                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                                {% elif announcement.category == "reminder" %}
+                                    <i class="fas fa-info-circle" aria-hidden="true"></i>
+                                {% else %}
+                                    <i class="fas fa-bullhorn" aria-hidden="true"></i>
+                                {% endif %}
+                                {{ announcement.get_category_display }}
+                            </span>
+                            {% if announcement.headline %}<h3>{{ announcement.headline }}</h3>{% endif %}
+                            {% if announcement.description %}<p>{{ announcement.description }}</p>{% endif %}
+                        </div>
+                        {% endif %}
+                    </article>
+                {% empty %}
+                    <div class="customer-announcement-empty">
+                        <i class="fas fa-bullhorn" aria-hidden="true"></i>
+                        <span>No announcements at this time</span>
+                    </div>
+                {% endfor %}
+                {% if announcements|length > 1 %}
+                    <div class="customer-announcement-controls" aria-label="Announcement controls">
+                        <button type="button" class="customer-announcement-previous" aria-label="Previous announcement">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="customer-announcement-next" aria-label="Next announcement">
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="customer-announcement-dots" aria-label="Announcement slides"></div>
+                {% endif %}
+            </aside>
+
+            <div class="purchase-stats-grid analytics-grid" aria-label="Your purchase analytics">
+                <div class="analytics-card">
+                    <i class="fas fa-calendar-week" aria-hidden="true"></i>
+                    <div class="analytics-card-copy">
+                        <div class="analytics-card-label">Orders This Week</div>
+                        <div class="analytics-card-value" id="thisWeekOrders">{{ this_week_orders|default:"0" }}</div>
+                    </div>
+                </div>
+
+                <div class="analytics-card">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    <div class="analytics-card-copy">
+                        <div class="analytics-card-label">Orders This Month</div>
+                        <div class="analytics-card-value" id="thisMonthOrders">{{ this_month_orders|default:"0" }}</div>
+                    </div>
+                </div>
+
+                <div class="analytics-card">
+                    <i class="fas fa-wallet" aria-hidden="true"></i>
+                    <div class="analytics-card-copy">
+                        <div class="analytics-card-label">Spent This Month</div>
+                        <div class="analytics-card-value">₱{{ this_month_spent|floatformat:2|default:"0.00" }}</div>
+                    </div>
+                </div>
+
+                <div class="analytics-card">
+                    <i class="fas fa-droplet" aria-hidden="true" title="Water gallons"></i>
+                    <div class="analytics-card-copy">
+                        <div class="analytics-card-label">Total Ordered</div>
+                        <div class="analytics-card-value" id="totalGallons">{{ total_gallons|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="activity-chart weekly-activity-section">
+            <h3><i class="fas fa-chart-bar" style="color: var(--primary); margin-right: 0.5rem;"></i> Weekly Order Activity</h3>
+            <div class="chart-wrapper">
+                <div class="chart-container" id="weeklyChart">
+                    <!-- Chart bars will be generated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders Section -->
+        <div class="data-table">
+            <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h2><i class="fas fa-history"></i> Recent Orders</h2>
+                <a href="{% url 'customer_orders' %}" class="btn-outline">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            
+            {% if recent_orders %}
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Products</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr class="dashboard-order-row" data-order-id="{{ order.id }}">
+                            <td>{{ order.created_at|date:"M d, Y" }}<br>{{ order.created_at|date:"H:i" }}</td>
+                            <td>
+                                {% if order.items.exists %}
+                                    {% for item in order.items.all %}
+                                        {{ item.quantity }} {{ item.product.name }}<br>
+                                    {% endfor %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>₱{{ order.total_amount|floatformat:2 }}</td>
+                            <td>
+                                <span class="order-status dashboard-order-status {% if order.status == 'choose_rider' %}processing{% else %}{{ order.status }}{% endif %}" data-status="{{ order.status }}">
+                                    {% if order.status == 'choose_rider' %}Processing{% elif order.status == 'out_for_delivery' %}On the Way{% else %}{{ order.get_status_display|default:order.status }}{% endif %}
+                                </span>
+                            </td>
+                            <td class="actions">
+                                <a href="{% url 'customer_order_detail' order.id %}" class="btn-order" style="width:100px; height:32px; display:inline-flex; align-items:center; justify-content:center; padding:0.25rem 0.75rem; font-size:0.75rem;">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted" style="padding:2rem;">
+                                <i class="fas fa-box-open" style="font-size:2rem; display:block; margin-bottom:0.5rem; opacity:0.5;"></i>
+                                No orders yet. <a href="{% url 'customer_order' %}">Place your first order!</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>No orders yet</p>
+                <a href="{% url 'customer_order' %}" class="btn-order" style="display: inline-block; margin-top: 1rem;">Start Shopping</a>
+            </div>
+            {% endif %}
+        </div>
+
+{% if show_google_profile_modal %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+{% endif %}
+<script>
+    // ── Poll unread count for Messages badge ──
+    const UNREAD_URL = "{% url 'unread_message_count_api' %}";
+    function pollUnreadBadge() {
+        fetch(UNREAD_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            document.querySelectorAll('.sidebar .unread-badge').forEach(badge => {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        })
+        .catch(() => {});
+    }
+    setInterval(pollUnreadBadge, 5000);
+    pollUnreadBadge(); // Run immediately on load
+
+    // Keep recent-order status badges synchronized with staff/rider updates.
+    function pollDashboardOrderStatuses() {
+        const rows = Array.from(document.querySelectorAll('.dashboard-order-row'));
+        Promise.all(rows.map(row => {
+            const orderId = row.dataset.orderId;
+            return fetch(`/accounts/get-order/${orderId}/`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(response => {
+                if (!response.ok) throw new Error(`Order status request failed (${response.status})`);
+                return response.json();
+            }).catch(error => {
+                console.error(`Unable to refresh order ${orderId}:`, error);
+                return null;
+            });
+        })).then(orderData => {
+            orderData.forEach((data, index) => {
+                const row = rows[index];
+                if (!data) return;
+                const badge = row.querySelector('.dashboard-order-status');
+                if (!badge || !data.status || badge.dataset.status === data.status) return;
+
+                const statusClass = data.status === 'choose_rider' ? 'processing' : data.status;
+                badge.className = `order-status dashboard-order-status ${statusClass}`;
+                badge.dataset.status = data.status;
+                badge.textContent = data.status === 'choose_rider'
+                    ? 'Processing'
+                    : data.status_display;
+            });
+        }).catch(() => {});
+    }
+
+    setInterval(pollDashboardOrderStatuses, 5000);
+    pollDashboardOrderStatuses();
+
+    // ── Mobile hamburger sidebar toggle ──
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+        const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+        document.body.append(btn, ov);
+        const sb = document.querySelector('.sidebar');
+        const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+        const open  = () => { sb.classList.add('active');    ov.classList.add('active');    btn.querySelector('i').className = 'fas fa-times'; };
+        btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+        ov.addEventListener('click', close);
+        document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+                close();
+            }
+        }));
+        window.addEventListener('resize', () => window.innerWidth > 768 && close());
+        document.addEventListener('keydown', e => e.key === 'Escape' && close());
+
+        // ── Render Weekly Activity Chart ──
+        renderWeeklyChart();
+        initializeCustomerAnnouncement();
+    });
+
+    // Weekly activity data from Django context
+    const weeklyActivityData = {{ weekly_activity_json|safe|default:"{}" }};
+
+    function initializeCustomerAnnouncement() {
+        const panel = document.querySelector('.customer-announcement');
+        if (!panel) return;
+
+        const slides = Array.from(panel.querySelectorAll('.customer-announcement-slide'));
+        const deepLinkedSlideIndex = slides.findIndex(
+            slide => window.location.hash === `#${slide.id}`
+        );
+        let activeIndex = deepLinkedSlideIndex >= 0
+            ? deepLinkedSlideIndex
+            : slides.findIndex(slide => slide.classList.contains('is-active'));
+        if (activeIndex < 0) activeIndex = 0;
+        slides.forEach((slide, slideIndex) => {
+            const isActive = slideIndex === activeIndex;
+            slide.hidden = !isActive;
+            slide.classList.toggle('is-active', isActive);
+            slide.setAttribute('aria-hidden', String(!isActive));
+        });
+        if (slides.length < 2) return;
+
+        const dotsContainer = panel.querySelector('.customer-announcement-dots');
+        const previousButton = panel.querySelector('.customer-announcement-previous');
+        const nextButton = panel.querySelector('.customer-announcement-next');
+        if (!dotsContainer || !previousButton || !nextButton) return;
+
+        let timer = null;
+
+        const showSlide = index => {
+            activeIndex = (index + slides.length) % slides.length;
+            slides.forEach((slide, slideIndex) => {
+                const isActive = slideIndex === activeIndex;
+                slide.hidden = !isActive;
+                slide.classList.toggle('is-active', isActive);
+                slide.setAttribute('aria-hidden', String(!isActive));
+            });
+            dotsContainer.querySelectorAll('.customer-announcement-dot').forEach((dot, dotIndex) => {
+                const isActive = dotIndex === activeIndex;
+                dot.classList.toggle('is-active', isActive);
+                dot.setAttribute('aria-current', isActive ? 'true' : 'false');
+            });
+        };
+
+        let swipeStart = null;
+        panel.addEventListener('pointerdown', event => {
+            if (event.pointerType !== 'touch' || event.target.closest('button, a')) return;
+            swipeStart = { x: event.clientX, y: event.clientY };
+        });
+        panel.addEventListener('pointerup', event => {
+            if (!swipeStart || event.pointerType !== 'touch') return;
+            const deltaX = event.clientX - swipeStart.x;
+            const deltaY = event.clientY - swipeStart.y;
+            swipeStart = null;
+            if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+            showSlide(activeIndex + (deltaX < 0 ? 1 : -1));
+        });
+        panel.addEventListener('pointercancel', () => {
+            swipeStart = null;
+        });
+
+        slides.forEach((_, index) => {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'customer-announcement-dot';
+            dot.setAttribute('aria-label', `Show announcement ${index + 1}`);
+            dot.addEventListener('click', () => showSlide(index));
+            dotsContainer.appendChild(dot);
+        });
+
+        previousButton.addEventListener('click', () => showSlide(activeIndex - 1));
+        nextButton.addEventListener('click', () => showSlide(activeIndex + 1));
+
+        const stopSliding = () => {
+            if (timer) window.clearInterval(timer);
+            timer = null;
+        };
+        const startSliding = () => {
+            stopSliding();
+            if (!document.hidden) {
+                timer = window.setInterval(() => showSlide(activeIndex + 1), 6000);
+            }
+        };
+
+        panel.addEventListener('mouseenter', stopSliding);
+        panel.addEventListener('mouseleave', startSliding);
+        panel.addEventListener('focusin', stopSliding);
+        panel.addEventListener('focusout', startSliding);
+        document.addEventListener('visibilitychange', () => document.hidden ? stopSliding() : startSliding());
+
+        showSlide(activeIndex);
+        startSliding();
+    }
+
+    function renderWeeklyChart() {
+        const container = document.getElementById('weeklyChart');
+        if (!container) return;
+
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const counts = days.map(day => weeklyActivityData[day] || 0);
+        const maxCount = Math.max(...counts, 1); // Avoid division by zero
+
+        let html = '';
+        days.forEach((day, index) => {
+            const count = counts[index];
+            const height = Math.max(5, (count / maxCount) * 90); // Scale to max 90px to fit container
+            html += `
+                <div class="chart-bar-wrapper" style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; max-width: 60px;">
+                    <div class="chart-bar" style="width: 100%; max-width: 40px; background: linear-gradient(to top, #0ea5e9, #06b6d4); border-radius: 6px 6px 0 0; min-height: 5px; height: ${height}px; transition: all 0.3s ease;"></div>
+                    <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">${day}</span>
+                    <span style="font-size: 0.65rem; color: #94a3b8;">${count}</span>
+                </div>
+            `;
+        });
+
+        if (maxCount === 1 && counts.every(c => c === 0)) {
+            html = '<div style="text-align: center; color: #94a3b8; width: 100%;">No activity data available</div>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    const googleProfileForm = document.getElementById('googleProfileForm');
+    if (googleProfileForm) {
+        const locateButton = document.getElementById('googleProfileLocate');
+        const locationStatus = document.getElementById('googleProfileLocationStatus');
+        const latitudeField = document.getElementById('googleProfileLatitude');
+        const longitudeField = document.getElementById('googleProfileLongitude');
+        const addressField = document.getElementById('googleProfileAddress');
+        const submitButton = document.getElementById('googleProfileSubmit');
+        const confirmButton = document.getElementById('googleProfileConfirm');
+        const savedLatitude = Number(latitudeField.value);
+        const savedLongitude = Number(longitudeField.value);
+        const hasSavedCoordinates = latitudeField.value !== '' && longitudeField.value !== ''
+            && Number.isFinite(savedLatitude) && Number.isFinite(savedLongitude);
+        let locationConfirmed = false;
+        let profileMarker;
+
+        const profileMap = L.map('googleProfileMap', {
+            attributionControl: false,
+            zoomControl: true
+        }).setView(
+            hasSavedCoordinates
+                ? [savedLatitude, savedLongitude]
+                : [Number("{{ station_lat }}"), Number("{{ station_lng }}")],
+            hasSavedCoordinates ? 16 : 14
+        );
+        L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+            {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors'
+            }
+        ).addTo(profileMap);
+
+        function setProfileStatus(message, type = '') {
+            locationStatus.textContent = message;
+            locationStatus.className = `google-profile-status${type ? ` ${type}` : ''}`;
+        }
+
+        async function reverseGeocodeProfileLocation(latitude, longitude) {
+            try {
+                const url = new URL('https://nominatim.openstreetmap.org/reverse');
+                url.search = new URLSearchParams({
+                    lat: latitude,
+                    lon: longitude,
+                    format: 'jsonv2'
+                });
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Address lookup failed.');
+                const result = await response.json();
+                if (result.display_name) {
+                    addressField.value = result.display_name;
+                    setProfileStatus('Address found. Review it, then confirm the location.', 'success');
+                } else {
+                    setProfileStatus('Pin saved. Enter your delivery address, then confirm the location.');
+                }
+            } catch (error) {
+                setProfileStatus('Pin saved, but address lookup failed. Enter your delivery address, then confirm.', 'error');
+            }
+        }
+
+        function setProfilePin(latitude, longitude, lookUpAddress = true) {
+            latitudeField.value = latitude.toFixed(6);
+            longitudeField.value = longitude.toFixed(6);
+            locationConfirmed = false;
+            confirmButton.disabled = false;
+            confirmButton.innerHTML = '<i class="fas fa-map-marker-alt" aria-hidden="true"></i> Confirm Location';
+            submitButton.disabled = true;
+            setProfileStatus('Pin selected. Confirm the location before saving your profile.');
+
+            if (!profileMarker) {
+                profileMarker = L.marker([latitude, longitude], { draggable: true }).addTo(profileMap);
+                profileMarker.on('dragend', function(event) {
+                    const position = event.target.getLatLng();
+                    setProfilePin(position.lat, position.lng);
+                });
+            } else {
+                profileMarker.setLatLng([latitude, longitude]);
+            }
+            if (lookUpAddress) reverseGeocodeProfileLocation(latitude, longitude);
+        }
+
+        profileMap.on('click', event => setProfilePin(event.latlng.lat, event.latlng.lng));
+        if (hasSavedCoordinates) setProfilePin(savedLatitude, savedLongitude, false);
+        window.setTimeout(() => profileMap.invalidateSize(), 100);
+
+        confirmButton.addEventListener('click', function() {
+            if (!latitudeField.value || !longitudeField.value) {
+                setProfileStatus('Use Locate Me or tap the map to select your delivery location.', 'error');
+                return;
+            }
+            if (!addressField.value.trim()) {
+                addressField.focus();
+                setProfileStatus('Enter your delivery address before confirming the location.', 'error');
+                return;
+            }
+            locationConfirmed = true;
+            confirmButton.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Location Confirmed';
+            confirmButton.disabled = true;
+            submitButton.disabled = false;
+            setProfileStatus('Location confirmed. You can now save your profile.', 'success');
+        });
+
+        locateButton.addEventListener('click', function() {
+            if (!navigator.geolocation) {
+                locationStatus.textContent = 'This browser does not support location. Enter your address manually.';
+                locationStatus.className = 'google-profile-status error';
+                return;
+            }
+
+            locateButton.disabled = true;
+            locateButton.querySelector('span').textContent = 'Locating...';
+            locationStatus.textContent = 'Waiting for location permission...';
+            locationStatus.className = 'google-profile-status';
+
+            navigator.geolocation.getCurrentPosition(async function(position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                profileMap.setView([latitude, longitude], 17);
+                setProfilePin(latitude, longitude, false);
+                locationStatus.textContent = 'Location saved. Looking up the address...';
+
+                try {
+                    const url = new URL('https://nominatim.openstreetmap.org/reverse');
+                    url.search = new URLSearchParams({
+                        lat: latitude,
+                        lon: longitude,
+                        format: 'jsonv2'
+                    });
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Address lookup failed.');
+                    const result = await response.json();
+                    if (result.display_name) addressField.value = result.display_name;
+                    locationStatus.textContent = result.display_name
+                        ? 'Location and address saved. You can edit the address if needed.'
+                        : 'Location saved. Please enter your delivery address.';
+                    locationStatus.className = 'google-profile-status success';
+                } catch (error) {
+                    locationStatus.textContent = 'Location saved, but address lookup failed. Please enter your delivery address.';
+                    locationStatus.className = 'google-profile-status error';
+                } finally {
+                    locateButton.disabled = false;
+                    locateButton.querySelector('span').textContent = 'Locate Me';
+                }
+            }, function(error) {
+                locateButton.disabled = false;
+                locateButton.querySelector('span').textContent = 'Locate Me';
+                locationStatus.className = 'google-profile-status error';
+                if (error.code === error.PERMISSION_DENIED) {
+                    locationStatus.textContent = 'Location permission was denied. Allow access or enter your address manually.';
+                } else if (error.code === error.TIMEOUT) {
+                    locationStatus.textContent = 'Getting your location timed out. Please try again.';
+                } else {
+                    locationStatus.textContent = 'Could not get your location. Please enter your address manually.';
+                }
+            }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+        });
+
+        addressField.addEventListener('input', function() {
+            if (!locationConfirmed) return;
+            locationConfirmed = false;
+            confirmButton.disabled = false;
+            confirmButton.innerHTML = '<i class="fas fa-map-marker-alt" aria-hidden="true"></i> Confirm Location';
+            submitButton.disabled = true;
+            setProfileStatus('Address changed. Confirm the location again before saving.');
+        });
+
+        googleProfileForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            if (!locationConfirmed) {
+                setProfileStatus('Please confirm your delivery location before saving.', 'error');
+                return;
+            }
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+            locationStatus.className = 'google-profile-status';
+            locationStatus.textContent = '';
+
+            try {
+                const response = await fetch(googleProfileForm.action, {
+                    method: 'POST',
+                    body: new FormData(googleProfileForm),
+                    headers: {
+                        'X-CSRFToken': googleProfileForm.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+                const contentType = response.headers.get('content-type') || '';
+                const responseBody = await response.text();
+                let result;
+
+                if (!contentType.includes('application/json')) {
+                    if (response.redirected || contentType.includes('text/html')) {
+                        throw new Error(
+                            'Your session may have expired. Please refresh the page and try again.'
+                        );
+                    }
+                    throw new Error('The server returned an invalid response. Please try again.');
+                }
+
+                try {
+                    result = JSON.parse(responseBody);
+                } catch {
+                    throw new Error('The server returned an invalid response. Please try again.');
+                }
+
+                if (!response.ok) {
+                    const errors = result.errors
+                        ? Object.values(result.errors).flat().map(error => error.message).join(' ')
+                        : result.error;
+                    throw new Error(errors || 'Could not save your profile. Please try again.');
+                }
+                window.location.reload();
+            } catch (error) {
+                locationStatus.textContent = error.message || 'Could not save your profile. Please try again.';
+                locationStatus.className = 'google-profile-status error';
+            } finally {
+                submitButton.disabled = !locationConfirmed;
+                submitButton.textContent = 'Save and Continue';
+            }
+        });
+    }
+</script>
+</body>
+</html>

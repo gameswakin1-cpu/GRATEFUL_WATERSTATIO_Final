@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <script src="{% static 'accounts/js/table_pagination.js' %}" defer></script>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% if request.user.profile.role == 'admin' %}
+        {% include "accounts/admin_nav_links.html" %}
+        
+        {% else %}
+        <ul class="nav-links">
+         <li><a href="{% url 'staff_dashboard' %}" {% if request.resolver_match.url_name == 'staff_dashboard' %}class="active"{% endif %}><i class="fas fa-th-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'pos_dashboard' %}" {% if request.resolver_match.url_name == 'pos_dashboard' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Products</a></li>
+            <li><a href="{% url 'manage_orders' %}" {% if request.resolver_match.url_name == 'manage_orders' %}class="active"{% endif %}><i class="fas fa-shopping-cart"></i> Orders</a></li>
+            <li><a href="{% url 'inventory_list' %}" {% if request.resolver_match.url_name == 'inventory_list' %}class="active"{% endif %}><i class="fas fa-boxes"></i> Inventory</a></li>
+            <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' %}class="active"{% endif %}><i class="fas fa-envelope"></i> Messaging</a></li>
+            <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        <div class="user-info">
+        </div>
+        {% endif %}
+    <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────── -->
+    <main class="main-content">
+
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1><i class="fas fa-chart-bar"></i> Sales Report</h1>
+        
+            <div class='header-actions dashboard-topbar-actions'>
+                {% include 'accounts/dashboard_header_actions.html' %}
+            </div>
+        </header>
+
+        <!-- Export Buttons -->
+    
+
+        <!-- Date Filter -->
+        <div class="date-filter">
+            <form method="GET" class="date-form">
+                <input type="hidden" name="period" value="{{ period }}">
+                <div class="period-tabs" aria-label="Report period">
+                    <a href="?period=daily" class="period-tab {% if period == 'daily' %}active{% endif %}">
+                        <i class="fas fa-calendar-day"></i> Daily
+                    </a>
+                    <a href="?period=weekly" class="period-tab {% if period == 'weekly' %}active{% endif %}">
+                        <i class="fas fa-calendar-week"></i> Weekly
+                    </a>
+                    <a href="?period=monthly" class="period-tab {% if period == 'monthly' %}active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i> Monthly
+                    </a>
+                </div>
+                <div class="date-group">
+                    <label for="date_from"><i class="fas fa-calendar"></i> From:</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div class="date-group">
+                    <label for="date_to"><i class="fas fa-calendar"></i> To:</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                <button type="submit" class="btn-generate">
+                    <i class="fas fa-sync-alt"></i> Generate Report
+                </button>
+                  <button type="button" onclick="exportToPDF()" class="btn-export pdf">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </button>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>Total Sales</h3>
+                <div class="summary-value">{{ total_sales|default:"0" }}</div>
+                <div class="summary-label">transactions</div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Revenue</h3>
+                <div class="summary-value">₱{{ total_revenue|floatformat:2|default:"0.00" }}</div>
+                <div class="summary-label">net of recorded return adjustments</div>
+            </div>
+            <div class="summary-card">
+                <h3>Delivery Fees</h3>
+                <div class="summary-value">₱{{ delivery_fee_total|floatformat:2|default:"0.00" }}</div>
+                <div class="summary-label">included in revenue</div>
+            </div>
+            <div class="summary-card">
+                <h3>Average Sale</h3>
+                <div class="summary-value">₱{{ average_sale|floatformat:2|default:"0.00" }}</div>
+                <div class="summary-label">per transaction</div>
+            </div>
+            <div class="summary-card">
+                <h3>Items Sold</h3>
+                <div class="summary-value">{{ total_items_sold|default:"0" }}</div>
+                <div class="summary-label">quantity kept after completed returns</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-line"></i> Sales Trend</h3>
+                <canvas id="salesChart"></canvas>
+                <div class="chart-date-range">
+                    {% if date_range %}
+                    <p><strong>Period:</strong> {{ date_range.start_date|date:"F d, Y" }} - {{ date_range.end_date|date:"F d, Y" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-pie"></i> Payment Methods</h3>
+                <canvas id="paymentChart"></canvas>
+            </div>
+        </div>
+
+        
+        <!-- Top Selling Products - FIXED VERSION -->
+        <div class="data-table">
+            <div class="table-header top-products-header">
+                <h2><i class="fas fa-crown" style="color: #1a7db7;"></i> Top Selling Products</h2>
+                <div class="top-product-filters" role="group" aria-label="Filter top selling products">
+                    <button type="button" class="top-product-filter active" data-product-type="refill" aria-pressed="true">Refill</button>
+                    <button type="button" class="top-product-filter" data-product-type="gallon" aria-pressed="false">Gallon</button>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="top-products-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity Sold</th>
+                            <th>Revenue</th>
+                            <th>% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody data-product-type="refill">
+                        {% for product in top_products_refill %}
+                        <tr>
+                            <td><strong>{{ product.product__name }}</strong></td>
+                            <td>{{ product.total_quantity }}</td>
+                            <td>₱{{ product.total_revenue|floatformat:2 }}</td>
+                            <td>
+                                {% widthratio product.total_revenue total_revenue 100 as percentage %}
+                                <div class="percentage-bar">
+                                    <div class="percentage-fill" style="width: {{ percentage }}%;"></div>
+                                    <span class="percentage-text">{{ percentage }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tbody data-product-type="gallon" hidden>
+                        {% for product in top_products_gallon %}
+                        <tr>
+                            <td><strong>{{ product.product__name }}</strong></td>
+                            <td>{{ product.total_quantity }}</td>
+                            <td>₱{{ product.total_revenue|floatformat:2 }}</td>
+                            <td>
+                                {% widthratio product.total_revenue total_revenue 100 as percentage %}
+                                <div class="percentage-bar">
+                                    <div class="percentage-fill" style="width: {{ percentage }}%;"></div>
+                                    <span class="percentage-text">{{ percentage }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="data-table transactions-section">
+            <div class="transactions-header">
+                <h2><i class="fas fa-clock" style="color: #1a7db7;"></i>
+                    {% if show_custom_date_range_label %}
+                        {{ date_range.start_date|date:"F d, Y" }} to {{ date_range.end_date|date:"F d, Y" }} Transactions
+                    {% elif period == 'weekly' %}
+                        Weekly Transactions
+                    {% elif period == 'monthly' %}
+                        Monthly Transactions
+                    {% else %}
+                        Daily Transactions
+                    {% endif %}
+                </h2>
+            </div>
+            
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>Payment Method</label>
+                    <div class="custom-select">
+                        <select id="statusFilter">
+                            <option value="all">All Orders ▼</option>
+                            <option value="cash">Cash</option>
+                            <option value="gcash">GCash</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Customer name</label>
+                    <div class="search-input-group">
+                        <i class="fas fa-search search-icon-small"></i>
+                        <input type="text" id="searchInput" placeholder="Search by customer...">
+                    </div>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table id="transactionsTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Receipt #</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                        </thead>
+                    <tbody>
+                        {% for sale in recent_sales %}
+                        <tr class="transaction-row" data-payment="{{ sale.payment_method }}">
+                            <td>{{ sale.created_at|date:"M d, Y H:i" }}</td>
+                            <td><strong>{{ sale.receipt_number }}</strong></td>
+                            <td>
+                                {% if sale.customer %}
+                                    {{ sale.customer.get_full_name|default:sale.customer.username }}
+                                {% else %}
+                                    Walk-in
+                                {% endif %}
+                            </td>
+                            <td>{{ sale.items.count }}</td>
+                            <td><strong>₱{{ sale.net_amount|floatformat:2 }}</strong>{% if sale.returned_amount %}<br><small>Return adjustment (refund not processed): -₱{{ sale.returned_amount|floatformat:2 }}</small>{% endif %}</td>
+                            <td>
+                                {% if sale.payment_method == 'cash' %}
+                                    <span class="payment-badge cash">Cash</span>
+                                {% elif sale.payment_method == 'gcash' %}
+                                    <span class="payment-badge gcash">GCash</span>
+                                {% else %}
+                                    <span class="payment-badge">{{ sale.get_payment_method_display }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row">
+                            <td colspan="6" class="text-center text-muted">No transactions found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div id="filterStats" class="filter-stats"></div>
+            <div class="pagination-bar" data-pagination-for="transactionsTable" data-page-size="5">
+                <span class="pagination-info">Showing — of — results</span>
+                <div class="pagination-controls"></div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Hidden PDF Export Content -->
+<div id="pdfExportContent" style="display: none;">
+    <div style="padding: 20px; font-family: Arial, sans-serif;">
+        <h1 style="text-align: center; color: #1a7db7;">Grateful Water Station</h1>
+        <h2 style="text-align: center;">Sales Report</h2>
+        <p style="text-align: center; color: #666;">
+            {% if date_range %}
+            Period: {{ date_range.start_date|date:"F d, Y" }} - {{ date_range.end_date|date:"F d, Y" }}
+            {% else %}
+            Period: {{ date_from }} - {{ date_to }}
+            {% endif %}
+        </p>
+        <hr style="margin: 20px 0;">
+        
+        <!-- Summary Table -->
+        <h3>Sales Summary</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <thead>
+                <tr style="background-color: #1a7db7; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd;">Metric</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Value</th>
+                 </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">Total Sales</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ total_sales|default:"0" }} transactions</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">Total Revenue</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">₱{{ total_revenue|floatformat:2|default:"0.00" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">Average Sale</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">₱{{ average_sale|floatformat:2|default:"0.00" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">Items Sold</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ total_items_sold|default:"0" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">Cash Sales</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">₱{{ cash_total|floatformat:2|default:"0.00" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">GCash Sales</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">₱{{ gcash_total|floatformat:2|default:"0.00" }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Recent Transactions Table -->
+        <h3>Recent Transactions</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #1a7db7; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd;">Date</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Receipt #</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Customer</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Items</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Total</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Payment</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in recent_sales %}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ sale.created_at|date:"M d, Y H:i" }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ sale.receipt_number }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">
+                        {% if sale.customer %}
+                            {{ sale.customer.get_full_name|default:sale.customer.username }}
+                        {% else %}
+                            Walk-in
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ sale.items.count }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">₱{{ sale.net_amount|floatformat:2 }}{% if sale.returned_amount %}<br><small>Return adjustment (refund not processed): -₱{{ sale.returned_amount|floatformat:2 }}</small>{% endif %}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">
+                        {% if sale.payment_method == 'cash' %}Cash{% else %}GCash{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 8px; text-align: center;">No transactions found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <p style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+            Generated on: {% now "F d, Y H:i:s" %}<br>
+            Grateful Water Station - Official Sales Report
+        </p>
+    </div>
+</div>
+
+<script>
+    const dateFilterForm = document.querySelector('.date-form');
+    const dateFromInput = document.getElementById('date_from');
+    const dateToInput = document.getElementById('date_to');
+    let dateFilterSubmitPending = false;
+
+    function submitDateRangeWhenReady() {
+        if (!dateFilterForm || !dateFromInput.value || !dateToInput.value || dateFilterSubmitPending) return;
+        dateFilterSubmitPending = true;
+        if (typeof dateFilterForm.requestSubmit === 'function') {
+            dateFilterForm.requestSubmit();
+        } else {
+            dateFilterForm.submit();
+        }
+    }
+
+    [dateFromInput, dateToInput].forEach(input => {
+        input.addEventListener('change', submitDateRangeWhenReady);
+    });
+
+    document.querySelectorAll('.top-product-filter').forEach(button => {
+        button.addEventListener('click', () => {
+            const selectedType = button.dataset.productType;
+            document.querySelectorAll('.top-product-filter').forEach(filterButton => {
+                const isSelected = filterButton === button;
+                filterButton.classList.toggle('active', isSelected);
+                filterButton.setAttribute('aria-pressed', String(isSelected));
+            });
+            document.querySelectorAll('.top-products-table tbody[data-product-type]').forEach(rows => {
+                rows.hidden = rows.dataset.productType !== selectedType;
+            });
+        });
+    });
+
+    // Sales Chart
+    {% if sales_data %}
+    const salesLabels = [{% for s in sales_data %}'{{ s.label }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const cashData = [{% for s in sales_data %}{{ s.cash_total }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const gcashData = [{% for s in sales_data %}{{ s.gcash_total }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    
+    new Chart(document.getElementById('salesChart'), {
+        type: 'line',
+        data: {
+            labels: salesLabels,
+            datasets: [
+                {
+                    label: 'Cash Sales',
+                    data: cashData,
+                    borderColor: '#16a34a',
+                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#16a34a',
+                    pointBorderColor: '#fff',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBorderWidth: 2
+                },
+                {
+                    label: 'GCash Sales',
+                    data: gcashData,
+                    borderColor: '#1a7db7',
+                    backgroundColor: 'rgba(26, 125, 183, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#1a7db7',
+                    pointBorderColor: '#fff',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { usePointStyle: true, boxWidth: 12, padding: 15, font: {size: 12, weight: '500'} }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            const salesInfo = salesDatesInfo[index];
+                            return salesInfo ? `${salesInfo.day_name}` : context[0].label;
+                        },
+                        label: function(context) {
+                            return `${context.dataset.label}: ₱${context.raw.toFixed(2)}`;
+                        },
+                        footer: function(tooltipItems) {
+                            let sum = tooltipItems.reduce((acc, item) => acc + item.raw, 0);
+                            return `Total: ₱${sum.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: function(value) { return '₱' + value.toLocaleString(); }, stepSize: 1000 },
+                    grid: { color: '#e2e8f0' },
+                    title: { display: true, text: 'Revenue (₱)', font: {weight: '500', size: 12} }
+                },
+                x: {
+                    grid: { display: false },
+                    title: { display: true, text: '{{ period|title }}', font: {weight: '500', size: 12} },
+                    ticks: { font: {size: 11}, color: '#4b5563' }
+                }
+            }
+        }
+    });
+    
+    const salesDatesInfo = [
+        {% for s in sales_data %}
+        { day_name: '{{ s.day_name }}', month_year: '{{ s.month_year }}', full_date: '{{ s.full_date }}' }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    {% else %}
+    new Chart(document.getElementById('salesChart'), {
+        type: 'line',
+        data: {
+            labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+            datasets: [
+                { label: 'Cash Sales', data: [0,0,0,0,0,0,0], borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.1)', borderWidth: 2 },
+                { label: 'GCash Sales', data: [0,0,0,0,0,0,0], borderColor: '#1a7db7', backgroundColor: 'rgba(26,125,183,0.1)', borderWidth: 2 }
+            ]
+        },
+        options: { responsive: true, plugins: { tooltip: {enabled: false} } }
+    });
+    {% endif %}
+
+    // Payment Methods Chart
+    {% if cash_total > 0 or gcash_total > 0 %}
+    const l = [], d = [], c = [];
+    {% if cash_total > 0 %}l.push('Cash'); d.push({{ cash_total }}); c.push('#16a34a');{% endif %}
+    {% if gcash_total > 0 %}l.push('GCash'); d.push({{ gcash_total }}); c.push('#1a7db7');{% endif %}
+    new Chart(document.getElementById('paymentChart'), {
+        type: 'doughnut',
+        data: { labels: l, datasets: [{ data: d, backgroundColor: c, borderWidth: 0, hoverOffset: 10 }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { font: {size: 12}, padding: 15 } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            return `${ctx.label}: ₱${ctx.raw.toFixed(2)} (${((ctx.raw / total) * 100).toFixed(1)}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% else %}
+    new Chart(document.getElementById('paymentChart'), {
+        type: 'doughnut',
+        data: {labels: ['No Data'], datasets: [{data: [1], backgroundColor: ['#cbd5e1']}]},
+        options: {responsive: true}
+    });
+    {% endif %}
+
+    // Filter functions
+    let currentStatusFilter = 'all';
+    let currentSearchTerm = '';
+
+    function applyFilters() {
+        currentStatusFilter = document.getElementById('statusFilter').value;
+        currentSearchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        const rows = document.querySelectorAll('#transactionsTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            if (row.cells.length === 1 && row.cells[0].colSpan) return;
+            const cells = row.getElementsByTagName('td');
+            if (cells.length === 0) return;
+            
+            const paymentMethod = row.getAttribute('data-payment') || '';
+            const receipt = cells[1]?.textContent.toLowerCase() || '';
+            const customer = cells[2]?.textContent.toLowerCase() || '';
+            const amount = cells[4]?.textContent.toLowerCase() || '';
+            const date = cells[0]?.textContent.toLowerCase() || '';
+            const payment = cells[5]?.textContent.toLowerCase() || '';
+            
+            let statusMatch = currentStatusFilter === 'all' || paymentMethod === currentStatusFilter;
+            let searchMatch = currentSearchTerm === '' || 
+                receipt.includes(currentSearchTerm) || 
+                customer.includes(currentSearchTerm) || 
+                amount.includes(currentSearchTerm) || 
+                date.includes(currentSearchTerm) ||
+                payment.includes(currentSearchTerm);
+            
+            if (statusMatch && searchMatch) {
+                row.dataset.paginationFiltered = 'false';
+                visibleCount++;
+            } else {
+                row.dataset.paginationFiltered = 'true';
+            }
+        });
+        document.querySelector('.pagination-bar[data-pagination-for="transactionsTable"]')?.refresh?.();
+        
+        const statsDiv = document.getElementById('filterStats');
+        const totalRows = rows.length;
+        
+        if (currentSearchTerm || currentStatusFilter !== 'all') {
+            let message = `<i class="fas fa-filter"></i> Showing ${visibleCount} of ${totalRows} transactions`;
+            if (currentStatusFilter !== 'all') message += ` with ${currentStatusFilter === 'cash' ? 'Cash' : 'GCash'} payment`;
+            if (currentSearchTerm) message += ` matching "${currentSearchTerm}"`;
+            statsDiv.innerHTML = message;
+            statsDiv.style.display = 'flex';
+        } else {
+            statsDiv.style.display = 'none';
+        }
+    }
+    
+    function resetFilters() {
+        document.getElementById('statusFilter').value = 'all';
+        document.getElementById('searchInput').value = '';
+        currentStatusFilter = 'all';
+        currentSearchTerm = '';
+        
+        const rows = document.querySelectorAll('#transactionsTable tbody tr');
+        rows.forEach(row => {
+            if (row.cells.length !== 1) row.dataset.paginationFiltered = 'false';
+        });
+        document.querySelector('.pagination-bar[data-pagination-for="transactionsTable"]')?.refresh?.();
+        
+        const statsDiv = document.getElementById('filterStats');
+        statsDiv.style.display = 'none';
+    }
+    
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+    // PDF Export Function
+    function exportToPDF() {
+        const element = document.createElement('div');
+        element.style.width = '760px';
+        element.style.padding = '34px 38px';
+        element.style.fontFamily = 'Arial, sans-serif';
+        element.style.backgroundColor = '#fff';
+        
+        // Get current date range
+        const dateFrom = document.getElementById('date_from').value || 'All Time';
+        const dateTo = document.getElementById('date_to').value || 'Today';
+        const period = '{{ period|title|escapejs }}' || 'Custom Period';
+        const generatedAt = new Date().toLocaleString();
+        const logoUrl = "{% static 'accounts/images/for login image.png' %}";
+        
+        // Create header
+        const header = `
+            <div style="text-align:center; padding-bottom:18px; border-bottom:2px solid #2b9bc8;">
+                <img src="${logoUrl}" style="width:42px;height:42px;object-fit:contain;vertical-align:middle;margin-right:8px;" alt="">
+                <span style="font-size:27px;font-weight:700;color:#1976ad;vertical-align:middle;">Grateful Water Station</span>
+                <h2 style="margin:15px 0 6px;color:#1e293b;font-size:23px;">Sales Report</h2>
+                <div style="color:#64748b;font-size:14px;">${period} · ${dateFrom} to ${dateTo}</div>
+                <div style="color:#94a3b8;font-size:12px;margin-top:8px;">Generated: ${generatedAt}</div>
+            </div>
+        `;
+        
+        // Get summary cards data
+        const summaries = Array.from(document.querySelectorAll('.summary-card')).map(card => {
+            const title = card.querySelector('h3')?.textContent || '';
+            const value = card.querySelector('.summary-value')?.textContent || '0';
+            const label = card.querySelector('.summary-label')?.textContent || '';
+            return { title, value, label };
+        }).slice(0, 4); // Only first 4 cards
+        
+        const summaryTable = `
+            <h3 style="color: #1a7db7; margin-top: 20px;">Sales Summary</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background-color: #1a7db7; color: white;">
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Metric</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${summaries.map(s => `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${s.title}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: right;"><strong>${s.value}</strong></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        
+        // Include both product types in the PDF, regardless of which filter is selected.
+        const productTypeSections = ['refill', 'gallon'].map(productType => {
+            const rows = Array.from(document.querySelectorAll(
+                `.top-products-table tbody[data-product-type="${productType}"] tr`
+            ))
+                .map(row => Array.from(row.querySelectorAll('td'), cell => cell.textContent.trim()))
+                .filter(row => row.length === 4);
+
+            return `
+                <h3 style="color: #1a7db7; margin-top: 20px;">${productType === 'refill' ? 'Refill' : 'Gallon'} Products</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #1a7db7; color: white;">
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Product</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Quantity</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Revenue</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.length ? rows.map(row => `
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${row[0]}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${row[1]}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${row[2]}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${row[3]}</td>
+                            </tr>
+                        `).join('') : `
+                            <tr><td colspan="4" style="padding: 8px; border: 1px solid #ddd; text-align: center;">No data available</td></tr>
+                        `}
+                    </tbody>
+                </table>
+            `;
+        }).join('');
+
+        const topProductsTable = `
+            <h3 style="color: #1a7db7; margin-top: 20px;">Top Selling Products</h3>
+            ${productTypeSections}
+        `;
+        
+        // Get recent transactions
+        const transactionRows = Array.from(document.querySelectorAll('#transactionsTable tbody tr')).map(row => {
+            const cells = row.querySelectorAll('td');
+            return Array.from(cells).map(cell => cell.textContent.trim());
+        });
+        
+        const transactionsTable = transactionRows.length > 0 ? `
+            <h3 style="color: #1a7db7; margin-top: 20px;">Recent Transactions</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #1a7db7; color: white;">
+                        <th style="padding: 10px; border: 1px solid #ddd;">Date</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Receipt</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Customer</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Items</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Payment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${transactionRows.map(row => `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${row[0]}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${row[1]}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${row[2]}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${row[3]}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${row[4]}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${row[5]}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        ` : '';
+        
+        element.innerHTML = header + summaryTable + topProductsTable + transactionsTable + `
+            <div style="text-align:center; margin-top:28px; padding-top:10px; border-top:1px solid #dbe3ec; color:#64748b; font-size:12px;">
+                Autogenerated on: ${generatedAt}<br>Grateful Water Station - Official Sales Report
+            </div>
+        `;
+        
+        const opt = {
+            margin: 0.5,
+            filename: `Sales_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, letterRendering: true, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+        
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+        
+        html2pdf().set(opt).from(element).save()
+            .then(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            })
+            .catch(err => {
+                console.error('PDF error:', err);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('Error generating PDF. Please try again.');
+            });
+    }
+    
+    function exportToExcel() {
+        try {
+            // Disable button during export
+            const btn = event?.target;
+            const originalText = btn?.innerHTML;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+            }
+
+            const dateFrom = document.getElementById('date_from').value || 'All Time';
+            const dateTo = document.getElementById('date_to').value || 'Today';
+            const workbook = XLSX.utils.book_new();
+            
+            // Summary Sheet
+            const summaryData = [
+                ['GRATEFUL WATER STATION - SALES REPORT'],
+                [''],
+                ['Period:', dateFrom, 'to', dateTo],
+                ['Generated:', new Date().toLocaleString()],
+                [''],
+                ['SUMMARY'],
+                ['Metric', 'Value'],
+                ['Total Sales', document.querySelector('.summary-cards .summary-card:nth-child(1) .summary-value')?.textContent || '0'],
+                ['Total Revenue', document.querySelector('.summary-cards .summary-card:nth-child(2) .summary-value')?.textContent || '₱0.00'],
+                ['Average Sale', document.querySelector('.summary-cards .summary-card:nth-child(3) .summary-value')?.textContent || '₱0.00'],
+                ['Items Sold', document.querySelector('.summary-cards .summary-card:nth-child(4) .summary-value')?.textContent || '0'],
+            ];
+            
+            const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+            summarySheet['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
+            XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+            
+            // Top Products Sheet
+            const topProductsTable = document.querySelector('.top-products-table');
+            const visibleTopProductsRows = topProductsTable?.querySelectorAll('tbody[data-product-type]:not([hidden]) tr:not(#noResultsRow)');
+            if (visibleTopProductsRows?.length) {
+                const topProductsRows = [];
+                const headers = [];
+                topProductsTable.querySelectorAll('thead th').forEach(th => {
+                    headers.push(th.textContent.trim());
+                });
+                topProductsRows.push(headers);
+                
+                visibleTopProductsRows.forEach(tr => {
+                    const rowData = [];
+                    tr.querySelectorAll('td').forEach(td => {
+                        rowData.push(td.textContent.trim());
+                    });
+                    topProductsRows.push(rowData);
+                });
+                
+                const topProductsSheet = XLSX.utils.aoa_to_sheet(topProductsRows);
+                topProductsSheet['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 12 }];
+                XLSX.utils.book_append_sheet(workbook, topProductsSheet, 'Top Products');
+            }
+            
+            // Recent Transactions Sheet
+            const transactionsTable = document.querySelector('#transactionsTable');
+            if (transactionsTable && transactionsTable.querySelector('tbody tr:not(#noResultsRow)')) {
+                const transactionRows = [];
+                const headers = [];
+                transactionsTable.querySelectorAll('thead th').forEach(th => {
+                    headers.push(th.textContent.trim());
+                });
+                transactionRows.push(headers);
+                
+                transactionsTable.querySelectorAll('tbody tr:not(#noResultsRow)').forEach(tr => {
+                    if (tr.dataset.paginationFiltered !== 'true' && !tr.classList.contains('empty-row')) {
+                        const rowData = [];
+                        tr.querySelectorAll('td').forEach(td => {
+                            rowData.push(td.textContent.trim());
+                        });
+                        transactionRows.push(rowData);
+                    }
+                });
+                
+                const transactionsSheet = XLSX.utils.aoa_to_sheet(transactionRows);
+                transactionsSheet['!cols'] = [{ wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+                XLSX.utils.book_append_sheet(workbook, transactionsSheet, 'Transactions');
+            }
+            
+            // Download file
+            const filename = `Sales_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(workbook, filename);
+            
+            // Restore button
+            if (btn) {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }, 1500);
+            }
+            
+            console.log('Excel file downloaded successfully:', filename);
+        } catch (error) {
+            console.error('Error exporting to Excel:', error);
+            alert('Error downloading Excel file. Please try again.');
+            if (event?.target) {
+                event.target.disabled = false;
+                event.target.innerHTML = '<i class="fas fa-file-excel"></i> Export Excel';
+            }
+        }
+    }
+
+    // Mobile sidebar
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+        const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+        document.body.append(btn, ov);
+        const sb = document.querySelector('.sidebar');
+        const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+        const open = () => { sb.classList.add('active'); ov.classList.add('active'); btn.querySelector('i').className = 'fas fa-times'; };
+        btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+        ov.addEventListener('click', close);
+        document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+                close();
+            }
+        }));
+        window.addEventListener('resize', () => window.innerWidth > 768 && close());
+        document.addEventListener('keydown', e => e.key === 'Escape' && close());
+        
+        // Reports dropdown toggle handler
+        const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+        if (reportsToggle) {
+            reportsToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                reportsToggle.parentElement.classList.toggle('active');
+            });
+        }
+    });
+</script>
+
+<style>
+    .top-products-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: .95rem 1.1rem;
+    }
+    .top-products-header h2 {
+        margin: 0;
+        font-size: .9rem;
+    }
+    .top-product-filters {
+        display: flex;
+        flex: 0 0 auto;
+        gap: .5rem;
+        margin-left: auto;
+    }
+    .top-product-filter {
+        padding: .4rem .8rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--text-sub);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+    }
+    .top-product-filter.active {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+    }
+    .top-products-table tbody[hidden] { display: none; }
+
+    @media (max-width: 768px) {
+        .top-products-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+        .top-product-filters { margin-left: 0; }
+    }
+
+    .chart-date-range {
+        margin-top: 15px;
+        padding: 10px;
+        background: #f8fafc;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 14px;
+        color: #475569;
+    }
+    
+    .top-products-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .top-products-table th {
+        text-align: left;
+        padding: 12px;
+        background: #f8fafc;
+        font-weight: 600;
+        color: #1e293b;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .top-products-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+    
+    .percentage-bar {
+        position: relative;
+        width: 100%;
+        background: #e2e8f0;
+        border-radius: 20px;
+        overflow: hidden;
+        height: 24px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .percentage-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #1a7db7, #3b9fd8);
+        border-radius: 20px;
+        transition: width 0.3s ease;
+    }
+    
+    .percentage-text {
+        position: relative;
+        z-index: 1;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #1e293b;
+        mix-blend-mode: difference;
+    }
+    
+    .filter-bar {
+        display: flex;
+        gap: 20px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        margin-bottom: 25px;
+        padding: 20px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .transactions-section .transactions-header {
+        padding: 16px 20px 12px;
+    }
+
+    .transactions-section .transactions-header h2 {
+        margin: 0;
+    }
+
+    .transactions-section .filter-bar {
+        display: grid;
+        grid-template-columns: minmax(220px, .9fr) minmax(300px, 1.3fr) auto;
+        align-items: end;
+        gap: 16px;
+        margin: 0 16px 16px;
+        padding: 16px;
+    }
+
+    .transactions-section .filter-bar > .filter-group {
+        width: 100%;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .transactions-section .filter-group {
+        min-width: 0;
+    }
+    
+    .filter-group label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+    
+    .custom-select select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+    }
+    
+    .search-input-group {
+        position: relative;
+    }
+    
+    .search-icon-small {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 14px;
+    }
+    
+    .search-input-group input {
+        width: 100%;
+        padding: 10px 12px 10px 35px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .transactions-section .filter-actions {
+        justify-content: flex-end;
+        white-space: nowrap;
+    }
+
+    .transactions-section .filter-actions button {
+        min-width: 112px;
+        justify-content: center;
+    }
+
+    .transactions-section .custom-select,
+    .transactions-section .search-input-group {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .transactions-section .custom-select select,
+    .transactions-section .search-input-group input {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .date-filter .period-tabs {
+        align-self: flex-end;
+        flex-shrink: 0;
+        margin-right: .25rem;
+    }
+
+    @media (max-width: 768px) {
+        .charts-container {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .charts-container > .chart-card {
+            min-width: 0;
+        }
+    }
+    
+    .btn-apply, .btn-reset {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-apply {
+        background: #1a7db7;
+        color: white;
+    }
+    
+    .btn-reset {
+        background: #e2e8f0;
+        color: #475569;
+    }
+    
+    .filter-stats {
+        margin-top: 15px;
+        padding: 10px 12px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #475569;
+        display: none;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .text-muted {
+        color: #94a3b8;
+    }
+    
+    @media (max-width: 768px) {
+        .date-filter .period-tabs {
+            width: 100%;
+            margin: 0 0 .25rem;
+        }
+        .date-filter .period-tab {
+            flex: 1;
+            justify-content: center;
+            padding: .55rem .65rem;
+        }
+        .date-filter .date-group {
+            flex: 1 1 calc(50% - .375rem);
+            min-width: 0;
+        }
+        .date-filter .date-group input[type="date"] {
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
+        }
+        .date-filter .btn-generate,
+        .date-filter .btn-export {
+            box-sizing: border-box;
+            flex: 1 1 calc(50% - .375rem);
+            justify-content: center;
+            min-width: 0;
+            white-space: nowrap;
+        }
+        .transactions-section .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+            margin: 0 12px 12px;
+            padding: 14px;
+        }
+        .transactions-section .filter-group {
+            width: 100%;
+            min-width: auto;
+        }
+        .transactions-section .filter-group label {
+            white-space: nowrap;
+            margin-bottom: 6px;
+        }
+        .transactions-section .filter-actions {
+            width: 100%;
+            justify-content: stretch;
+            gap: 10px;
+        }
+        .transactions-section .btn-apply,
+        .transactions-section .btn-reset {
+            flex: 1;
+            justify-content: center;
+        }
+        .top-products-table th, .top-products-table td {
+            padding: 8px;
+        }
+        .percentage-text {
+            font-size: 10px;
+        }
+    }
+
+    @media (min-width: 769px) and (max-width: 1100px) {
+        .transactions-section .filter-bar {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+        }
+        .transactions-section .filter-actions {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .transactions-section .transactions-header {
+            padding: 13px 14px 10px;
+        }
+        .transactions-section .filter-bar {
+            gap: 12px;
+            margin: 0 10px 10px;
+            padding: 12px;
+        }
+        .transactions-section .filter-group label {
+            font-size: 11px;
+            letter-spacing: .35px;
+        }
+        .transactions-section .custom-select select,
+        .transactions-section .search-input-group input {
+            max-width: 100%;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            font-size: 14px;
+        }
+        .transactions-section .filter-actions {
+            gap: 8px;
+        }
+        .transactions-section .btn-apply,
+        .transactions-section .btn-reset {
+            padding: 10px 12px;
+        }
+    }
+</style>
+</body>
+</html>

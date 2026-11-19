@@ -1,0 +1,3500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    <script src="{% static 'accounts/js/dashboard_topbar.js' %}" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'accounts/js/table_pagination.js' %}" defer></script>
+    <style>
+        .order-badge { background: #ef4444; color: white; font-size: .65rem; font-weight: 700; padding: .1rem .45rem; border-radius: 20px; min-width: 18px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+        .top-products-header { padding: .95rem 1.1rem; }
+        .top-products-header h2 { margin: 0; font-size: .9rem; }
+        .top-product-filters { display: flex; flex: 0 0 auto; gap: .5rem; margin-left: auto; }
+        .top-product-filter { padding: .4rem .8rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-sub); cursor: pointer; font: inherit; font-weight: 600; }
+        .top-product-filter.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .top-products-table tbody[hidden] { display: none; }
+        .top-product-name { display: flex; align-items: center; gap: .65rem; }
+        .top-product-image { width: 48px; height: 48px; flex: 0 0 48px; object-fit: contain; border-radius: 8px; background: #f5f8fc; }
+        #adminTodayOrdersTable .btn-view-receipt {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .45rem;
+            min-height: 36px;
+            padding: .5rem .85rem;
+            border: 1px solid #1684c4;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #1b9bd1, #1474bd);
+            color: #fff;
+            font: 600 .8rem Arial, Helvetica, sans-serif;
+            white-space: nowrap;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(20, 116, 189, .2);
+            transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+        #adminTodayOrdersTable .btn-view-receipt:hover {
+            background: linear-gradient(135deg, #1689bd, #105fa3);
+            box-shadow: 0 5px 12px rgba(20, 116, 189, .28);
+            transform: translateY(-1px);
+        }
+        #adminTodayOrdersTable .btn-view-receipt:focus-visible {
+            outline: 3px solid rgba(27, 155, 209, .35);
+            outline-offset: 2px;
+        }
+        #adminTodayOrdersTable .btn-view-receipt:active { transform: translateY(0); }
+        .admin-today-orders-header { justify-content: space-between; }
+        .admin-today-orders-header h2 { margin-right: auto; text-align: left; }
+        .admin-today-orders-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+        @media (max-width: 768px) {
+            .top-products-header { align-items: flex-start; flex-direction: column; }
+            .top-product-filters { margin-left: 0; }
+            .admin-today-orders-header {
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                text-align: left;
+            }
+            .admin-today-orders-header h2 {
+                width: auto;
+                justify-content: flex-start;
+                text-align: left;
+            }
+            .admin-today-orders-scroll table { min-width: 900px; }
+        }
+        .maintenance-photo-stack { display:flex; align-items:center; min-width:150px; height:58px; }
+        .maintenance-photo-thumb { width:56px; height:44px; padding:0; border:1px solid #fff; border-radius:6px; overflow:hidden; background:#eef2f7; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.18); transition:transform .15s, z-index .15s; }
+        .maintenance-photo-thumb + .maintenance-photo-thumb { margin-left:-42px; }
+        .maintenance-photo-thumb:hover { transform:translateY(-3px); z-index:2; }
+        .maintenance-photo-thumb img { display:block; width:100%; height:100%; object-fit:cover; }
+        .maintenance-gallery { position:fixed; inset:0; z-index:10000; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(15,23,42,.82); }
+        .maintenance-gallery.is-open { display:flex; }
+        .maintenance-gallery-content { position:relative; display:flex; align-items:center; justify-content:center; max-width:90vw; max-height:88vh; }
+        .maintenance-gallery-image { display:block; max-width:82vw; max-height:82vh; border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,.45); }
+        .maintenance-gallery-close, .maintenance-gallery-nav { border:0; color:#fff; background:rgba(255,255,255,.16); cursor:pointer; }
+        .maintenance-gallery-close { position:absolute; top:-42px; right:0; width:34px; height:34px; border-radius:50%; font-size:22px; }
+        .maintenance-gallery-nav { position:fixed; top:50%; transform:translateY(-50%); width:44px; height:56px; border-radius:8px; font-size:28px; }
+        .maintenance-gallery-prev { left:24px; }
+        .maintenance-gallery-next { right:24px; }
+        .maintenance-gallery-counter { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}" data-live-order-refresh="true">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% include "accounts/admin_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN ─────────────────────────────────── -->
+    <main class="main-content">
+
+        {% include "accounts/dashboard_topbar.html" %}
+
+        
+        <div class="welcome-banner">
+            <div class="welcome-text">
+                <h2>Welcome, {{ request.user.first_name|default:request.user.username }}!</h2>
+                <p>Stay hydrated with Grateful Water Station</p>
+            </div>
+        </div>
+
+        <div class="dashboard-controls" aria-label="Station controls">
+            <div class="station-control" aria-label="Water station availability">
+                <span class="control-icon station-control-icon"><i class="fas fa-store"></i></span>
+                <span class="control-copy">
+                    <span class="control-title">Station Availability</span>
+                    <span class="control-description"></span>
+                </span>
+                <button type="button" class="station-toggle {% if station_is_open %}is-open{% else %}is-closed{% endif %}" id="stationToggle" aria-pressed="{{ station_is_open|yesno:'true,false' }}" aria-label="{% if station_is_open %}Close{% else %}Open{% endif %} water station">
+                    <i class="fas fa-power-off" aria-hidden="true"></i>
+                    <span class="station-toggle-state">{% if station_is_open %}OPEN{% else %}CLOSED{% endif %}</span>
+                </button>
+            </div>
+            <div class="fan-control" id="fanControl" aria-label="Fan control">
+                <span class="control-icon fan-control-icon"><i class="fas fa-droplet"></i></span>
+                <span class="control-copy">
+                    <span class="control-title">Machine Control</span>
+                    <span class="control-description"></span>
+                </span>
+                <button type="button" class="fan-toggle is-off" id="fanToggle" aria-pressed="false" aria-label="Turn fan on">
+                    <span class="fan-toggle-track"><span class="fan-toggle-knob"></span></span>
+                    <span class="fan-toggle-state">OFF</span>
+                </button>
+            </div>
+        </div>
+
+        {% if maintenance_tasks %}
+        <div class="data-table admin-maintenance-tasks">
+            <div class="table-header">
+                <h2><i class="fas fa-calendar-check"></i> Cleaning Tasks</h2>
+                <a href="{% url 'maintenance' %}" class="view-all">Manage Tasks <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Description</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in maintenance_tasks %}
+                        <tr>
+                            <td>{{ task.title }}</td>
+                            <td style="max-width:280px; white-space:normal;">{{ task.description|default:"—" }}</td>
+                            <td>{{ task.scheduled_date|date:"M d, Y" }}</td>
+                            <td>
+                                <select class="status-select admin-task-status"
+                                        data-task-id="{{ task.id }}"
+                                        data-current-value="{% if task.status == 'Scheduled' %}Pending{% else %}{{ task.status }}{% endif %}"
+                                        onchange="updateAdminTaskStatus(this)">
+                                    <option value="Pending" {% if task.status == 'Pending' or task.status == 'Scheduled' %}selected{% endif %}>Pending</option>
+                                    <option value="In Progress" {% if task.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                    <option value="Completed" {% if task.status == 'Completed' %}selected{% endif %}>Resolved</option>
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if maintenance_reports %}
+        <div class="data-table admin-maintenance-reports">
+            <div class="table-header">
+                <h2><i class="fas fa-clipboard-list"></i> Maintenance Tasks</h2>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Priority</th>
+                            <th>Date</th>
+                            <th>Due Date</th>
+                            <th>Photo</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in maintenance_reports %}
+                        <tr>
+                            <td>{{ report.category }}</td>
+                            <td style="max-width:200px;">{{ report.description|truncatewords:10 }}</td>
+                            <td><span class="priority-badge {{ report.priority|lower }}">{{ report.priority }}</span></td>
+                            <td>{{ report.created_at|date:"M d, Y" }}</td>
+                            <td>{{ report.due_date|date:"M d, Y"|default:"—" }}</td>
+                            <td>
+                                <div class="maintenance-photo-stack">
+                                {% for photo in report.photos.all %}
+                                <button type="button" class="maintenance-photo-thumb" data-gallery-group="report-{{ report.id }}" data-gallery-src="{{ photo.image.url }}" aria-label="View maintenance photo">
+                                    <img src="{{ photo.image.url }}" alt="Maintenance issue: {{ report.category }}">
+                                </button>
+                                {% empty %}
+                                {% if report.photo %}<button type="button" class="maintenance-photo-thumb" data-gallery-group="report-{{ report.id }}" data-gallery-src="{{ report.photo.url }}" aria-label="View maintenance photo"><img src="{{ report.photo.url }}" alt="Maintenance issue: {{ report.category }}"></button>{% else %}—{% endif %}
+                                {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                <select class="status-select admin-report-status"
+                                        data-report-id="{{ report.id }}"
+                                        data-current-value="{{ report.status }}"
+                                        onchange="updateAdminReportStatus(this)">
+                                    <option value="Open" {% if report.status == 'Open' %}selected{% endif %}>Pending</option>
+                                    <option value="In Progress" {% if report.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                    <option value="Resolved" {% if report.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Today's Stats and Sliding Announcement -->
+        <div class="stats-announcement-layout">
+            <aside class="announcement-slider announcement-empty" aria-label="Station announcements">
+                <button type="button" class="announcement-arrow announcement-arrow-left" id="announcementPreviousButton" aria-label="Previous announcement image" hidden>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" class="announcement-arrow announcement-arrow-right" id="announcementNextButton" aria-label="Next announcement image" hidden>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="announcement-stage">
+                    <img class="announcement-image announcement-image-prev" id="announcementImagePrevious" alt="" hidden>
+                    <img class="announcement-image announcement-image-next" id="announcementImageNext" alt="" hidden>
+                    <img class="announcement-image announcement-image-active" id="announcementImage" alt="Admin announcement" hidden>
+                    <div class="announcement-copy" id="announcementCopy" hidden>
+                        <span class="announcement-category" id="announcementCategory"></span>
+                        <strong id="announcementHeadline"></strong>
+                        <span id="announcementDescription"></span>
+                    </div>
+                    <button type="button" class="announcement-add announcement-add-card" id="announcementAddButton" aria-label="Create announcement" hidden>
+                        <i class="fas fa-plus" aria-hidden="true"></i><span>Add announcement</span>
+                    </button>
+                    <button type="button" class="announcement-delete" id="announcementDeleteButton" aria-label="Delete current announcement image" hidden>
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <div class="announcement-dots" id="announcementDots" aria-label="Announcement slides"></div>
+                </div>
+            </aside>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-shopping-cart"></i></div>
+                    <div class="stat-info"><h3>Today's Orders</h3><div class="stat-number">{{ today_transactions|default:"0" }}</div></div>
+                </div>
+
+                <dialog class="announcement-editor" id="announcementEditor" aria-labelledby="announcementEditorTitle">
+                    <form id="announcementForm" enctype="multipart/form-data">
+                        <div class="announcement-editor-heading">
+                            <div>
+                                <span class="announcement-editor-eyebrow">CUSTOMER UPDATE</span>
+                                <h2 id="announcementEditorTitle">Create announcement</h2>
+                            </div>
+                            <button type="button" class="announcement-editor-close" id="announcementEditorClose" aria-label="Close">&times;</button>
+                        </div>
+                        <label>
+                            Announcement type
+                            <select name="category" required>
+                                {% for value, label in announcement_categories %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>
+                            Headline <span>(optional)</span>
+                            <input name="headline" type="text" maxlength="120">
+                        </label>
+                        <label>
+                            Short description
+                            <textarea name="description" maxlength="280" rows="3"></textarea>
+                        </label>
+                        <label>
+                            Image <span>(optional)</span>
+                            <input name="image" type="file" accept="image/*">
+                        </label>
+                        <div class="announcement-editor-actions">
+                            <button type="button" class="announcement-editor-cancel" id="announcementEditorCancel">Cancel</button>
+                            <button type="submit" class="announcement-editor-submit">Publish announcement</button>
+                        </div>
+                    </form>
+                </dialog>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-coins"></i></div>
+                    <div class="stat-info"><h3>Today's Sales</h3><div class="stat-number">₱{{ today_revenue|default:"0.00"|floatformat:2 }}</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange"><i class="fas fa-boxes"></i></div>
+                    <div class="stat-info"><h3>Items Sold</h3><div class="stat-number">{{ today_items_sold|default:"0" }}</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon teal"><i class="fas fa-motorcycle"></i></div>
+                    <div class="stat-info"><h3>Active Riders</h3><div class="stat-number">{{ active_riders_count|default:"0" }}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-line"></i> Today's Sales</h3>
+                {% if daily_sales_data %}
+                <canvas id="dailySalesChart"></canvas>
+                {% else %}
+                <div class="chart-empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <strong>No sales yet</strong>
+                    <span>Today's sales activity will appear here when a transaction is recorded.</span>
+                </div>
+                {% endif %}
+                
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-pie"></i> Payment Methods</h3>
+                {% if cash_total > 0 or gcash_total > 0 %}
+                <canvas id="paymentChart"></canvas>
+                {% else %}
+                <div class="chart-empty-state">
+                    <i class="fas fa-receipt"></i>
+                    <strong>No sales yet</strong>
+                    <span>Payment method results will appear after a sale is completed.</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        
+
+        <!-- Top Products -->
+        <div class="data-table">
+            <div class="table-header top-products-header">
+                <h2><i class="fas fa-crown"></i> Today's Top Selling Products</h2>
+                <div class="top-product-filters" role="group" aria-label="Filter top selling products">
+                    <button type="button" class="top-product-filter active" data-product-type="refill" aria-pressed="true">Refill</button>
+                    <button type="button" class="top-product-filter" data-product-type="gallon" aria-pressed="false">Gallon</button>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="top-products-table">
+                <thead>
+                    <tr><th>Product</th><th>Qty Sold</th><th>Revenue</th><th>% of Total</th></tr>
+                </thead>
+                <tbody data-product-type="refill">
+                    {% for product in top_products_refill %}
+                    <tr>
+                        <td>
+                            <div class="top-product-name">
+                                {% if product.image_path %}
+                                <img class="top-product-image" src="{% get_media_prefix %}{{ product.image_path }}" alt="{{ product.product__name }}" onerror="this.onerror=null;this.src='{% static 'accounts/images/Gallon_Blue_Water_Container-removebg-preview.png' %}';">
+                                {% elif product.product__container_type == 'distilled' %}
+                                <img class="top-product-image" src="{% static 'accounts/images/distilled_water.png' %}" alt="{{ product.product__name }}">
+                                {% elif product.product__container_type == 'container_5g' %}
+                                <img class="top-product-image" src="{% static 'accounts/images/Blue_Water_Dispenser_Round_Container-removebg-preview.png' %}" alt="{{ product.product__name }}">
+                                {% elif product.product__container_type == 'bottle_350ml' %}
+                                <img class="top-product-image" src="{% static 'accounts/images/gallon_slim-removebg-preview.png' %}" alt="{{ product.product__name }}">
+                                {% else %}
+                                <img class="top-product-image" src="{% static 'accounts/images/Gallon_Blue_Water_Container-removebg-preview.png' %}" alt="{{ product.product__name }}">
+                                {% endif %}
+                                <strong>{{ product.product__name }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ product.total_quantity }}</td>
+                        <td>₱{{ product.total_revenue|floatformat:2 }}</td>
+                        <td>{% widthratio product.total_revenue total_revenue 100 as percentage %}{{ percentage }}%</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted">No data available</td></tr>
+                    {% endfor %}
+                </tbody>
+                <tbody data-product-type="gallon" hidden>
+                    {% for product in top_products_gallon %}
+                    <tr>
+                        <td>
+                            <div class="top-product-name">
+                                {% if product.image_path %}
+                                <img class="top-product-image" src="{% get_media_prefix %}{{ product.image_path }}" alt="{{ product.product__name }}" onerror="this.onerror=null;this.src='{% static 'accounts/images/Gallon_Blue_Water_Container-removebg-preview.png' %}';">
+                                {% elif product.product__container_type == 'distilled' %}
+                                <img class="top-product-image" src="{% static 'accounts/images/distilled_water.png' %}" alt="{{ product.product__name }}">
+                                {% elif product.product__container_type == 'container_5g' %}
+                                <img class="top-product-image" src="{% static 'accounts/images/Blue_Water_Dispenser_Round_Container-removebg-preview.png' %}" alt="{{ product.product__name }}">
+                                {% elif product.product__container_type == 'bottle_350ml' %}
+                                <img class="top-product-image" src="{% static 'accounts/images/gallon_slim-removebg-preview.png' %}" alt="{{ product.product__name }}">
+                                {% else %}
+                                <img class="top-product-image" src="{% static 'accounts/images/Gallon_Blue_Water_Container-removebg-preview.png' %}" alt="{{ product.product__name }}">
+                                {% endif %}
+                                <strong>{{ product.product__name }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ product.total_quantity }}</td>
+                        <td>₱{{ product.total_revenue|floatformat:2 }}</td>
+                        <td>{% widthratio product.total_revenue total_revenue 100 as percentage %}{{ percentage }}%</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted">No data available</td></tr>
+                    {% endfor %}
+                </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Today's Orders -->
+        <div class="data-table">
+            <div class="table-header admin-today-orders-header">
+                <h2><i class="fas fa-clock"></i> Today's Orders</h2>
+                <a href="{% url 'manage_orders' %}" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="admin-today-orders-scroll">
+                <table id="adminTodayOrdersTable">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Amount</th>
+                        <th>Payment</th>
+                        <th>Rider</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in recent_pos_sales %}
+                    <tr>
+                        <td>{{ sale.created_at|time:"H:i" }}</td>
+                        <td>{% if sale.customer %}{{ sale.customer.get_full_name|default:sale.customer.username }}{% else %}Walk-in{% endif %}</td>
+                        <td>{{ sale.items.count }}</td>
+                        <td><strong>₱{{ sale.total_amount|floatformat:2 }}</strong></td>
+                        <td>
+                            {% if sale.payment_method == 'cash' %}<span class="payment-badge cash">Cash</span>
+                            {% elif sale.payment_method == 'gcash' %}<span class="payment-badge gcash">GCash</span>
+                            {% else %}<span class="payment-badge">{{ sale.get_payment_method_display }}</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if sale.rider %}{{ sale.rider.get_full_name|default:sale.rider.username }}
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td><span class="status-badge {{ sale.status }}">{{ sale.get_status_display|default:sale.status }}</span></td>
+                        <td class="actions">
+                            <button type="button" class="btn-view-receipt" data-sales-receipt-url="{% url 'receipt_view' sale.id %}">
+                                <i class="fas fa-receipt" aria-hidden="true"></i> Receipt
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr class="empty-row"><td colspan="8" class="text-center text-muted" style="padding:2rem;">No orders yet today</td></tr>
+                    {% endfor %}
+                </tbody>
+                </table>
+            </div>
+            <div class="pagination-bar" data-pagination-for="adminTodayOrdersTable" data-page-size="5">
+                <span class="pagination-info">Showing — of — results</span>
+                <div class="pagination-controls"></div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Sensor Control Confirmation Modal -->
+<div class="sensor-modal-overlay" id="sensorModalOverlay">
+    <div class="sensor-modal">
+        <h3><i class="fas fa-exclamation-triangle"></i> Confirm Sensor Toggle</h3>
+        <p id="sensorModalMessage">Are you sure you want to turn OFF the Station ST-002?</p>
+        <div class="sensor-modal-actions">
+            <button class="sensor-modal-btn cancel" id="sensorModalCancel">Cancel</button>
+            <button class="sensor-modal-btn confirm" id="sensorModalConfirm">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Clock
+    function updateDateTime() {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+        const timeStr = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+        
+        // Update sensor card date/time
+        const sensorDate = document.getElementById('sensorCurrentDate');
+        const sensorTime = document.getElementById('sensorCurrentTime');
+        if (sensorDate) sensorDate.textContent = dateStr;
+        if (sensorTime) sensorTime.textContent = timeStr;
+    }
+    setInterval(updateDateTime,1000); updateDateTime();
+    setTimeout(()=>location.reload(),300000);
+
+    // Daily Sales Line Chart - Shows last 7 days data with day labels
+    {% if daily_sales_data %}
+    const dailyLabels = [{% for day in daily_sales_data %}'{{ day.day_label }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const cashData = [{% for day in daily_sales_data %}{{ day.cash_total }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const gcashData = [{% for day in daily_sales_data %}{{ day.gcash_total }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    
+    new Chart(document.getElementById('dailySalesChart'),{
+        type:'line',
+        data:{
+            labels: dailyLabels,
+            datasets:[
+                {
+                    label:'Cash Sales',
+                    data:cashData,
+                    backgroundColor:'rgba(22, 163, 74, 0.1)',
+                    borderColor:'#16a34a',
+                    borderWidth:3,
+                    tension:0.4,
+                    fill:true,
+                    pointBackgroundColor:'#16a34a',
+                    pointBorderColor:'#fff',
+                    pointRadius:5,
+                    pointHoverRadius:7,
+                    pointBorderWidth:2
+                },
+                {
+                    label:'GCash Sales',
+                    data:gcashData,
+                    backgroundColor:'rgba(26, 125, 183, 0.1)',
+                    borderColor:'#1a7db7',
+                    borderWidth:3,
+                    tension:0.4,
+                    fill:true,
+                    pointBackgroundColor:'#1a7db7',
+                    pointBorderColor:'#fff',
+                    pointRadius:5,
+                    pointHoverRadius:7,
+                    pointBorderWidth:2
+                }
+            ]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:true,
+            interaction:{
+                mode:'index',
+                intersect:false
+            },
+            plugins:{
+                legend:{
+                    position:'top',
+                    labels:{
+                        usePointStyle:true,
+                        boxWidth:12,
+                        padding:15,
+                        font:{size:12,weight:'500'}
+                    }
+                },
+                tooltip:{
+                    callbacks:{
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            const dayInfo = dailyDatesInfo[index];
+                            return `${dayInfo.day_name}, ${dayInfo.month_year}`;
+                        },
+                        label:function(context){
+                            let label = context.dataset.label || '';
+                            let value = context.raw || 0;
+                            return `${label}: ₱${value.toFixed(2)}`;
+                        },
+                        footer:function(tooltipItems){
+                            let sum = 0;
+                            tooltipItems.forEach(item => {
+                                sum += item.raw;
+                            });
+                            return `Total: ₱${sum.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales:{
+                y:{
+                    beginAtZero:true,
+                    ticks:{
+                        callback:function(value){
+                            return '₱' + value.toLocaleString();
+                        },
+                        stepSize:1000
+                    },
+                    grid:{
+                        color:'#e2e8f0',
+                        drawBorder:true
+                    },
+                    title:{
+                        display:true,
+                        text:'Revenue (₱)',
+                        font:{weight:'500',size:12}
+                    }
+                },
+                x:{
+                    grid:{
+                        display:false
+                    },
+                    title:{
+                        display:true,
+                        text:'Day',
+                        font:{weight:'500',size:12}
+                    },
+                    ticks:{
+                        font:{size:11},
+                        color:'#4b5563'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Store date information for tooltips
+    const dailyDatesInfo = [
+        {% for day in daily_sales_data %}
+        { day_name: '{{ day.day_name }}', month_year: '{{ day.month_year }}', full_date: '{{ day.full_date }}' }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    {% endif %}
+
+    // Payment Methods Pie Chart
+    {% if cash_total > 0 or gcash_total > 0 %}
+    const labels=[], data=[], colors=[];
+    {% if cash_total > 0 %}labels.push('Cash');data.push({{ cash_total }});colors.push('#16a34a');{% endif %}
+    {% if gcash_total > 0 %}labels.push('GCash');data.push({{ gcash_total }});colors.push('#1a7db7');{% endif %}
+    new Chart(document.getElementById('paymentChart'),{
+        type:'doughnut',
+        data:{
+            labels:labels,
+            datasets:[{
+                data:data,
+                backgroundColor:colors,
+                borderWidth:0,
+                hoverOffset:10
+            }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:true,
+            plugins:{
+                legend:{
+                    position:'bottom',
+                    labels:{
+                        font:{size:12},
+                        padding:15
+                    }
+                },
+                tooltip:{
+                    callbacks:{
+                        label:function(context){
+                            const total = data.reduce((a,b)=>a+b,0);
+                            const percentage = ((context.raw / total) * 100).toFixed(1);
+                            return `${context.label}: ₱${context.raw.toFixed(2)} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Mobile sidebar toggle
+    document.addEventListener('DOMContentLoaded',()=>{
+        const btn=document.createElement('button'); 
+        btn.className='menu-toggle'; 
+        btn.innerHTML='<i class="fas fa-bars"></i>';
+        const ov=document.createElement('div'); 
+        ov.className='sidebar-overlay';
+        document.body.append(btn,ov);
+        const sb=document.querySelector('.sidebar');
+        const close=()=>{sb.classList.remove('active');ov.classList.remove('active');btn.querySelector('i').className='fas fa-bars';};
+        const open=()=>{sb.classList.add('active');ov.classList.add('active');btn.querySelector('i').className='fas fa-times';};
+        btn.addEventListener('click',()=>sb.classList.contains('active')?close():open());
+        ov.addEventListener('click',close);
+        document.querySelectorAll('.nav-links a').forEach(l=>l.addEventListener('click',()=>{
+            if (window.innerWidth<=768 && !l.classList.contains('nav-dropdown-toggle')) {
+                close();
+            }
+        }));
+        window.addEventListener('resize',()=>window.innerWidth>768&&close());
+        document.addEventListener('keydown',e=>e.key==='Escape'&&close());
+        
+        // Reports dropdown toggle handler
+        document.addEventListener('click', (event) => {
+            const reportsToggle = event.target.closest('.nav-dropdown-toggle');
+            if (!reportsToggle) return;
+            const dropdown = reportsToggle.closest('.nav-dropdown');
+            if (!dropdown) return;
+            event.preventDefault();
+            event.stopPropagation();
+            dropdown.classList.toggle('active');
+        }, true);
+    });
+</script>
+
+<style>
+    .chart-date-range {
+        margin-top: 15px;
+        padding: 10px;
+        background: #f8fafc;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 14px;
+        color: #475569;
+    }
+    .chart-date-range p {
+        margin: 0;
+    }
+    .chart-date-range strong {
+        color: #1e293b;
+    }
+
+    /* ── SENSOR CONTROL WIDGET STYLES ── */
+    .sensor-control-widget {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    
+    .sensor-control-widget h3 {
+        margin: 0 0 1.25rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .sensor-control-widget h3 i {
+        color: #1a7db7;
+    }
+    
+    .sensor-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+    }
+    
+    .sensor-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(148, 163, 184, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sensor-card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .sensor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .sensor-info h4 {
+        margin: 0 0 0.35rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .sensor-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .sensor-status.online {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #065f46;
+        border: 1px solid #10b981;
+    }
+    
+    .sensor-status.offline {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: #991b1b;
+        border: 1px solid #ef4444;
+    }
+
+    .sensor-status.operational {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #065f46;
+        border: 1px solid #10b981;
+    }
+
+    .sensor-status.needs-attention,
+    .sensor-status.under-maintenance {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+        border: 1px solid #f59e0b;
+    }
+
+    .sensor-status.critical {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: #991b1b;
+        border: 1px solid #ef4444;
+    }
+
+    .sensor-status.unknown {
+        background: #e2e8f0;
+        color: #475569;
+        border: 1px solid #94a3b8;
+    }
+    
+    .sensor-status::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .sensor-status.offline::before {
+        animation: none;
+        opacity: 0.5;
+    }
+    
+    /* Toggle Switch */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 52px;
+        height: 28px;
+    }
+    
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+        border-radius: 28px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .toggle-slider::before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .toggle-switch input:checked + .toggle-slider {
+        background: linear-gradient(135deg, #1a7db7, #0ea5e9);
+    }
+    
+    .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(24px);
+    }
+    
+    .toggle-switch.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .toggle-switch.disabled .toggle-slider {
+        cursor: not-allowed;
+    }
+    
+    .sensor-status-info {
+        padding-top: 0.75rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .last-command {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .last-command .label {
+        color: #64748b;
+        font-weight: 500;
+    }
+    
+    .last-command .result {
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .last-command .result.success {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #065f46;
+        border: 1px solid #10b981;
+    }
+    
+    .last-command .result.failed {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: #991b1b;
+        border: 1px solid #ef4444;
+    }
+    
+    .sensor-details {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+    
+    .sensor-details .detail {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    
+    .sensor-details .detail i {
+        color: #1a7db7;
+    }
+    
+    /* Confirmation Modal */
+    .sensor-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .sensor-modal-overlay.active {
+        display: flex;
+    }
+    
+    .sensor-modal {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    .sensor-modal h3 {
+        margin: 0 0 0.75rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .sensor-modal h3 i {
+        color: #f59e0b;
+    }
+    
+    .sensor-modal p {
+        margin: 0 0 1.5rem 0;
+        color: #64748b;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+    
+    .sensor-modal-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+    
+    .sensor-modal-btn {
+        padding: 0.6rem 1.25rem;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+    }
+    
+    .sensor-modal-btn.cancel {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+    
+    .sensor-modal-btn.cancel:hover {
+        background: #e2e8f0;
+        color: #475569;
+    }
+    
+    .sensor-modal-btn.confirm {
+        background: linear-gradient(135deg, #1a7db7, #0ea5e9);
+        color: white;
+        box-shadow: 0 2px 8px rgba(26, 125, 183, 0.3);
+    }
+    
+    .sensor-modal-btn.confirm:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(26, 125, 183, 0.4);
+    }
+    
+    @media (max-width: 768px) {
+        .sensor-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .sensor-control-widget {
+            padding: 1.25rem;
+            border-radius: 16px;
+        }
+        
+        .sensor-card {
+            padding: 1rem;
+            border-radius: 12px;
+        }
+    }
+
+    /* ── SENSOR CONTROL WIDGET IN HEADER ── */
+    .sensor-control-widget-header {
+        margin-top: 1rem;
+        width: 100%;
+    }
+    
+    .sensor-card-header {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(30, 41, 59, 0.06);
+        width: 100%;
+        backdrop-filter: blur(10px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sensor-card-header:hover {
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        transform: translateY(-2px);
+    }
+    
+    .sensor-card-header .sensor-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: start;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    }
+    
+    .sensor-card-header .sensor-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .sensor-card-header .sensor-info h4 {
+        font-size: 1.1rem;
+        margin: 0;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.5px;
+    }
+    
+    .sensor-card-header .sensor-status {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 24px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .sensor-card-header .sensor-status.online {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+    }
+    
+    .sensor-card-header .sensor-status.offline {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+    }
+    
+    .sensor-card-header .sensor-status-info {
+        padding-top: 0;
+    }
+    
+    .sensor-card-header .dashboard-info {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    }
+    
+    .sensor-card-header .dashboard-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.3px;
+    }
+    
+    .sensor-card-header .dashboard-date-time {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+    
+    .sensor-card-header .dashboard-date-time .current-date {
+        font-weight: 500;
+        color: #475569;
+    }
+    
+    .sensor-card-header .dashboard-date-time .current-time {
+        font-weight: 700;
+        color: #0ea5e9;
+        font-size: 1rem;
+    }
+    
+    .sensor-card-header .sensor-details-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1.25rem;
+        align-items: center;
+    }
+    
+    .sensor-card-header .sensor-detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+    
+    .sensor-card-header .sensor-detail-item i {
+        color: #0ea5e9;
+        font-size: 0.95rem;
+    }
+    
+    .sensor-card-header .sensor-detail-item span {
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .sensor-card-header .sensor-command-result {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-left: auto;
+        font-size: 0.8rem;
+        background: rgba(15, 23, 42, 0.02);
+        padding: 0.5rem 0.8rem;
+        border-radius: 12px;
+    }
+    
+    .sensor-card-header .sensor-command-result .label {
+        color: #64748b;
+        font-weight: 600;
+    }
+    
+    .sensor-card-header .sensor-command-result .result {
+        font-weight: 700;
+        padding: 0.2rem 0.6rem;
+        border-radius: 8px;
+    }
+    
+    .sensor-card-header .sensor-command-result .result.success {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #065f46;
+    }
+    
+    .sensor-card-header .sensor-command-result .result.failed {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: #991b1b;
+    }
+    
+    /* Toggle Switch - Modern Design */
+    .sensor-card-header .sensor-toggle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .sensor-card-header .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 64px;
+        height: 32px;
+    }
+    
+    .sensor-card-header .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .sensor-card-header .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+        border-radius: 32px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .sensor-card-header .toggle-slider::before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .sensor-card-header .toggle-switch input:checked + .toggle-slider {
+        background: linear-gradient(135deg, #10b981, #059669);
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+    }
+    
+    .sensor-card-header .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(32px);
+        box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
+    }
+    
+    @media (max-width: 768px) {
+        .sensor-card-header {
+            padding: 1.25rem;
+            border-radius: 16px;
+        }
+        
+        .sensor-card-header .sensor-header {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .sensor-card-header .sensor-info {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .sensor-card-header .sensor-info h4 {
+            font-size: 1rem;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .sensor-card-header .sensor-status {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.75rem;
+        }
+        
+        .sensor-card-header .sensor-toggle {
+            width: 100%;
+            justify-content: flex-end;
+            padding-top: 0.5rem;
+        }
+        
+        .sensor-card-header .dashboard-info {
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+        
+        .sensor-card-header .dashboard-title {
+            font-size: 0.8rem;
+            margin-bottom: 0.35rem;
+        }
+        
+        .sensor-card-header .dashboard-date-time {
+            gap: 0.1rem;
+            font-size: 0.7rem;
+        }
+        
+        .sensor-card-header .dashboard-date-time .current-time {
+            font-size: 0.9rem;
+        }
+        
+        .sensor-card-header .sensor-details-row {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .sensor-card-header .sensor-detail-item {
+            font-size: 0.75rem;
+            gap: 0.35rem;
+        }
+        
+        .sensor-card-header .sensor-detail-item i {
+            font-size: 0.8rem;
+        }
+        
+        .sensor-card-header .sensor-detail-item span {
+            font-size: 0.75rem;
+        }
+        
+        .sensor-card-header .sensor-command-result {
+            grid-column: 1 / -1;
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-start;
+            font-size: 0.7rem;
+            padding: 0.35rem 0.6rem;
+        }
+        
+        .sensor-card-header .sensor-command-result .label {
+            font-size: 0.7rem;
+        }
+        
+        .sensor-card-header .sensor-command-result .result {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.5rem;
+        }
+        
+        .sensor-card-header .toggle-switch {
+            width: 56px;
+            height: 28px;
+        }
+        
+        .sensor-card-header .toggle-slider::before {
+            height: 22px;
+            width: 22px;
+        }
+        
+        .sensor-card-header .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(28px);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .sensor-card-header {
+            padding: 1rem;
+            border-radius: 12px;
+        }
+        
+        .sensor-card-header .sensor-info {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .sensor-card-header .sensor-info h4 {
+            font-size: 0.9rem;
+        }
+        
+        .sensor-card-header .sensor-details-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ── REPORTS DROPDOWN STYLES ── */
+    .nav-item-has-children {
+        position: relative;
+    }
+
+    .nav-link-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        color: #64748b;
+        text-decoration: none;
+        border-radius: 10px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .nav-link-toggle:hover {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        color: #1a7db7;
+        transform: translateX(4px);
+    }
+
+    .nav-link-toggle.active {
+        background: linear-gradient(135deg, #1a7db7 0%, #0ea5e9 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(26, 125, 183, 0.3);
+    }
+
+    .nav-link-toggle i:first-child {
+        margin-right: 0.75rem;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    .dropdown-arrow {
+        font-size: 0.75rem;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0.6;
+    }
+
+    .nav-item-has-children.expanded .dropdown-arrow {
+        transform: rotate(180deg);
+        opacity: 1;
+    }
+
+    .nav-submenu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        opacity: 0;
+        margin-left: 1.5rem;
+    }
+
+    .nav-item-has-children.expanded .nav-submenu {
+        max-height: 500px;
+        opacity: 1;
+        padding: 0.5rem 0 0.5rem 0.75rem;
+    }
+
+    .nav-submenu li {
+        margin: 0;
+    }
+
+    .nav-submenu a {
+        display: flex;
+        color: #64748b;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .nav-submenu a:hover {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        color: #1a7db7;
+        transform: translateX(4px);
+    }
+
+    .nav-submenu a.active {
+        background: linear-gradient(135deg, #1a7db7 0%, #0ea5e9 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(26, 125, 183, 0.25);
+    }
+
+    .nav-submenu a i {
+        margin-right: 0.6rem;
+        font-size: 0.95rem;
+        width: 18px;
+        text-align: center;
+    }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+        .nav-item-has-children {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link-toggle {
+            padding: 1rem 1.1rem;
+            font-size: 0.95rem;
+            min-height: 48px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-link-toggle:hover {
+            transform: none;
+        }
+
+        .nav-link-toggle:active {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+        }
+
+        .nav-link-toggle i:first-child {
+            font-size: 1.15rem;
+            margin-right: 0.85rem;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.8rem;
+            padding: 0.25rem;
+        }
+
+        .nav-submenu {
+            margin-left: 0.5rem;
+            border-left-width: 2px;
+            border-left-color: #cbd5e1;
+            background: transparent;
+        }
+
+        .nav-item-has-children.expanded .nav-submenu {
+            padding: 0.5rem 0 0.5rem 0.75rem;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .nav-submenu a {
+            padding: 0.85rem 1rem 0.85rem 1.25rem;
+            font-size: 0.9rem;
+            min-height: 44px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+
+        .nav-submenu a:hover {
+            transform: none;
+        }
+
+        .nav-submenu a:active {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+        }
+
+        .nav-submenu a i {
+            margin-right: 0.65rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .nav-item-has-children {
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-link-toggle {
+            padding: 0.95rem 1rem;
+            font-size: 0.9rem;
+            min-height: 50px;
+        }
+
+        .nav-link-toggle i:first-child {
+            font-size: 1.1rem;
+            margin-right: 0.75rem;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.75rem;
+            padding: 0.3rem;
+        }
+
+        .nav-submenu {
+            margin-left: 0.4rem;
+            border-left-width: 1.5px;
+        }
+
+        .nav-item-has-children.expanded .nav-submenu {
+            padding: 0.4rem 0 0.4rem 0.6rem;
+        }
+
+        .nav-submenu a {
+            padding: 0.8rem 0.9rem 0.8rem 1.1rem;
+            font-size: 0.85rem;
+            min-height: 46px;
+        }
+
+        .nav-submenu a i {
+            margin-right: 0.55rem;
+            font-size: 0.85rem;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .nav-link-toggle {
+            padding: 0.9rem 0.9rem;
+            font-size: 0.85rem;
+        }
+        .nav-link-toggle i:first-child {
+            font-size: 1rem;
+            margin-right: 0.65rem;
+        }
+        .dropdown-arrow {
+            font-size: 0.7rem;
+        }
+        .nav-submenu a {
+            padding: 0.75rem 0.85rem 0.75rem 1rem;
+            font-size: 0.8rem;
+        }
+        .nav-submenu a i {
+            margin-right: 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
+<script>
+    const UNREAD_URL = "{% url 'unread_message_count_api' %}";
+    const PENDING_ORDERS_URL = "{% url 'pending_order_count_api' %}";
+    let adminOrderChangeToken = null;
+    let adminOrderBaselineEstablished = false;
+    function pollUnreadBadge() {
+        fetch(UNREAD_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            document.querySelectorAll('.sidebar .unread-badge').forEach(badge => {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        })
+        .catch(() => {});
+    }
+    setInterval(pollUnreadBadge, 5000);
+    pollUnreadBadge();
+
+    function pollPendingOrderBadge() {
+        fetch(PENDING_ORDERS_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            document.querySelectorAll('.sidebar .order-badge').forEach(badge => {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+            const changeToken = `${data.latest_updated_at || ''}:${data.latest_order_id || ''}`;
+            if (!adminOrderBaselineEstablished) {
+                adminOrderChangeToken = changeToken;
+                adminOrderBaselineEstablished = true;
+            } else if (changeToken !== adminOrderChangeToken) {
+                adminOrderChangeToken = changeToken;
+            }
+        })
+        .catch(() => {});
+    }
+    setInterval(pollPendingOrderBadge, 5000);
+    pollPendingOrderBadge();
+</script>
+
+<script>
+    let currentStationId = null;
+    let currentToggleState = null;
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStationStatus();
+        const toggleInputs = document.querySelectorAll('.sensor-toggle-input');
+        toggleInputs.forEach(input => {
+            input.addEventListener('change', function(e) {
+                const stationId = this.getAttribute('data-station-id');
+                const newState = this.checked;
+                if (this.disabled) {
+                    e.preventDefault();
+                    return;
+                }
+                showSensorConfirmationModal(stationId, newState);
+            });
+        });
+
+        async function loadStationStatus() {
+            const statusElement = document.getElementById('stationStatus');
+            try {
+                const response = await fetch("{% url 'get_maintenance_reports' %}");
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error('Unable to load maintenance reports');
+                }
+                const activeReports = data.reports.filter(report => !['Resolved', 'Closed'].includes(report.status));
+                let status = 'Operational';
+                if (activeReports.some(report => report.priority === 'Critical')) {
+                    status = 'Critical';
+                } else if (activeReports.some(report => report.status === 'In Progress')) {
+                    status = 'Under maintenance';
+                } else if (activeReports.length) {
+                    status = 'Needs attention';
+                }
+                statusElement.textContent = status;
+                statusElement.className = `sensor-status ${status.toLowerCase().replace(/\s+/g, '-')}`;
+            } catch (error) {
+                statusElement.textContent = 'Unknown';
+                statusElement.className = 'sensor-status unknown';
+                console.error('Error loading station status:', error);
+            }
+        }
+        document.getElementById('sensorModalCancel').addEventListener('click', closeSensorModal);
+        document.getElementById('sensorModalConfirm').addEventListener('click', confirmSensorToggle);
+        document.getElementById('sensorModalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSensorModal();
+            }
+        });
+    });
+    function showSensorConfirmationModal(stationId, newState) {
+        currentStationId = stationId;
+        currentToggleState = newState;
+        const modal = document.getElementById('sensorModalOverlay');
+        const message = document.getElementById('sensorModalMessage');
+        const actionText = newState ? 'turn ON' : 'turn OFF';
+        message.textContent = `Are you sure you want to ${actionText} the sensor for Station ${stationId}?`;
+        modal.classList.add('active');
+    }
+    function closeSensorModal() {
+        const modal = document.getElementById('sensorModalOverlay');
+        modal.classList.remove('active');
+        // Revert the toggle switch
+        if (currentStationId) {
+            const toggleInput = document.getElementById(`sensor-${currentStationId}`);
+            if (toggleInput) {
+                toggleInput.checked = !currentToggleState;
+            }
+        }
+        
+        currentStationId = null;
+        currentToggleState = null;
+    }
+
+    function confirmSensorToggle() {
+        if (!currentStationId || currentToggleState === null) {
+            closeSensorModal();
+            return;
+        }
+        
+        const toggleInput = document.getElementById(`sensor-${currentStationId}`);
+        const resultElement = document.getElementById(`result-${currentStationId}`);
+        
+        // Simulate API call to toggle sensor
+        // In production, replace with actual API endpoint
+        simulateSensorToggle(currentStationId, currentToggleState)
+            .then(success => {
+                // Update command result
+                if (resultElement) {
+                    resultElement.className = 'result ' + (success ? 'success' : 'failed');
+                    resultElement.textContent = success ? 'Success' : 'Failed';
+                }
+                
+                if (!success) {
+                    // Revert toggle on failure
+                    if (toggleInput) {
+                        toggleInput.checked = !currentToggleState;
+                    }
+                }
+            })
+            .catch(() => {
+                // Handle error
+                if (resultElement) {
+                    resultElement.className = 'result failed';
+                    resultElement.textContent = 'Failed';
+                }
+                
+                // Revert toggle on error
+                if (toggleInput) {
+                    toggleInput.checked = !currentToggleState;
+                }
+            });
+        
+        closeSensorModal();
+    }
+
+    function simulateSensorToggle(stationId, newState) {
+        // Simulate API call with delay
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                // Simulate 90% success rate
+                const success = Math.random() > 0.1;
+                resolve(success);
+            }, 500);
+        });
+        
+        // In production, replace with actual API call:
+        /*
+        return fetch(`/api/sensor/${stationId}/toggle/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ state: newState })
+        })
+        .then(response => response.json())
+        .then(data => data.success);
+        */
+    }
+</script>
+
+<script>
+    // ── REPORTS DROPDOWN FUNCTIONALITY ──
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize dropdown toggle functionality
+        const dropdownToggles = document.querySelectorAll('.nav-link-toggle');
+        
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const parentItem = this.closest('.nav-item-has-children');
+                const isExpanded = parentItem.classList.contains('expanded');
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.nav-item-has-children').forEach(item => {
+                    if (item !== parentItem) {
+                        item.classList.remove('expanded');
+                        item.querySelector('.nav-link-toggle').classList.remove('active');
+                    }
+                });
+                
+                // Toggle current dropdown
+                parentItem.classList.toggle('expanded');
+                this.classList.toggle('active');
+            });
+        });
+        
+        // Set active state for submenu items based on current URL
+        const currentPath = window.location.pathname;
+        const submenuLinks = document.querySelectorAll('.nav-submenu a');
+        
+        submenuLinks.forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+                // Expand parent dropdown if submenu item is active
+                const parentItem = link.closest('.nav-item-has-children');
+                if (parentItem) {
+                    parentItem.classList.add('expanded');
+                    parentItem.querySelector('.nav-link-toggle').classList.add('active');
+                }
+            }
+        });
+        
+        // Handle mobile sidebar - close dropdowns when sidebar closes
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.querySelector('.sidebar-overlay');
+        
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item-has-children').forEach(item => {
+                    item.classList.remove('expanded');
+                    item.querySelector('.nav-link-toggle').classList.remove('active');
+                });
+            });
+        }
+        
+        // Close dropdowns when clicking outside on desktop
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.nav-item-has-children')) {
+                document.querySelectorAll('.nav-item-has-children').forEach(item => {
+                    item.classList.remove('expanded');
+                    item.querySelector('.nav-link-toggle').classList.remove('active');
+                });
+            }
+        });
+    });
+</script>
+
+<style>
+    /* Dashboard visual language: quiet blue-gray surfaces, crisp type, and soft cards. */
+    body {
+        background: #eef2f7;
+        color: #182433;
+    }
+
+    .dashboard-container {
+        min-height: 100vh;
+        padding: 18px;
+        gap: 18px;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: 18px;
+        top: 18px;
+        bottom: 18px;
+        height: auto;
+        width: 238px;
+        padding: 24px 14px 16px;
+        border: 1px solid #dbe4ef;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #eaf3ff 0%, #f8fbff 62%, #ffffff 100%);
+        box-shadow: 0 14px 36px rgba(36, 70, 112, .08);
+    }
+
+    .sidebar-header {
+        padding: 4px 8px 20px;
+        margin-bottom: 18px;
+        border-bottom-color: #dbe7f3;
+    }
+
+    .brand-lockup {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .brand-lockup .brand-icon {
+        width: 28px;
+        height: 28px;
+        margin: 0;
+        flex: 0 0 28px;
+    }
+    .brand-lockup .brand-icon img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+    }
+    .brand-lockup span {
+        overflow: hidden;
+        color: #1f3650;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: .72rem;
+        font-weight: 500;
+        letter-spacing: -.15px;
+        text-overflow: ellipsis;
+    }
+    .brand-lockup span em {
+        color: #4FA8DE;
+        font-family: 'Space Grotesk', sans-serif;
+        font-style: normal;
+        font-weight: 500;
+    }
+
+    .nav-links a {
+        min-height: 40px;
+        padding: .62rem .8rem;
+        color: #60758d;
+        border-radius: 11px;
+        font-size: .78rem;
+    }
+    .nav-links a i { color: #91a4b8; font-size: .82rem; }
+    .nav-links a:hover,
+    .nav-links a.active {
+        color: #236ee8;
+        background: rgba(255,255,255,.86);
+        box-shadow: 0 5px 14px rgba(45, 107, 188, .08);
+        transform: none;
+    }
+    .nav-links a:hover i,
+    .nav-links a.active i { color: #236ee8; }
+    .nav-links > li > a.active::before {
+        left: -1px;
+        width: 3px;
+        background: #236ee8;
+    }
+    .sidebar-utility {
+        display: grid;
+        gap: 3px;
+        margin-top: auto;
+        padding: 12px 0 10px;
+        border-top: 1px solid #dbe7f3;
+    }
+    .sidebar-utility a {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        min-height: 36px;
+        padding: .55rem .8rem;
+        border-radius: 11px;
+        color: #60758d;
+        font-size: .75rem;
+        font-weight: 500;
+        transition: all .2s ease;
+    }
+    .sidebar-utility a:hover {
+        color: #236ee8;
+        background: rgba(255,255,255,.86);
+    }
+    .sidebar-utility a i {
+        width: 18px;
+        color: #91a4b8;
+        text-align: center;
+    }
+    .sidebar-utility a:hover i { color: #236ee8; }
+    .sidebar-utility .unread-badge,
+    .sidebar-utility .order-badge {
+        position: absolute;
+        top: 50%;
+        right: .7rem;
+        transform: translateY(-50%);
+        width: 18px !important;
+        height: 18px !important;
+        min-width: 18px !important;
+        font-size: .58rem !important;
+    }
+    .user-info {
+        margin: 0;
+        padding: .75rem .8rem;
+        border-color: #dbe7f3;
+        background: rgba(255,255,255,.7);
+        border-radius: 12px;
+    }
+    .user-info p { font-size: .72rem; }
+
+    .main-content {
+        width: calc(100% - 256px);
+        margin-left: 256px;
+        padding: 12px 18px 40px 4px;
+    }
+
+    .dashboard-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        min-height: 42px;
+        margin-bottom: 26px;
+        color: #8798aa;
+        font-size: .72rem;
+    }
+    .dashboard-breadcrumb,
+    .dashboard-topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+    }
+    .dashboard-controls {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+        flex-wrap: wrap;
+        margin: -1rem 0 1.4rem;
+    }
+    .dashboard-eyebrow {
+        color: #2a3d53;
+        font-weight: 700;
+    }
+    .dashboard-divider { color: #bdc8d5; }
+    .dashboard-date {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .45rem .7rem;
+        border: 1px solid #dce5ee;
+        border-radius: 9px;
+        background: rgba(255,255,255,.68);
+    }
+    .dashboard-avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        color: #fff;
+        background: #236ee8;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+    .station-control,
+    .fan-control {
+        display: flex;
+        align-items: center;
+        gap: .8rem;
+        min-width: 280px;
+        min-height: 76px;
+        padding: .75rem .85rem;
+        border: 1px solid #dce7f4;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(245,249,255,.95));
+        box-shadow: 0 5px 16px rgba(35, 75, 130, .07);
+        transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    .station-control:hover,
+    .fan-control:hover {
+        border-color: #bfd4f4;
+        box-shadow: 0 8px 20px rgba(35, 75, 130, .11);
+        transform: translateY(-1px);
+    }
+    .control-icon {
+        display: inline-flex;
+        flex: 0 0 42px;
+        width: 42px;
+        height: 42px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+    .station-control-icon { color: #167344; background: #e7f7ef; }
+    .fan-control-icon { color: #2563eb; background: #eaf1ff; }
+    .control-copy {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        flex-direction: column;
+        gap: .22rem;
+    }
+    .control-title { color: #20344d; font-size: .82rem; font-weight: 700; }
+    .control-description { color: #8291a5; font-size: .68rem; line-height: 1.35; }
+    .fan-toggle {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        min-width: 88px;
+        min-height: 40px;
+        padding: .35rem .65rem;
+        border: 1px solid #d7e0eb;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #64748b;
+        cursor: pointer;
+        font: 700 .7rem/1 'Space Grotesk', sans-serif;
+        transition: background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .fan-toggle:disabled { cursor: wait; opacity: .65; }
+    .fan-toggle-track {
+        position: relative;
+        flex: 0 0 38px;
+        width: 38px;
+        height: 22px;
+        border-radius: 20px;
+        background: #94a3b8;
+        transition: background .2s ease, box-shadow .2s ease;
+    }
+    .fan-toggle-knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(24,36,51,.25);
+        transition: transform .22s cubic-bezier(.2,.8,.2,1);
+    }
+    .fan-toggle.is-on {
+        border-color: #b8e6cc;
+        background: #ecfdf3;
+        color: #15803d;
+        box-shadow: 0 2px 7px rgba(21,128,61,.08);
+    }
+    .fan-toggle.is-on .fan-toggle-track { background: #16a34a; }
+    .fan-toggle.is-on .fan-toggle-knob { transform: translateX(16px); }
+    .fan-toggle:focus-visible,
+    .station-toggle:focus-visible {
+        outline: 3px solid rgba(59,130,246,.35);
+        outline-offset: 3px;
+    }
+    .station-toggle {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        min-width: 91px;
+        min-height: 40px;
+        padding: .45rem .65rem;
+        border: 0;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        font: 700 .68rem/1 'Space Grotesk', sans-serif;
+        letter-spacing: .03em;
+        box-shadow: 0 3px 8px rgba(22, 163, 74, .16);
+        transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+    .station-toggle:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(22, 163, 74, .2); }
+    .station-toggle:disabled { cursor: wait; opacity: .65; }
+    .station-toggle.is-open { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .station-toggle.is-closed { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 3px 8px rgba(220, 38, 38, .16); }
+    .dashboard-intro {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 24px;
+    }
+    .dashboard-intro h1 {
+        margin: 0 0 3px;
+        color: #162538;
+        font-size: clamp(1.45rem, 2vw, 2rem);
+        line-height: 1.15;
+        letter-spacing: -.04em;
+    }
+    .dashboard-intro p {
+        color: #8091a4;
+        font-size: .8rem;
+    }
+    .intro-status {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        color: #4c708e;
+        font-size: .7rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .intro-status span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #20b486;
+        box-shadow: 0 0 0 4px rgba(32,180,134,.12);
+    }
+
+    .alert-warning,
+    .stat-card,
+    .chart-card,
+    .summary-card,
+    .data-table {
+        border-color: #dde5ee;
+        box-shadow: 0 8px 24px rgba(55, 80, 111, .055);
+    }
+    .alert-warning { border-radius: 13px; }
+    .stats-grid { gap: 12px; margin-bottom: 14px; }
+    .stats-announcement-layout {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+        align-items: stretch;
+    }
+    .stats-announcement-layout .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin: 0;
+    }
+    .announcement-slider {
+        min-width: 240px;
+        min-height: 320px;
+        position: relative;
+        overflow: hidden;
+        touch-action: pan-y;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 1.25rem;
+        border: 1px solid #dde5ee;
+        border-radius: 15px;
+        background: #f8fafc;
+        box-shadow: 0 8px 24px rgba(55, 80, 111, .055);
+        color: white;
+    }
+    .announcement-empty {
+        align-items: center;
+        justify-content: center;
+        min-height: 320px;
+    }
+    .announcement-empty .announcement-add-card {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 2px;
+        transform: translate(-50%, -50%);
+        background: #e9eef4;
+        color: #64748b;
+    }
+    .announcement-empty .announcement-add-card:hover {
+        transform: translate(-50%, -50%) scale(.86);
+    }
+    .announcement-empty .announcement-add-card i {
+        font-size: 1.5rem;
+    }
+    .announcement-add {
+        position: relative;
+        z-index: 1;
+        width: 58px;
+        height: 58px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,.2);
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(0,0,0,.16);
+        transition: transform .2s ease, background .2s ease;
+    }
+    .announcement-add:hover {
+        background: rgba(255,255,255,.3);
+        transform: scale(1.06);
+    }
+    .announcement-add-card {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: 4;
+        width: 100%;
+        height: 100%;
+        transform: translate(-50%, -50%);
+        border: 0;
+        border-radius: inherit;
+        background: #e9eef4;
+        color: #64748b;
+        box-shadow: none;
+    }
+    .announcement-add-card:hover {
+        background: #dce5ee;
+        transform: translate(-50%, -50%);
+    }
+    .announcement-add-card.is-active {
+        z-index: 3;
+        transform: translate(-50%, -50%);
+    }
+    .announcement-add-card[hidden] { display: none; }
+    .announcement-dots {
+        position: absolute;
+        left: 50%;
+        bottom: .7rem;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        transform: translateX(-50%);
+    }
+    .announcement-dots[hidden] { display: none !important; }
+    .announcement-delete {
+        position: absolute;
+        left: .8rem;
+        bottom: .8rem;
+        z-index: 6;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(153, 27, 27, .9);
+        color: #fff;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, .22);
+    }
+    .announcement-delete:hover { background: #b91c1c; }
+    .announcement-delete i { font-size: 20px; line-height: 1; }
+    .announcement-delete[hidden] { display: none !important; }
+    .announcement-dot {
+        width: 7px;
+        height: 7px;
+        padding: 0;
+        border: 1px solid rgba(255,255,255,.8);
+        border-radius: 50%;
+        background: rgba(255,255,255,.55);
+        cursor: pointer;
+    }
+    .announcement-dot.is-active {
+        background: #fff;
+        transform: scale(1.25);
+    }
+    .announcement-image {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 58%;
+        height: 78%;
+        object-fit: cover;
+        border: 4px solid #fff;
+        border-radius: 2px;
+        background: #d9dee5;
+        box-shadow: 0 5px 12px rgba(0,0,0,.22);
+        transition: transform .35s ease, opacity .35s ease, z-index .35s ease;
+    }
+    .announcement-image[hidden] { display: none; }
+    .announcement-image-active {
+        z-index: 3;
+        width: 100%;
+        height: 100%;
+        border-width: 0;
+        border-radius: inherit;
+        object-fit: cover;
+        transform: translate(-50%, -50%);
+    }
+    .announcement-slider .announcement-image-active {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+        object-fit: contain;
+        background: #0f172a;
+        transform: none;
+    }
+    .announcement-slider .announcement-image-prev,
+    .announcement-slider .announcement-image-next {
+        display: none !important;
+    }
+    .announcement-slider .announcement-image-active[hidden] {
+        display: none !important;
+    }
+    .announcement-image-active.is-transitioning {
+        animation: announcement-image-fade .45s ease both;
+    }
+    .announcement-add-card,
+    .announcement-empty .announcement-add-card {
+        top: auto;
+        right: .8rem;
+        bottom: .8rem;
+        left: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        width: auto;
+        height: auto;
+        padding: .55rem .75rem;
+        border: 1px solid rgba(255,255,255,.75);
+        border-radius: 999px;
+        background: #236ee8;
+        color: #fff;
+        font: 600 .68rem/1 'Space Grotesk', sans-serif;
+        transform: none;
+    }
+    .announcement-add-card:hover,
+    .announcement-empty .announcement-add-card:hover {
+        background: #1859c5;
+        transform: translateY(-1px);
+    }
+    .announcement-empty .announcement-add-card i { font-size: .8rem; }
+    .announcement-empty::before {
+        position: absolute;
+        top: 39%;
+        left: 0;
+        width: 100%;
+        color: #64748b;
+        content: "Share useful updates with your customers";
+        font-size: .8rem;
+        font-weight: 600;
+        text-align: center;
+    }
+    .announcement-copy {
+        position: absolute;
+        inset: 0 0 auto;
+        z-index: 4;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .45rem;
+        min-height: 0;
+        padding: 1.25rem 3.25rem 2rem;
+        background: linear-gradient(rgba(9, 31, 53, .82), rgba(9, 31, 53, .48) 72%, transparent);
+        color: #fff;
+        text-align: center;
+    }
+    .announcement-copy[hidden] { display: none; }
+    .announcement-slider:not(.has-image):not(.announcement-empty) {
+        background: linear-gradient(140deg, #0f6a9f, #38b6bd);
+    }
+    .announcement-slider:not(.has-image) .announcement-copy {
+        inset: 0;
+        justify-content: flex-start;
+        align-items: center;
+        min-height: 0;
+        padding: 2rem 1rem 3.5rem;
+        background: transparent;
+    }
+    .announcement-copy strong { font-size: 1.05rem; line-height: 1.2; }
+    .announcement-copy > span:last-of-type { max-width: 34rem; font-size: .74rem; line-height: 1.45; }
+    .announcement-category {
+        align-self: center;
+        padding: .25rem .5rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,.2);
+        font-size: .58rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+    .announcement-copy a {
+        align-self: flex-start;
+        padding: .45rem .72rem;
+        border-radius: 7px;
+        background: #fff;
+        color: #174f9f;
+        font-size: .68rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .announcement-editor {
+        box-sizing: border-box;
+        position: fixed;
+        inset: 0;
+        width: 500px;
+        max-width: calc(100vw - 2rem);
+        max-height: min(90vh, 760px);
+        max-height: min(90dvh, 760px);
+        margin: auto;
+        overflow: hidden;
+        padding: 0;
+        border: 1px solid #dbe4ef;
+        border-radius: 18px;
+        color: #21364d;
+        box-shadow: 0 24px 70px rgba(19, 42, 70, .25);
+    }
+    .announcement-editor::backdrop { background: rgba(14, 30, 50, .52); }
+    .announcement-editor form {
+        display: grid;
+        gap: 1rem;
+        max-height: min(90vh, 760px);
+        max-height: min(90dvh, 760px);
+        overflow-y: auto;
+        padding: 1.6rem;
+    }
+    .announcement-editor-heading,
+    .announcement-editor-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .8rem;
+    }
+    .announcement-editor-eyebrow { color: #2181cf; font-size: .62rem; font-weight: 700; letter-spacing: .1em; }
+    .announcement-editor h2 { margin: .2rem 0 0; font-size: 1.35rem; line-height: 1.25; }
+    .announcement-editor-close {
+        flex: 0 0 auto;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 0;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .announcement-editor-close:hover { background: #e2e8f0; color: #21364d; }
+    .announcement-editor label { display: grid; gap: .45rem; color: #42576e; font-size: .8rem; font-weight: 600; }
+    .announcement-editor label span { color: #8292a3; font-weight: 400; }
+    .announcement-editor input,
+    .announcement-editor select,
+    .announcement-editor textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 2.8rem;
+        padding: .7rem .8rem;
+        border: 1px solid #d4deea;
+        border-radius: 10px;
+        background: #fff;
+        color: #21364d;
+        font: 400 .86rem/1.45 'Space Grotesk', sans-serif;
+    }
+    .announcement-editor textarea { min-height: 6rem; resize: vertical; }
+    .announcement-editor input[type="file"] { padding: .55rem; }
+    .announcement-editor input[type="file"]::file-selector-button {
+        margin-right: .65rem;
+        padding: .45rem .65rem;
+        border: 0;
+        border-radius: 7px;
+        background: #edf2f7;
+        color: #42576e;
+        font: 600 .76rem 'Space Grotesk', sans-serif;
+        cursor: pointer;
+    }
+    .announcement-editor input:focus,
+    .announcement-editor select:focus,
+    .announcement-editor textarea:focus {
+        outline: 0;
+        border-color: #2181cf;
+        box-shadow: 0 0 0 3px rgba(33, 129, 207, .14);
+    }
+    .announcement-editor-actions { justify-content: flex-end; margin-top: .2rem; }
+    .announcement-editor-actions button {
+        min-height: 2.75rem;
+        padding: .7rem 1rem;
+        border: 0;
+        border-radius: 9px;
+        font: 600 .82rem 'Space Grotesk', sans-serif;
+        cursor: pointer;
+        transition: background-color .18s ease, transform .18s ease;
+    }
+    .announcement-editor-cancel { background: #edf2f7; color: #42576e; }
+    .announcement-editor-submit { background: #236ee8; color: #fff; }
+    .announcement-editor-cancel:hover { background: #e2e8f0; }
+    .announcement-editor-submit:hover { background: #165dd0; }
+    .announcement-editor-actions button:active { transform: translateY(1px); }
+    @keyframes announcement-image-fade {
+        from {
+            opacity: .25;
+            transform: none;
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+    .announcement-image-prev,
+    .announcement-image-next {
+        z-index: 2;
+        opacity: .92;
+    }
+    .announcement-image-prev { transform: translate(-112%, -50%) scale(.82); }
+    .announcement-image-next { transform: translate(12%, -50%) scale(.82); }
+    .announcement-stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+    }
+    .announcement-slider .announcement-add-card[hidden] { display: none !important; }
+    .announcement-slider.has-image::after {
+        display: none;
+    }
+    .announcement-arrow {
+        position: absolute;
+        top: 50%;
+        z-index: 7;
+        width: 30px;
+        height: 65px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: white;
+        cursor: pointer;
+        transform: translateY(-50%);
+    }
+    .announcement-arrow:hover { background: transparent; }
+    .announcement-arrow-left { left: .7rem; }
+    .announcement-arrow-right { right: .7rem; }
+    .announcement-arrow[hidden] { display: none; }
+    .announcement-slider::after {
+        content: '';
+        position: absolute;
+        width: 170px;
+        height: 170px;
+        right: -65px;
+        top: -55px;
+        border: 26px solid rgba(255,255,255,.1);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .announcement-slider.has-image::after { display: none; }
+    .announcement-slides {
+        position: relative;
+        flex: 1;
+    }
+    .announcement-slide {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transform: translateX(12px);
+        transition: opacity .35s ease, transform .35s ease;
+        pointer-events: none;
+    }
+    .announcement-slide.is-active {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .announcement-kicker {
+        display: block;
+        margin-bottom: .7rem;
+        color: #bde9ff;
+        font-size: .62rem;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+    .announcement-slide h2 {
+        max-width: 230px;
+        margin: 0 0 .7rem;
+        color: white;
+        font-size: 1.15rem;
+        line-height: 1.2;
+    }
+    .announcement-slide p {
+        max-width: 220px;
+        margin: 0;
+        color: rgba(255,255,255,.78);
+        font-size: .75rem;
+        line-height: 1.5;
+    }
+    .announcement-controls {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
+    }
+    .announcement-arrow {
+        width: 30px;
+        height: 65px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: white;
+        cursor: pointer;
+    }
+    .announcement-arrow i {
+        color: #ff3b30;
+        font-size: 30px;
+        line-height: 1;
+        animation: announcement-arrow-color 1.2s ease-in-out infinite alternate;
+    }
+    .announcement-arrow:hover i {
+        animation-duration: .7s;
+    }
+    @keyframes announcement-arrow-color {
+        from {
+            color: #ff3b30;
+            filter: drop-shadow(0 0 2px rgba(255, 59, 48, .45));
+        }
+        to {
+            color: #ff9500;
+            filter: drop-shadow(0 0 5px rgba(255, 149, 0, .9));
+        }
+    }
+    .announcement-dots {
+        display: flex;
+        gap: .35rem;
+    }
+    .announcement-dot {
+        width: 6px;
+        height: 6px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,.45);
+        cursor: pointer;
+    }
+    .announcement-dot.is-active { background: white; transform: scale(1.35); }
+    .stat-card {
+        min-height: 108px;
+        padding: 1rem 1.05rem;
+        border-radius: 15px;
+        background: #dbeafe !important;
+        border-color: #b6d4f5 !important;
+    }
+    .stat-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        font-size: .9rem;
+    }
+    .stat-info h3 {
+        color: #91a0af;
+        font-size: .62rem;
+        letter-spacing: .45px;
+    }
+    .stat-number { font-size: 1.32rem; }
+    .charts-container { gap: 12px; margin-bottom: 14px; }
+    .chart-card {
+        min-height: 320px;
+        padding: 1.1rem 1.15rem;
+        border-radius: 15px;
+        background: rgba(255,255,255,.92);
+    }
+    .chart-card h3 {
+        color: #24364a;
+        font-size: .9rem;
+        font-weight: 700;
+        margin-bottom: .65rem;
+    }
+    .chart-card h3 i { color: #236ee8; }
+    .chart-empty-state {
+        flex: 1;
+        min-height: 215px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        padding: 1.5rem;
+        border: 1px dashed #d8e2ec;
+        border-radius: 12px;
+        background: #fafcfe;
+        text-align: center;
+        color: #8c9aaa;
+    }
+    .chart-empty-state i {
+        margin-bottom: .25rem;
+        color: #b4c2d0;
+        font-size: 1.35rem;
+    }
+    .chart-empty-state strong {
+        color: #52677d;
+        font-size: .82rem;
+        font-weight: 600;
+    }
+    .chart-empty-state span {
+        max-width: 235px;
+        font-size: .7rem;
+        line-height: 1.5;
+    }
+    .summary-cards { gap: 12px; margin-bottom: 14px; }
+    .summary-card {
+        padding: 1rem 1.1rem;
+        border-radius: 15px;
+    }
+    .data-table {
+        margin-bottom: 14px;
+        border-radius: 15px;
+        background: rgba(255,255,255,.92);
+    }
+    .data-table > h2 {
+        padding: .95rem 1.1rem;
+        color: #26384c;
+        font-size: .82rem;
+    }
+    thead th {
+        padding: .65rem 1rem;
+        background: #f7f9fc;
+        color: #93a0ae;
+        font-size: .62rem;
+    }
+    tbody td { padding: .72rem 1rem; font-size: .78rem; }
+
+    @media (min-width: 901px) {
+        .stats-announcement-layout .stat-card {
+            min-height: 120px;
+            padding: 1.15rem 1.2rem;
+        }
+        .stats-announcement-layout .stat-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.25rem;
+        }
+        .stats-announcement-layout .stat-info h3 {
+            font-size: .8rem;
+            letter-spacing: .55px;
+        }
+        .stats-announcement-layout .stat-number {
+            font-size: 1.65rem;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .dashboard-container { padding: 0; }
+        .sidebar { left: 12px; top: 12px; bottom: 12px; }
+        .main-content { width: calc(100% - 256px); margin-left: 256px; padding-right: 12px; }
+        .stats-announcement-layout { grid-template-columns: 1fr; }
+        .announcement-slider { min-height: 220px; }
+    }
+    @media (max-width: 768px) {
+        .announcement-slider .announcement-arrow {
+            display: none !important;
+        }
+        .main-content {
+            width: 100%;
+            margin-left: 0;
+            padding: 62px 14px 28px;
+        }
+        .charts-container {
+            grid-template-columns: minmax(0, 1fr) !important;
+        }
+        .dashboard-topbar { margin-bottom: 20px; }
+        .dashboard-intro { align-items: flex-start; flex-direction: column; }
+        .dashboard-intro h1 { font-size: 1.5rem; }
+        .dashboard-controls {
+            align-items: stretch;
+            flex-direction: column;
+            gap: .75rem;
+            margin: .75rem 0 1rem;
+        }
+        .station-control,
+        .fan-control {
+            width: 100%;
+            min-width: 0;
+            min-height: 76px;
+        }
+        .control-copy { flex: 1 1 auto; }
+        .station-toggle,
+        .fan-toggle { min-height: 42px; }
+    }
+    @media (max-width: 480px) {
+        .dashboard-date { display: none; }
+        .stats-announcement-layout .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .stat-card { min-height: 88px; }
+        .station-control,
+        .fan-control {
+            gap: .65rem;
+            min-height: 72px;
+            padding: .65rem .7rem;
+        }
+        .control-icon {
+            flex-basis: 40px;
+            width: 40px;
+            height: 40px;
+        }
+        .control-title { font-size: .78rem; }
+        .control-description { font-size: .65rem; }
+        .station-toggle { min-width: 82px; padding-inline: .5rem; }
+        .fan-toggle { min-width: 82px; gap: .35rem; padding-inline: .45rem; }
+        .announcement-editor {
+            width: calc(100vw - 1.25rem);
+            max-width: calc(100vw - 1.25rem);
+            max-height: calc(100vh - 1.25rem);
+            max-height: calc(100dvh - 1.25rem);
+            border-radius: 15px;
+        }
+        .announcement-editor form {
+            max-height: calc(100vh - 1.25rem);
+            max-height: calc(100dvh - 1.25rem);
+            gap: .8rem;
+            padding: 1.1rem;
+        }
+        .announcement-editor h2 { font-size: 1.15rem; }
+        .announcement-editor-actions { gap: .6rem; }
+        .announcement-editor-actions button {
+            flex: 1 1 0;
+            padding: .65rem .5rem;
+            font-size: .76rem;
+        }
+    }
+    @media (max-width: 640px) {
+        .stats-announcement-layout .stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .55rem;
+        }
+        .stats-announcement-layout .stats-grid .stat-card {
+            min-width: 0;
+            min-height: 0;
+            gap: .5rem;
+            padding: .7rem;
+            border: 1px solid #dde5ee !important;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .92) !important;
+            box-shadow: 0 8px 24px rgba(55, 80, 111, .055);
+        }
+        .stats-announcement-layout .stats-grid .stat-icon {
+            display: grid;
+            flex: 0 0 32px;
+            width: 32px;
+            height: 32px;
+            place-items: center;
+            border-radius: 11px;
+            font-size: .9rem;
+        }
+        .stats-announcement-layout .stat-icon.blue { background: #e5f3ff; color: #1677d2; }
+        .stats-announcement-layout .stat-icon.green { background: #eaf9f0; color: #15803d; }
+        .stats-announcement-layout .stat-icon.orange { background: #fff7e6; color: #d97706; }
+        .stats-announcement-layout .stat-icon.teal { background: #e5f3ff; color: #1677d2; }
+        .stats-announcement-layout .stat-info {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+        }
+        .stats-announcement-layout .stat-info h3 {
+            margin: 0 0 .25rem;
+            color: var(--text-sub);
+            font-size: .66rem;
+            font-weight: 400;
+            line-height: 1.2;
+            letter-spacing: normal;
+            text-transform: none;
+        }
+        .stats-announcement-layout .stat-number {
+            color: var(--text);
+            font-size: 1.05rem;
+            line-height: 1.1;
+            overflow-wrap: anywhere;
+        }
+    }
+</style>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
+    import {
+        getDatabase,
+        onValue,
+        ref,
+        set
+    } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js';
+
+    const firebaseConfig = {
+        apiKey: 'AIzaSyBE-lqL9Rw03cu_7zv-25xGDruQXDhT-Tc',
+        authDomain: 'fan-system-e4198.firebaseapp.com',
+        databaseURL: 'https://fan-system-e4198-default-rtdb.asia-southeast1.firebasedatabase.app',
+        projectId: 'fan-system-e4198',
+        storageBucket: 'fan-system-e4198.firebasestorage.app',
+        messagingSenderId: '908007713399',
+        appId: '1:908007713399:web:444700860b15fcadfd7472',
+        measurementId: 'G-MKVNV4RTEG'
+    };
+
+    const fanToggle = document.getElementById('fanToggle');
+    const fanStateLabel = fanToggle?.querySelector('.fan-toggle-state');
+
+    if (fanToggle && fanStateLabel) {
+        const database = getDatabase(initializeApp(firebaseConfig));
+        const fanStatusRef = ref(database, 'fan/status');
+
+        const renderFanState = (isOn) => {
+            fanToggle.classList.toggle('is-on', isOn);
+            fanToggle.classList.toggle('is-off', !isOn);
+            fanToggle.setAttribute('aria-pressed', String(isOn));
+            fanToggle.setAttribute('aria-label', isOn ? 'Turn fan off' : 'Turn fan on');
+            fanStateLabel.textContent = isOn ? 'ON' : 'OFF';
+        };
+
+        fanToggle.addEventListener('click', () => {
+            fanToggle.disabled = true;
+            const nextState = !fanToggle.classList.contains('is-on');
+            set(fanStatusRef, nextState)
+                .catch((error) => {
+                    console.error('Unable to update fan status in Firebase.', error);
+                    window.alert(`Unable to update the fan: ${error.message}`);
+                })
+                .finally(() => {
+                    fanToggle.disabled = false;
+                });
+        });
+
+        onValue(
+            fanStatusRef,
+            (snapshot) => renderFanState(snapshot.val() === true),
+            (error) => {
+                console.error('Unable to read fan status from Firebase.', error);
+                fanToggle.disabled = true;
+                fanStateLabel.textContent = 'ERR';
+            }
+        );
+    }
+
+    const stationToggle = document.getElementById('stationToggle');
+    const stationStateLabel = stationToggle?.querySelector('.station-toggle-state');
+    const STATION_AVAILABILITY_URL = "{% url 'station_availability_api' %}";
+
+    if (stationToggle && stationStateLabel) {
+        const renderStationAvailability = (isOpen) => {
+            stationToggle.classList.toggle('is-open', isOpen);
+            stationToggle.classList.toggle('is-closed', !isOpen);
+            stationToggle.setAttribute('aria-pressed', String(isOpen));
+            stationToggle.setAttribute('aria-label', isOpen ? 'Close water station' : 'Open water station');
+            stationStateLabel.textContent = isOpen ? 'OPEN' : 'CLOSED';
+        };
+
+        const loadStationAvailability = () => fetch(`${STATION_AVAILABILITY_URL}?_=${Date.now()}`, { cache: 'no-store' })
+            .then(response => response.json())
+            .then(data => renderStationAvailability(data.is_open !== false))
+            .catch(error => console.error('Unable to load station availability.', error));
+
+        loadStationAvailability();
+
+        stationToggle.addEventListener('click', () => {
+            const isOpen = !stationToggle.classList.contains('is-open');
+            stationToggle.disabled = true;
+            fetch(STATION_AVAILABILITY_URL, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: `is_open=${isOpen}`
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('The station availability could not be saved.');
+                    return response.json();
+                })
+                .then(data => renderStationAvailability(data.is_open !== false))
+                .catch(error => {
+                    console.error('Unable to save station availability.', error);
+                    window.alert(error.message);
+                })
+                .finally(() => { stationToggle.disabled = false; });
+        });
+    }
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const panel = document.querySelector('.announcement-slider');
+        const addButton = document.getElementById('announcementAddButton');
+        const image = document.getElementById('announcementImage');
+        const deleteButton = document.getElementById('announcementDeleteButton');
+        const previousImage = document.getElementById('announcementImagePrevious');
+        const nextImage = document.getElementById('announcementImageNext');
+        const previousButton = document.getElementById('announcementPreviousButton');
+        const nextButton = document.getElementById('announcementNextButton');
+        const dotsContainer = document.getElementById('announcementDots');
+        const copy = document.getElementById('announcementCopy');
+        const categoryLabel = document.getElementById('announcementCategory');
+        const headline = document.getElementById('announcementHeadline');
+        const description = document.getElementById('announcementDescription');
+        const editor = document.getElementById('announcementEditor');
+        const form = document.getElementById('announcementForm');
+        const closeEditorButton = document.getElementById('announcementEditorClose');
+        const cancelEditorButton = document.getElementById('announcementEditorCancel');
+        const announcementsUrl = "{% url 'admin_announcement_api' %}";
+        const csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+        if (
+            !panel || !addButton || !image || !deleteButton || !previousImage || !nextImage
+            || !previousButton || !nextButton || !dotsContainer || !copy || !categoryLabel
+            || !headline || !description || !editor || !form
+        ) return;
+
+        let announcements = [];
+        let activeIndex = 0;
+        let autoSlideTimer = null;
+        let announcementSyncTimer = null;
+        let isSyncingAnnouncements = false;
+
+        const updateActiveImage = source => {
+            if (image.getAttribute('src') === source) return;
+            image.classList.remove('is-transitioning');
+            image.src = source;
+            void image.offsetWidth;
+            image.classList.add('is-transitioning');
+        };
+
+        const renderAnnouncement = () => {
+            activeIndex = announcements.length
+                ? Math.min(Math.max(activeIndex, 0), announcements.length - 1)
+                : 0;
+            const current = announcements[activeIndex];
+            const hasMultipleSlides = announcements.length > 1;
+            panel.classList.toggle('has-image', Boolean(current && current.url));
+            panel.classList.toggle('announcement-empty', !current);
+            image.hidden = !current || !current.url;
+            deleteButton.hidden = !current;
+            addButton.hidden = false;
+            previousButton.hidden = !hasMultipleSlides;
+            nextButton.hidden = !hasMultipleSlides;
+            copy.hidden = !current || !(current.headline || current.description);
+            categoryLabel.textContent = current ? (current.category_label || '') : '';
+            headline.textContent = current ? (current.headline || '') : '';
+            headline.hidden = !current || !current.headline;
+            description.textContent = current ? (current.description || '') : '';
+            description.hidden = !current || !current.description;
+            if (current && current.url) updateActiveImage(current.url);
+            dotsContainer.replaceChildren();
+            announcements.forEach((announcement, index) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.className = 'announcement-dot';
+                dot.dataset.announcementDot = String(index);
+                dot.setAttribute('aria-label', `Announcement slide ${index + 1}`);
+                dot.classList.toggle('is-active', index === activeIndex);
+                dotsContainer.appendChild(dot);
+            });
+            dotsContainer.hidden = !hasMultipleSlides;
+            const previous = current && announcements.length
+                ? announcements[(activeIndex - 1 + announcements.length) % announcements.length]
+                : null;
+            const next = current && announcements.length
+                ? announcements[(activeIndex + 1) % announcements.length]
+                : null;
+            previousImage.hidden = !hasMultipleSlides || !previous || !previous.url;
+            nextImage.hidden = !hasMultipleSlides || !next || !next.url;
+            if (!previousImage.hidden) previousImage.src = previous.url;
+            if (!nextImage.hidden) nextImage.src = next.url;
+        };
+
+        const moveAnnouncement = (step) => {
+            if (announcements.length < 2) return;
+            activeIndex = (activeIndex + step + announcements.length) % announcements.length;
+            renderAnnouncement();
+        };
+
+        let swipeStart = null;
+        panel.addEventListener('pointerdown', event => {
+            if (event.pointerType !== 'touch' || event.target.closest('button, a')) return;
+            swipeStart = { x: event.clientX, y: event.clientY };
+        });
+        panel.addEventListener('pointerup', event => {
+            if (!swipeStart || event.pointerType !== 'touch') return;
+            const deltaX = event.clientX - swipeStart.x;
+            const deltaY = event.clientY - swipeStart.y;
+            swipeStart = null;
+            if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+            moveAnnouncement(deltaX < 0 ? 1 : -1);
+            restartAutoSlide();
+        });
+        panel.addEventListener('pointercancel', () => {
+            swipeStart = null;
+        });
+
+        const restartAutoSlide = () => {
+            window.clearInterval(autoSlideTimer);
+            if (announcements.length < 2) return;
+            autoSlideTimer = window.setInterval(() => {
+                activeIndex = (activeIndex + 1) % announcements.length;
+                renderAnnouncement();
+            }, 5000);
+        };
+
+        deleteButton.addEventListener('click', () => {
+            const current = announcements[activeIndex];
+            if (!current || !window.confirm('Delete this announcement?')) return;
+
+            deleteButton.disabled = true;
+            fetch(`${announcementsUrl}${current.id}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Unable to delete announcement image.');
+                    return response.json();
+                })
+                .then(() => {
+                    announcements.splice(activeIndex, 1);
+                    activeIndex = Math.min(activeIndex, announcements.length - 1);
+                    renderAnnouncement();
+                    restartAutoSlide();
+                })
+                .catch(error => {
+                    console.error('Unable to delete announcement image.', error);
+                    window.alert('Hindi ma-delete ang announcement sa server.');
+                })
+                .finally(() => {
+                    deleteButton.disabled = false;
+                });
+        });
+
+        const closeEditor = () => editor.close();
+        addButton.addEventListener('click', () => editor.showModal());
+        if (closeEditorButton) closeEditorButton.addEventListener('click', closeEditor);
+        if (cancelEditorButton) cancelEditorButton.addEventListener('click', closeEditor);
+        previousButton.addEventListener('click', () => {
+            moveAnnouncement(-1);
+            restartAutoSlide();
+        });
+        nextButton.addEventListener('click', () => {
+            moveAnnouncement(1);
+            restartAutoSlide();
+        });
+        dotsContainer.addEventListener('click', event => {
+            const dot = event.target.closest('[data-announcement-dot]');
+            if (!dot) return;
+            const requestedIndex = Number(dot.dataset.announcementDot);
+            if (!Number.isInteger(requestedIndex) || requestedIndex >= announcements.length) return;
+            activeIndex = requestedIndex;
+            renderAnnouncement();
+            restartAutoSlide();
+        });
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            const submitButton = form.querySelector('[type="submit"]');
+            if (submitButton) submitButton.disabled = true;
+            fetch(announcementsUrl, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form)
+            })
+                .then(response => {
+                    return response.json().then(data => {
+                        if (!response.ok) throw new Error(data.error || 'Unable to save announcement.');
+                        return data;
+                    });
+                })
+                .then(announcement => {
+                    announcements.push(announcement);
+                    activeIndex = announcements.length - 1;
+                    form.reset();
+                    closeEditor();
+                    renderAnnouncement();
+                    restartAutoSlide();
+                })
+                .catch(error => {
+                    console.error('Unable to save announcement.', error);
+                    window.alert(error.message || 'Hindi ma-save ang announcement sa server.');
+                })
+                .finally(() => {
+                    if (submitButton) submitButton.disabled = false;
+                });
+        });
+
+        const syncAnnouncements = (showError) => {
+            if (isSyncingAnnouncements) return Promise.resolve();
+            isSyncingAnnouncements = true;
+            return fetch(`${announcementsUrl}?_=${Date.now()}`, { cache: 'no-store' })
+                .then(response => {
+                    if (!response.ok) throw new Error('Unable to load announcements.');
+                    return response.json();
+                })
+                .then(data => {
+                    const latestAnnouncements = Array.isArray(data.announcements) ? data.announcements : [];
+                    const currentId = announcements[activeIndex]?.id;
+                    const hasChanged = latestAnnouncements.length !== announcements.length
+                        || latestAnnouncements.some((announcement, index) => {
+                            const current = announcements[index];
+                            return !current || Object.keys(announcement).some(
+                                key => current[key] !== announcement[key]
+                            );
+                        });
+                    if (!hasChanged) return;
+
+                    announcements = latestAnnouncements;
+                    const preservedIndex = announcements.findIndex(item => item.id === currentId);
+                    activeIndex = preservedIndex >= 0
+                        ? preservedIndex
+                        : Math.min(Math.max(activeIndex, 0), announcements.length - 1);
+                    renderAnnouncement();
+                    restartAutoSlide();
+                })
+                .catch(error => {
+                    console.error('Unable to sync announcements.', error);
+                    if (showError) window.alert('Hindi ma-load ang mga announcement.');
+                })
+                .finally(() => {
+                    isSyncingAnnouncements = false;
+                });
+        };
+
+        renderAnnouncement();
+        syncAnnouncements(true).then(() => {
+            announcementSyncTimer = window.setInterval(() => syncAnnouncements(false), 3000);
+        });
+
+        window.addEventListener('beforeunload', () => {
+            window.clearInterval(announcementSyncTimer);
+            window.clearInterval(autoSlideTimer);
+        });
+    });
+</script>
+
+<script>
+    function updateAdminTaskStatus(selectElement) {
+        const previousValue = selectElement.dataset.currentValue;
+        const taskId = selectElement.dataset.taskId;
+        selectElement.disabled = true;
+
+        const csrfMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        fetch(`/accounts/api/maintenance/task/${taskId}/status/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfMatch ? decodeURIComponent(csrfMatch[1]) : '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ status: selectElement.value })
+        })
+            .then(response => response.json().then(data => {
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Unable to update task status.');
+                }
+                selectElement.dataset.currentValue = selectElement.value;
+            }))
+            .catch(error => {
+                selectElement.value = previousValue;
+                window.alert(error.message);
+            })
+            .finally(() => {
+                selectElement.disabled = false;
+            });
+    }
+
+    function updateAdminReportStatus(selectElement) {
+        const previousValue = selectElement.dataset.currentValue;
+        const reportId = selectElement.dataset.reportId;
+        selectElement.disabled = true;
+
+        const csrfMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        fetch(`/accounts/api/maintenance/report/${reportId}/status/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfMatch ? decodeURIComponent(csrfMatch[1]) : '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ status: selectElement.value })
+        })
+            .then(response => response.json().then(data => {
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Unable to update maintenance status.');
+                }
+                selectElement.dataset.currentValue = selectElement.value;
+            }))
+            .catch(error => {
+                selectElement.value = previousValue;
+                window.alert(error.message);
+            })
+            .finally(() => {
+                selectElement.disabled = false;
+            });
+    }
+
+    document.querySelectorAll('.top-product-filter').forEach(button => {
+        button.addEventListener('click', () => {
+            const selectedType = button.dataset.productType;
+            document.querySelectorAll('.top-product-filter').forEach(filterButton => {
+                const isSelected = filterButton === button;
+                filterButton.classList.toggle('active', isSelected);
+                filterButton.setAttribute('aria-pressed', String(isSelected));
+            });
+            document.querySelectorAll('.top-products-table tbody[data-product-type]').forEach(rows => {
+                rows.hidden = rows.dataset.productType !== selectedType;
+            });
+        });
+    });
+</script>
+
+<div class="maintenance-gallery" id="maintenance-gallery" role="dialog" aria-modal="true" aria-label="Maintenance photos">
+    <div class="maintenance-gallery-content">
+        <button type="button" class="maintenance-gallery-close" aria-label="Close">&times;</button>
+        <img class="maintenance-gallery-image" alt="Maintenance photo">
+    </div>
+    <button type="button" class="maintenance-gallery-nav maintenance-gallery-prev" aria-label="Previous photo">&#8249;</button>
+    <button type="button" class="maintenance-gallery-nav maintenance-gallery-next" aria-label="Next photo">&#8250;</button>
+    <span class="maintenance-gallery-counter"></span>
+</div>
+<script>
+(() => {
+    const gallery = document.getElementById('maintenance-gallery');
+    if (!gallery) return;
+    const image = gallery.querySelector('.maintenance-gallery-image');
+    const counter = gallery.querySelector('.maintenance-gallery-counter');
+    let items = [];
+    let index = 0;
+    const render = () => {
+        image.src = items[index];
+        counter.textContent = `${index + 1} / ${items.length}`;
+    };
+    const close = () => gallery.classList.remove('is-open');
+    const move = (step) => {
+        if (!items.length) return;
+        index = (index + step + items.length) % items.length;
+        render();
+    };
+    document.addEventListener('click', event => {
+        const thumb = event.target.closest('.maintenance-photo-thumb');
+        if (thumb) {
+            items = [...document.querySelectorAll(`[data-gallery-group="${thumb.dataset.galleryGroup}"]`)].map(item => item.dataset.gallerySrc);
+            index = Math.max(0, items.indexOf(thumb.dataset.gallerySrc));
+            render();
+            gallery.classList.add('is-open');
+            return;
+        }
+        if (event.target === gallery || event.target.closest('.maintenance-gallery-close')) close();
+        if (event.target.closest('.maintenance-gallery-prev')) move(-1);
+        if (event.target.closest('.maintenance-gallery-next')) move(1);
+    });
+    document.addEventListener('keydown', event => {
+        if (!gallery.classList.contains('is-open')) return;
+        if (event.key === 'Escape') close();
+        if (event.key === 'ArrowLeft') move(-1);
+        if (event.key === 'ArrowRight') move(1);
+    });
+})();
+</script>
+<script>
+    document.addEventListener('gws:live-update', function(event) {
+        if (event.detail.maintenanceChanged) {
+            window.location.reload();
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Reports - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* Summary Cards - matching inventory_list design */
+        .summary-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+        .summary-stat-card {
+            background: var(--card-bg);
+            padding: 1.2rem 1.35rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--trans);
+        }
+        .summary-stat-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+        .summary-stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+        .summary-stat-icon.blue { background: #eff6ff; color: #1d4ed8; }
+        .summary-stat-icon.green { background: #f0fdf4; color: #15803d; }
+        .summary-stat-icon.orange { background: #fff7ed; color: #c2410c; }
+        .summary-stat-icon.red { background: #fff1f2; color: #b91c1c; }
+        .summary-stat-info h3 {
+            font-size: .7rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: .5rem;
+        }
+        .summary-stat-number {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+        .summary-stat-sub {
+            font-size: .73rem;
+            color: var(--text-muted);
+            margin-top: .25rem;
+        }
+
+        /* Charts Row */
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+        }
+        .chart-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .chart-card h3 i {
+            color: #1a7db7;
+        }
+        .chart-card canvas {
+            max-height: 280px;
+            width: 100%;
+        }
+        #movementChart {
+            min-height: 220px;
+        }
+
+        /* Export Buttons */
+        .export-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .btn-export {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1.5px solid;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .btn-export.pdf { color: #b91c1c; border-color: #fecaca; }
+        .btn-export.pdf:hover { background: #fff1f2; transform: translateY(-2px); }
+        .btn-export.excel { color: #15803d; border-color: #bbf7d0; }
+        .btn-export.excel:hover { background: #f0fdf4; transform: translateY(-2px); }
+        .btn-export.print { color: #1a7db7; border-color: #bae6fd; }
+        .btn-export.print:hover { background: #f0f9ff; transform: translateY(-2px); }
+
+        /* Stock Status Badges - matching inventory_list */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .status-badge.available { background: #dcfce7; color: #15803d; }
+        .status-badge.low { background: #fef3c7; color: #b45309; }
+        .status-badge.out { background: #fee2e2; color: #b91c1c; }
+
+        /* Filter Bar - matching inventory_list */
+        .filter-bar-reports {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.15rem 1.35rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            align-items: flex-end;
+            justify-content: flex-start;
+        }
+        .filter-bar-reports .period-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            margin-right: 0.3rem;
+        }
+        .filter-bar-reports .period-tab {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.62rem 0.95rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #475569;
+            font-size: 0.84rem;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .filter-bar-reports .period-tab.active {
+            background: #1a7db7;
+            border-color: #1a7db7;
+            color: white;
+        }
+        .date-range-reports {
+            display: flex;
+            flex: 0 1 335px;
+            gap: 0.65rem;
+            min-width: 0;
+        }
+        .report-actions {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.65rem;
+            margin-left: 0;
+        }
+        .report-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            padding: 0.68rem 0.95rem;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .report-action-btn.generate {
+            background: #1976bd;
+            color: white;
+        }
+        .report-action-btn.export {
+            background: #fff5f5;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+        .report-action-btn:hover { transform: translateY(-1px); }
+        .filter-group-reports {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        .filter-group-reports label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .filter-group-reports label i {
+            color: #1976bd;
+            margin-right: 0.2rem;
+        }
+        .filter-group-reports input,
+        .filter-group-reports select {
+            padding: 0.62rem 0.85rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            background: white;
+            min-width: 145px;
+        }
+        .filter-group-reports input:focus,
+        .filter-group-reports select:focus {
+            outline: none;
+            border-color: #1a7db7;
+            box-shadow: 0 0 0 3px rgba(26,125,183,0.1);
+        }
+        .search-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        /* Low stock indicator */
+        .low-stock-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .summary-stats-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            .filter-bar-reports {
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 0.65rem;
+            }
+            .filter-bar-reports .period-tabs {
+                flex: 1 0 100%;
+                margin: 0;
+            }
+            .filter-bar-reports .period-tab {
+                flex: 1;
+            }
+            .filter-bar-reports .date-range-reports {
+                flex: 1 1 100%;
+                width: 100%;
+            }
+            .report-actions {
+                width: 100%;
+                margin-left: 0;
+            }
+            .report-action-btn { flex: 1; }
+            .search-wrapper {
+                width: 100%;
+            }
+            .filter-bar-reports .filter-group-reports input,
+            .filter-bar-reports .filter-group-reports select {
+                box-sizing: border-box;
+                width: 100%;
+                min-width: 0;
+                padding: 0.5rem 0.45rem;
+                font-size: 0.78rem;
+            }
+        }
+        @media (max-width: 420px) {
+            .filter-bar-reports {
+                padding: 0.75rem;
+                gap: 0.5rem;
+            }
+            .filter-bar-reports .period-tab {
+                gap: 0.25rem;
+                padding: 0.5rem 0.35rem;
+                font-size: 0.75rem;
+            }
+            .filter-bar-reports .date-range-reports {
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% if request.user.profile.role == 'admin' %}
+        {% include "accounts/admin_nav_links.html" %}
+        {% else %}
+        <ul class="nav-links">
+            <li><a href="{% url 'staff_dashboard' %}"><i class="fas fa-th-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'pos_dashboard' %}"><i class="fas fa-cash-register"></i> Products</a></li>
+            <li><a href="{% url 'manage_orders' %}"><i class="fas fa-shopping-cart"></i> Orders</a></li>
+            <li><a href="{% url 'inventory_list' %}"><i class="fas fa-boxes"></i> Inventory</a></li>
+            <li><a href="{% url 'maintenance' %}"><i class="fas fa-tools"></i> Maintenance</a></li>
+            <li class="nav-dropdown active">
+                <a href="#" class="nav-dropdown-toggle" onclick="event.preventDefault(); this.parentElement.classList.toggle('active');">
+                    <i class="fas fa-file-chart-line"></i> Reports
+                    <i class="fas fa-chevron-down"></i>
+                </a>
+                <ul class="nav-dropdown-menu">
+                    <li><a href="{% url 'inventory_reports' %}" class="active"><i class="fas fa-chart-line"></i> Inventory Reports</a></li>
+                    <li><a href="{% url 'sales_report' %}"><i class="fas fa-chart-bar"></i> Sales Reports</a></li>
+                    <li><a href="{% url 'maintenance_reports' %}"><i class="fas fa-clipboard-list"></i> Maintenance Reports</a></li>
+                </ul>
+            </li>
+            <li><a href="{% url 'messaging_inbox' %}"><i class="fas fa-envelope"></i> Messaging</a></li>
+            <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        {% endif %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────────── -->
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <h1><i class="fas fa-chart-line"></i> Inventory Reports</h1>
+            <div class="header-actions">
+                {% include 'accounts/dashboard_header_actions.html' %}
+                <div class="export-buttons">
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:.6rem;">
+                    <i class="fas fa-{% if 'success' in message.tags %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+                <button onclick="this.closest('.alert').style.display='none'" style="background:none; border:none; cursor:pointer; font-size:1.1rem; color:inherit; opacity:.7; padding:.2rem .4rem; line-height:1;" title="Dismiss">&times;</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Filter Bar -->
+        <div class="filter-bar-reports">
+            <div class="period-tabs" aria-label="Report period">
+                <a href="?period=daily" class="period-tab {% if period == 'daily' %}active{% endif %}">
+                    <i class="fas fa-calendar-day"></i> Daily
+                </a>
+                <a href="?period=weekly" class="period-tab {% if period == 'weekly' %}active{% endif %}">
+                    <i class="fas fa-calendar-week"></i> Weekly
+                </a>
+                <a href="?period=monthly" class="period-tab {% if period == 'monthly' %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i> Monthly
+                </a>
+            </div>
+            <div class="date-range-reports">
+                <div class="filter-group-reports">
+                    <label for="dateFrom"><i class="fas fa-calendar"></i> From:</label>
+                    <input type="date" id="dateFrom" value="{{ date_from|default:'' }}">
+                </div>
+                <div class="filter-group-reports">
+                    <label for="dateTo"><i class="fas fa-calendar"></i> To:</label>
+                    <input type="date" id="dateTo" value="{{ date_to|default:'' }}">
+                </div>
+            </div>
+            <div class="report-actions">
+                <button type="button" class="report-action-btn generate" id="generateReportBtn">
+                    <i class="fas fa-sync-alt"></i> Generate Report
+                </button>
+                <button type="button" class="report-action-btn export" id="exportPDFBtn">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Statistics Cards -->
+        <div class="summary-stats-grid">
+            <div class="summary-stat-card">
+                <div class="summary-stat-info">
+                    <h3>Total Products</h3>
+                    <div class="summary-stat-number">{{ total_products|default:"0" }}</div>
+                    
+                </div>
+            </div>
+            <div class="summary-stat-card">
+                <div class="summary-stat-info">
+                    <h3>Total Stocks</h3>
+                    <div class="summary-stat-number">{{ total_stocks|default:"0" }}</div>
+                    <div class="summary-stat-sub">Stock In Station</div>
+                </div>
+            </div>
+            <div class="summary-stat-card">
+                <div class="summary-stat-info">
+                    <h3>Low Stock Items</h3>
+                    <div class="summary-stat-number">{{ low_stock_items|default:"0" }}</div>
+                    <div class="summary-stat-sub">below reorder level</div>
+                </div>
+            </div>
+            <div class="summary-stat-card">
+                <div class="summary-stat-info">
+                    <h3>Out of Stock</h3>
+                    <div class="summary-stat-number">{{ out_of_stock_items|default:"0" }}</div>
+                    <div class="summary-stat-sub">zero stock items</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Charts -->
+        <div class="charts-row">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-pie"></i> Stock Levels by Product</h3>
+                <canvas id="categoryChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-bar"></i> Stock Quantity per Product</h3>
+                <div style="position:relative; height:240px;">
+                    <canvas id="movementChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Inventory Table -->
+        <div class="data-table">
+            <div class="table-header">
+                <h2><i class="fas fa-boxes"></i> Product Inventory Status</h2>
+                <span class="text-muted" id="filteredCount"></span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="inventory-table" id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                           
+                            <th>Stock Quantity</th>
+                            <th>Low Stock Indicator</th>
+                            <th>Stock Status</th>
+                        </thead>
+                    <tbody id="inventoryTableBody">
+                        {% for product in products %}
+                        <tr class="product-row" data-name="{{ product.name|lower }}">
+                            <td><strong><i class="fas fa-tint"></i> {{ product.name }}</strong></td>
+                          
+                            <td>{{ product.stock_quantity }} units</td>
+                            <td>
+                                {% if product.stock_quantity <= product.reorder_level and product.stock_quantity > 0 %}
+                                    <span class="low-stock-indicator">
+                                        <i class="fas fa-arrow-down"></i> {{ product.stock_quantity }} ≤ {{ product.reorder_level }}
+                                    </span>
+                                {% elif product.stock_quantity <= 0 %}
+                                    <span class="low-stock-indicator">
+                                        <i class="fas fa-exclamation-circle"></i> Critical
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge {{ product.status_class }}">
+                                    <i class="fas {% if product.status == 'available' %}fa-check-circle{% elif product.status == 'low' %}fa-exclamation{% else %}fa-times-circle{% endif %}"></i>
+                                    {{ product.status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center" style="padding: 3rem;">
+                                <i class="fas fa-box-open" style="font-size: 3rem; color: #94a3b8; margin-bottom: 1rem; display: block;"></i>
+                                <p class="text-muted">No products found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stock In/Out History -->
+        <div class="data-table">
+            <div class="table-header">
+                <h2><i class="fas fa-exchange-alt"></i> Stock In / Stock Out History</h2>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="inventory-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Product</th>
+                            <th>Transaction Type</th>
+                            <th>Quantity</th>
+                        </thead>
+                    <tbody id="historyTableBody">
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.created_at|date:"M d, Y H:i" }}</td>
+                            <td>{{ transaction.product.name }}</td>
+                            <td>
+                                {% if transaction.quantity > 0 %}
+                                    <span class="status-badge available"><i class="fas fa-arrow-down"></i> Stock In</span>
+                                {% else %}
+                                    <span class="status-badge out"><i class="fas fa-arrow-up"></i> Stock Out</span>
+                                {% endif %}
+                            </td>
+                            <td class="{% if transaction.quantity > 0 %}text-success{% else %}text-danger{% endif %}">
+                                <strong>{{ transaction.quantity|floatformat:0 }}</strong>
+                            </td>
+                        
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center" style="padding: 2rem;">
+                                <i class="fas fa-history" style="font-size: 2rem; color: #94a3b8; margin-bottom: 0.5rem; display: block;"></i>
+                                <p class="text-muted">No transaction history found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    // Chart data from Django context
+    const categoryLabels = {{ category_labels|safe|default:'[]' }};
+    const categoryValues = {{ category_values|safe|default:'[]' }};
+    const productLabels = {{ product_labels|safe|default:'[]' }};
+    const productValues = {{ product_values|safe|default:'[]' }};
+    const allProductLabels = {{ all_product_labels|safe|default:'[]' }};
+    const allProductValues = {{ all_product_values|safe|default:'[]' }};
+    const monthlyLabels = {{ monthly_labels|safe|default:'[]' }};
+    const stockInData = {{ stock_in_data|safe|default:'[]' }};
+    const stockOutData = {{ stock_out_data|safe|default:'[]' }};
+
+    // Initialize Charts
+    let categoryChart, movementChart;
+
+    function initCharts() {
+        const ctxCat = document.getElementById('categoryChart').getContext('2d');
+        const ctxMov = document.getElementById('movementChart').getContext('2d');
+
+        if (categoryChart) categoryChart.destroy();
+        if (movementChart) movementChart.destroy();
+
+        // Deduplicate: merge productLabels + categoryLabels, keeping only unique names
+        // Priority: productLabels (more specific) over categoryLabels
+        const rawLabels = (productLabels && productLabels.length) ? productLabels : categoryLabels;
+        const rawValues = (productValues && productValues.length) ? productValues : categoryValues;
+
+        // Deduplicate by label name — aggregate values for any duplicate names
+        const dedupeMap = {};
+        rawLabels.forEach((lbl, i) => {
+            const key = lbl.trim();
+            if (dedupeMap[key] !== undefined) {
+                dedupeMap[key] += (rawValues[i] || 0);
+            } else {
+                dedupeMap[key] = rawValues[i] || 0;
+            }
+        });
+        const chartLabels = Object.keys(dedupeMap);
+        const chartData = Object.values(dedupeMap);
+
+        // Shared color palette — one distinct color per unique product
+        const colorPalette = ['#1a7db7', '#f97316', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#a78bfa', '#60a5fa', '#94a3b8', '#7c3aed'];
+        const labelColorMap = {};
+        chartLabels.forEach((lbl, i) => { labelColorMap[lbl] = colorPalette[i % colorPalette.length]; });
+        const doughnutColors = chartLabels.map(lbl => labelColorMap[lbl]);
+
+        categoryChart = new Chart(ctxCat, {
+            type: 'doughnut',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: doughnutColors,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 11 }, padding: 12, boxWidth: 14 }
+                    },
+                    tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} units` } }
+                }
+            }
+        });
+
+        // Bar chart: same deduplicated labels & values, same colors
+        movementChart = new Chart(ctxMov, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Stock Quantity',
+                    data: chartData,
+                    backgroundColor: doughnutColors,
+                    borderWidth: 0,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: (ctx) => ` ${ctx.raw} units` } }
+                },
+                scales: {
+                    x: { beginAtZero: true, title: { display: true, text: 'Quantity' } },
+                    y: {
+                        ticks: {
+                            display: true,
+                            font: { size: 11 },
+                            color: '#475569'
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // Filter table rows by search
+    function filterTable() {
+        const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+        const rows = document.querySelectorAll('#inventoryTableBody .product-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const productName = row.getAttribute('data-name') || '';
+            if (searchTerm === '' || productName.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        document.getElementById('filteredCount').innerHTML = `Showing ${visibleCount} products`;
+    }
+
+    // Apply date filter and reload page
+    function applyFilters() {
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        const activePeriod = document.querySelector('.period-tab.active');
+        const period = activePeriod ? new URL(activePeriod.href, window.location.origin).searchParams.get('period') : '';
+        
+        let url = "{% url 'inventory_reports' %}?";
+        if (dateFrom) url += `date_from=${dateFrom}&`;
+        if (dateTo) url += `date_to=${dateTo}&`;
+        if (period) url += `period=${period}&`;
+        
+        window.location.href = url;
+    }
+
+    // Export to PDF
+    function exportToPDF() {
+        const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[char]));
+        const summaryCards = Array.from(document.querySelectorAll('.summary-stat-card')).map(card => ({
+            title: card.querySelector('h3')?.textContent.trim() || '',
+            value: card.querySelector('.summary-stat-number')?.textContent.trim() || '0',
+            sub: card.querySelector('.summary-stat-sub')?.textContent.trim() || ''
+        }));
+        const productRows = Array.from(document.querySelectorAll('#inventoryTableBody .product-row')).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+                product: cells[0]?.textContent.trim() || '',
+                stock: cells[1]?.textContent.trim() || '',
+                indicator: cells[2]?.textContent.trim() || '—',
+                status: cells[3]?.textContent.trim() || ''
+            };
+        });
+        const historyRows = Array.from(document.querySelectorAll('#historyTableBody tr')).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+                date: cells[0]?.textContent.trim() || '',
+                product: cells[1]?.textContent.trim() || '',
+                type: cells[2]?.textContent.trim() || '',
+                quantity: cells[3]?.textContent.trim() || ''
+            };
+        }).filter(row => row.date || row.product);
+        const activePeriod = document.querySelector('.period-tab.active');
+        const period = activePeriod ? activePeriod.textContent.trim() : 'Custom Period';
+        const dateFrom = document.getElementById('dateFrom').value || 'All time';
+        const dateTo = document.getElementById('dateTo').value || 'Present';
+        const generatedAt = new Date().toLocaleString();
+        const logoUrl = "{% static 'accounts/images/for login image.png' %}";
+        const element = document.createElement('div');
+        element.style.cssText = 'width:760px;padding:34px 38px;background:#fff;color:#334155;font-family:Arial,sans-serif;';
+        element.innerHTML = `
+            <div style="text-align:center;padding-bottom:18px;border-bottom:2px solid #2b9bc8;">
+                <img src="${logoUrl}" style="width:42px;height:42px;object-fit:contain;vertical-align:middle;margin-right:8px;" alt="">
+                <span style="font-size:27px;font-weight:700;color:#1976ad;vertical-align:middle;">Grateful Water Station</span>
+                <h2 style="margin:15px 0 6px;color:#1e293b;font-size:23px;">Inventory Report</h2>
+                <div style="color:#64748b;font-size:14px;">${escapeHtml(period)} · ${escapeHtml(dateFrom)} to ${escapeHtml(dateTo)}</div>
+                <div style="color:#94a3b8;font-size:12px;margin-top:8px;">Generated: ${escapeHtml(generatedAt)}</div>
+            </div>
+            <h3 style="color:#1976ad;margin:24px 0 8px;">Inventory Summary</h3>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="background:#f1f6fa;color:#7190aa;text-transform:uppercase;font-size:11px;">
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Metric</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:right;">Value</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Details</th>
+                </tr></thead>
+                <tbody>${summaryCards.map(card => `
+                    <tr><td style="padding:9px;border:1px solid #dbe3ec;">${escapeHtml(card.title)}</td>
+                    <td style="padding:9px;border:1px solid #dbe3ec;text-align:right;font-weight:700;">${escapeHtml(card.value)}</td>
+                    <td style="padding:9px;border:1px solid #dbe3ec;color:#64748b;">${escapeHtml(card.sub)}</td></tr>
+                `).join('')}</tbody>
+            </table>
+            <h3 style="color:#1976ad;margin:24px 0 8px;">Product Inventory Status</h3>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr style="background:#f1f6fa;color:#7190aa;text-transform:uppercase;font-size:11px;">
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Product</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:right;">Stock</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Low Stock</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Status</th>
+                </tr></thead>
+                <tbody>${productRows.length ? productRows.map(row => `
+                    <tr><td style="padding:8px;border:1px solid #dbe3ec;">${escapeHtml(row.product)}</td>
+                    <td style="padding:8px;border:1px solid #dbe3ec;text-align:right;">${escapeHtml(row.stock)}</td>
+                    <td style="padding:8px;border:1px solid #dbe3ec;">${escapeHtml(row.indicator)}</td>
+                    <td style="padding:8px;border:1px solid #dbe3ec;">${escapeHtml(row.status)}</td></tr>
+                `).join('') : '<tr><td colspan="4" style="padding:10px;text-align:center;border:1px solid #dbe3ec;">No products found</td></tr>'}</tbody>
+            </table>
+            <h3 style="color:#1976ad;margin:24px 0 8px;">Stock In / Stock Out History</h3>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr style="background:#f1f6fa;color:#7190aa;text-transform:uppercase;font-size:11px;">
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Date &amp; Time</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Product</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:left;">Type</th>
+                    <th style="padding:10px;border:1px solid #dbe3ec;text-align:right;">Quantity</th>
+                </tr></thead>
+                <tbody>${historyRows.length ? historyRows.map(row => `
+                    <tr><td style="padding:8px;border:1px solid #dbe3ec;">${escapeHtml(row.date)}</td>
+                    <td style="padding:8px;border:1px solid #dbe3ec;">${escapeHtml(row.product)}</td>
+                    <td style="padding:8px;border:1px solid #dbe3ec;">${escapeHtml(row.type)}</td>
+                    <td style="padding:8px;border:1px solid #dbe3ec;text-align:right;">${escapeHtml(row.quantity)}</td></tr>
+                `).join('') : '<tr><td colspan="4" style="padding:10px;text-align:center;border:1px solid #dbe3ec;">No transaction history found</td></tr>'}</tbody>
+            </table>
+            <div style="text-align:center;margin-top:28px;padding-top:10px;border-top:1px solid #dbe3ec;color:#64748b;font-size:12px;">
+                Autogenerated on: ${escapeHtml(generatedAt)}<br>Grateful Water Station - Official Inventory Report
+            </div>
+        `;
+        document.body.appendChild(element);
+        const opt = {
+            margin: 0.35,
+            filename: `inventory_report_${new Date().toISOString().slice(0,10)}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, letterRendering: true, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save().then(() => element.remove());
+    }
+
+    // Export to Excel
+    function exportToExcel() {
+        const workbook = XLSX.utils.book_new();
+        
+        // Inventory Summary Sheet
+        const summaryData = [
+            ['GRATEFUL WATER STATION - INVENTORY REPORT'],
+            ['Generated:', new Date().toLocaleString()],
+            [],
+            ['SUMMARY STATISTICS'],
+            ['Metric', 'Value'],
+            ['Total Products', '{{ total_products|default:"0" }}'],
+            ['Total Stocks', '{{ total_stocks|default:"0" }}'],
+            ['Low Stock Items', '{{ low_stock_items|default:"0" }}'],
+            ['Out of Stock Items', '{{ out_of_stock_items|default:"0" }}'],
+            []
+        ];
+        
+        // Product Inventory Sheet
+        const productRows = [['Product Name', 'Category', 'Stock Quantity', 'Reorder Level', 'Stock Status']];
+        {% for product in products %}
+        productRows.push([
+            '{{ product.name }}',
+            '{{ product.category }}',
+            '{{ product.stock_quantity }}',
+            '{{ product.reorder_level }}',
+            '{{ product.status_display }}'
+        ]);
+        {% endfor %}
+        
+        // Transaction History Sheet
+        const historyRows = [['Date', 'Product', 'Transaction Type', 'Quantity', 'Reference', 'By']];
+        {% for transaction in transactions %}
+        historyRows.push([
+            '{{ transaction.created_at|date:"M d, Y H:i" }}',
+            '{{ transaction.product.name }}',
+            '{% if transaction.quantity > 0 %}Stock In{% else %}Stock Out{% endif %}',
+            '{{ transaction.quantity|floatformat:0 }}',
+            '{{ transaction.reference|default:"—" }}',
+            '{{ transaction.created_by.username|default:"System" }}'
+        ]);
+        {% endfor %}
+        
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        const productSheet = XLSX.utils.aoa_to_sheet(productRows);
+        const historySheet = XLSX.utils.aoa_to_sheet(historyRows);
+        
+        XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+        XLSX.utils.book_append_sheet(workbook, productSheet, 'Products');
+        XLSX.utils.book_append_sheet(workbook, historySheet, 'Transactions');
+        
+        XLSX.writeFile(workbook, `inventory_report_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // Print function
+    function printReport() { window.print(); }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        initCharts();
+        
+        document.getElementById('generateReportBtn').addEventListener('click', applyFilters);
+        document.getElementById('exportPDFBtn').addEventListener('click', exportToPDF);
+        
+        // Auto-refresh every 5 minutes
+        setTimeout(() => location.reload(), 300000);
+    });
+
+    // Mobile sidebar
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.createElement('button');
+        btn.className = 'menu-toggle';
+        btn.innerHTML = '<i class="fas fa-bars"></i>';
+        const ov = document.createElement('div');
+        ov.className = 'sidebar-overlay';
+        document.body.append(btn, ov);
+        const sb = document.querySelector('.sidebar');
+        const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+        const open = () => { sb.classList.add('active'); ov.classList.add('active'); btn.querySelector('i').className = 'fas fa-times'; };
+        btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+        ov.addEventListener('click', close);
+        document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+                close();
+            }
+        }));
+        window.addEventListener('resize', () => window.innerWidth > 768 && close());
+        document.addEventListener('keydown', e => e.key === 'Escape' && close());
+        
+        // Reports dropdown toggle handler
+        const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+        if (reportsToggle) {
+            reportsToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                reportsToggle.parentElement.classList.toggle('active');
+            });
+        }
+    });
+</script>
+</body>
+</html>

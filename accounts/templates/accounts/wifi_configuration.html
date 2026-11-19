@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wi-Fi Configuration - Grateful Water Station</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .wifi-page {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .wifi-card {
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(15, 35, 55, .07);
+        }
+
+        .wifi-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: .9rem;
+            margin-bottom: 1.35rem;
+        }
+
+        .wifi-card-icon {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            flex: 0 0 44px;
+            border-radius: 12px;
+            background: #eaf6fc;
+            color: #1684c4;
+            font-size: 1.1rem;
+        }
+
+        .wifi-card h2 {
+            margin: 0;
+            color: #27384a;
+            font-size: 1.15rem;
+        }
+
+        .wifi-card p {
+            margin: .3rem 0 0;
+            color: #64748b;
+            font-size: .82rem;
+            line-height: 1.5;
+        }
+
+        .wifi-form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .wifi-form label {
+            display: grid;
+            gap: .4rem;
+            color: #334155;
+            font-size: .82rem;
+            font-weight: 600;
+        }
+
+        .wifi-form input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: .7rem .8rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            color: #1e293b;
+            font: inherit;
+        }
+
+        .wifi-form input:focus {
+            outline: 3px solid rgba(22, 132, 196, .14);
+            border-color: #1684c4;
+        }
+
+        .wifi-form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: .7rem;
+            margin-top: .25rem;
+        }
+
+        .wifi-form-actions a,
+        .wifi-form-actions button {
+            min-height: 40px;
+            padding: .65rem 1rem;
+            border-radius: 8px;
+            font: 600 .82rem Arial, sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .wifi-form-actions a {
+            border: 1px solid #cbd5e1;
+            color: #475569;
+        }
+
+        .wifi-form-actions button {
+            border: 1px solid #1684c4;
+            background: #1684c4;
+            color: #fff;
+        }
+
+        .wifi-device-info {
+            margin-top: 1.25rem;
+            padding: .8rem;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #1e40af;
+            font-size: .75rem;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .wifi-device-info strong,
+        .wifi-device-info code {
+            display: block;
+        }
+
+        .wifi-device-info code {
+            margin-top: .25rem;
+            color: #1e3a8a;
+        }
+
+        @media (max-width: 520px) {
+            .wifi-card {
+                padding: 1rem;
+            }
+
+            .wifi-form-actions {
+                flex-direction: column-reverse;
+            }
+
+            .wifi-form-actions a,
+            .wifi-form-actions button {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+                <h2>GRATEFUL</h2>
+                <p>Water Station</p>
+            </div>
+            {% include "accounts/admin_nav_links.html" %}
+            <div class="user-info">
+                <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+                <p class="role-badge admin">Admin</p>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            {% include "accounts/dashboard_topbar.html" %}
+            <div class="wifi-page">
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+                <div class="wifi-card">
+                    <div class="wifi-card-header">
+                        <div class="wifi-card-icon"><i class="fas fa-wifi"></i></div>
+                        <div>
+                            <h2>Grateful ESP12E Wi-Fi Setup</h2>
+                            <p>Update the network credentials used by the ESP12E station controller. The controller checks for changes every 30 seconds.</p>
+                        </div>
+                    </div>
+                    <form method="post" class="wifi-form" id="wifiConfigurationForm">
+                        {% csrf_token %}
+                        <label for="wifi-ssid">
+                            Wi-Fi SSID
+                            <input id="wifi-ssid" name="ssid" type="text" maxlength="100" required value="{{ wifi_configuration.ssid|default:'' }}" autocomplete="off">
+                        </label>
+                        <label for="wifi-password">
+                            Wi-Fi Password{% if wifi_configuration %} (leave blank to keep current password){% endif %}
+                            <input id="wifi-password" name="password" type="password" maxlength="128" {% if not wifi_configuration %}required{% endif %} placeholder="{% if wifi_configuration %}Enter a new password only if it changed{% else %}Enter Wi-Fi password{% endif %}" autocomplete="new-password">
+                        </label>
+                        <div class="wifi-form-actions">
+                            <a href="{% url 'admin_dashboard' %}">Cancel</a>
+                            <button type="submit" id="wifiSaveButton"><i class="fas fa-save"></i> Save Credentials</button>
+                        </div>
+                        <p id="wifiSaveStatus" role="status" aria-live="polite"></p>
+                    </form>
+                    {% if wifi_device_endpoint %}
+                    <div class="wifi-device-info">
+                        <strong>ESP12E credentials endpoint</strong>
+                        <code>{{ wifi_device_endpoint }}</code>
+                        <span>Copy this URL into <code>WIFI_CREDENTIALS_URL</code> in the ESP firmware once. Keep it private because it returns the Wi-Fi password. If the controller is already offline, reconnect it through the Grateful-ESP12E-Setup access point so it can fetch the saved credentials.</span>
+                        {% if wifi_device_endpoint_warning %}
+                        <strong>{{ wifi_device_endpoint_warning }}</strong>
+                        {% endif %}
+                    </div>bnm bmm,bnmbv
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

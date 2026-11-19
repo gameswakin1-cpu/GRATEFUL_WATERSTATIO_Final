@@ -1,0 +1,76 @@
+{
+  "name": "Grateful Water Station - Rider",
+  "short_name": "GWS Rider",
+  "description": "Delivery rider app for Grateful Water Station",
+  "start_url": "/accounts/rider/dashboard/",
+  "display": "standalone",
+  "background_color": "#f4f8fc",
+  "theme_color": "#1a8ad4",
+  "orientation": "portrait",
+  "scope": "/accounts/rider/",
+  "icons": [
+    {
+      "src": "/static/accounts/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/accounts/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/accounts/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/accounts/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/accounts/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/accounts/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/accounts/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/accounts/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to rider dashboard",
+      "url": "/accounts/rider/dashboard/",
+      "icons": [{ "src": "/static/accounts/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Delivery History",
+      "short_name": "History",
+      "description": "View delivery history",
+      "url": "/accounts/rider/delivery-history/",
+      "icons": [{ "src": "/static/accounts/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Check messages",
+      "url": "/accounts/messaging/inbox/",
+      "icons": [{ "src": "/static/accounts/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ]
+}

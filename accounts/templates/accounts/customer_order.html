@@ -1,0 +1,3642 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Grateful Water">
+    <meta name="description" content="Order clean, purified water for delivery - Grateful Water Station">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <title>Place Order - Grateful Water Station</title>
+
+    {% load static %}
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{% static 'accounts/manifest-customer.json' %}">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'accounts/images/apple-touch-icon.png' %}">
+
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Leaflet CSS -->
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+
+    <style>
+        /* Order Page Specific Styles - CSS variables in shared styles.css */
+
+        .two-column { display: grid; grid-template-columns: 1fr 420px; gap: 1.5rem; margin-bottom: 1.75rem; }
+
+        .products-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            padding: 1.75rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--glass-border);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .cart-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            padding: 1.75rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--glass-border);
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 1rem; margin-top: 1rem; }
+
+        .customer-promo-banner {
+            display: flex;
+            align-items: center;
+            gap: .9rem;
+            margin: 0 0 1.25rem;
+            padding: .9rem 1.1rem;
+            border: 1px solid #f4c96b;
+            border-radius: 12px;
+            background: linear-gradient(110deg, #fff8e6, #fffdf7);
+            color: #6f4700;
+        }
+
+        .customer-promo-icon {
+            display: grid;
+            place-items: center;
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: #ffedbd;
+            color: #b66a00;
+            font-size: 1.2rem;
+        }
+
+        .customer-promo-banner strong {
+            display: block;
+            font-size: 1rem;
+            line-height: 1.35;
+        }
+
+        .customer-promo-banner span {
+            display: block;
+            margin-top: .15rem;
+            color: #80652e;
+            font-size: .8rem;
+            line-height: 1.4;
+        }
+
+        .product-card {
+            min-height: 280px;
+        }
+
+        .product-card-inner {
+            position: relative;
+            width: 100%;
+            min-height: 280px;
+        }
+
+        .product-card-face {
+            position: relative;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 280px;
+        }
+
+        .product-card-face::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover .product-card-front {
+            border-color: var(--primary);
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .product-card:hover .product-card-front::before {
+            transform: scaleX(1);
+        }
+
+        .product-card.out-of-stock { opacity: .5; }
+
+        .product-card.out-of-stock:hover .product-card-front { transform: none; border-color: var(--gray-200); box-shadow: none; }
+
+        .product-image { width: 80px; height: 80px; object-fit: contain; object-position: center; margin: 0 auto 0.75rem; display: block; transition: transform 0.3s ease; }
+
+        .product-card:hover .product-image { transform: scale(1.1); }
+
+        .product-name { font-size: 0.9rem; font-weight: 600; color: var(--gray-800); margin-bottom: 0.375rem; }
+        .product-type-label {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            margin: 0 auto .4rem;
+            padding: .25rem .55rem;
+            border-radius: 999px;
+            font-size: .62rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+        .product-type-label.refill { background: #e7fbfc; color: #087f8c; }
+        .product-type-label.gallon { background: #e8f1ff; color: #1558c9; }
+
+        .product-price { font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin: 0.375rem 0; }
+
+        .product-stock { font-size: 0.75rem; color: var(--gray-500); }
+
+        .product-description {
+            color: var(--gray-600);
+            font-size: 0.78rem;
+            line-height: 1.55;
+            white-space: pre-line;
+            margin-bottom: 0.15rem;
+        }
+
+        .product-description.gallon-description {
+            white-space: normal;
+        }
+
+        .btn-add-small {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-add-small:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #0369a1 100%);
+        }
+
+        .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid var(--gray-100); }
+
+        .cart-header h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cart-header h3 i { color: var(--primary); }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-small:hover {
+            background: var(--gray-200);
+            border-color: var(--gray-300);
+            color: var(--gray-700);
+            transform: translateY(-2px);
+        }
+
+        /* Modern Search Design */
+        .search-wrap {
+            position: relative;
+            margin: 1rem 0;
+        }
+
+        .search-wrap i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .search-wrap input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            font-size: 0.95rem;
+            background: var(--gray-50);
+            color: var(--gray-700);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-wrap input::placeholder {
+            color: var(--gray-400);
+            font-weight: 400;
+        }
+
+        .search-wrap input:hover {
+            border-color: var(--gray-300);
+            background: white;
+        }
+
+        .search-wrap input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+        }
+
+        .search-wrap:focus-within i {
+            color: var(--primary);
+        }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .category-tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--gray-500);
+            position: relative;
+        }
+
+        .category-tab:hover {
+            color: var(--gray-700);
+        }
+
+        .category-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .category-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            animation: tabSlideIn 0.3s ease;
+        }
+        .category-tab[data-category="refill"].active {
+            color: #087f8c;
+            border-bottom-color: #087f8c;
+        }
+        .category-tab[data-category="refill"].active::after {
+            background: #087f8c;
+        }
+        .category-tab[data-category="gallon"].active {
+            color: #1558c9;
+            border-bottom-color: #1558c9;
+        }
+        .category-tab[data-category="gallon"].active::after {
+            background: #1558c9;
+        }
+
+        @keyframes tabSlideIn {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+
+        .cart-items { max-height: 220px; overflow-y: auto; margin: 0.75rem 0; }
+
+        .cart-items::-webkit-scrollbar { width: 4px; }
+
+        .cart-items::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+
+        .cart-items::-webkit-scrollbar-track { background: var(--gray-100); border-radius: 4px; }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--gray-100);
+            transition: all 0.2s ease;
+        }
+
+        .cart-item:hover {
+            border-color: var(--gray-200);
+            background: white;
+        }
+
+        .cart-item-info h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; color: var(--gray-800); }
+
+        .cart-item-info p { font-size: 0.8rem; color: var(--gray-500); }
+
+        .cart-item-quantity { display: flex; align-items: center; gap: 0.375rem; }
+
+        .cart-item-quantity button {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .cart-item-quantity button:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(14, 165, 233, 0.3);
+        }
+
+        .cart-item-quantity button:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+        .cart-item-quantity input {
+            width: 40px;
+            text-align: center;
+            padding: 0.375rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .btn-remove-item { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; margin-left: 0.375rem; transition: all 0.2s ease; }
+
+        .btn-remove-item:hover { transform: scale(1.2); }
+
+        .cart-summary { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--gray-200); }
+
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--gray-500); }
+
+        .summary-row.total {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 2px solid var(--gray-200);
+        }
+
+        .summary-row.total span:last-child {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-order {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--success) 0%, #15803d 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-order:hover:not(:disabled) {
+            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-order:disabled { background: var(--gray-400); cursor: not-allowed; box-shadow: none; }
+
+        /* ── MAP ADDRESS PICKER ── */
+        .map-address-block { margin-bottom: 1.25rem; }
+
+        .map-address-block label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-locate {
+            padding: 0.625rem 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-locate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #0369a1 100%);
+        }
+
+        .btn-locate:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-locate.loading {
+            background: linear-gradient(135deg, var(--gray-400) 0%, var(--gray-500) 100%);
+        }
+
+        .btn-locate.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Live Location Indicator */
+        .live-location-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        .live-location-indicator.active {
+            display: flex;
+        }
+
+        .live-location-indicator .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        }
+
+        /* Location Permission Modal */
+        .location-permission-modal {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .location-permission-modal.active {
+            display: flex;
+        }
+
+        .permission-modal-content {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-xl);
+            animation: modalSlideUp 0.4s ease;
+        }
+
+        .permission-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, #e0f2fe 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+        }
+
+        .permission-icon i {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+
+        .permission-modal-content h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 0.75rem;
+        }
+
+        .permission-modal-content p {
+            color: var(--gray-600);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .permission-purpose {
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .permission-purpose h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .permission-purpose h4 i {
+            color: var(--primary);
+        }
+
+        .permission-purpose ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .permission-purpose li {
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            padding: 0.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .permission-purpose li i {
+            color: var(--success);
+            font-size: 0.75rem;
+        }
+
+        .permission-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .permission-actions button {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-allow-location {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-allow-location:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-deny-location {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
+        }
+
+        .btn-deny-location:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        /* Location Error/Status Message */
+        .location-status-message {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .location-status-message.error {
+            display: flex;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+        }
+
+        .location-status-message.info {
+            display: flex;
+            background: var(--primary-light);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            color: #0369a1;
+        }
+
+        .location-status-message.success {
+            display: flex;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #059669;
+        }
+
+        @keyframes modalSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #deliveryMap {
+            width: 100%;
+            height: 220px;
+            border-radius: var(--radius-lg);
+            border: 2px solid var(--gray-200);
+            margin-bottom: 0.75rem;
+            z-index: 1;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .map-hint {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #addressDisplay {
+            font-size: 0.875rem;
+            padding: 0.75rem 1rem;
+            background: var(--primary-light);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: var(--radius-md);
+            color: #0369a1;
+            min-height: 2.5rem;
+            display: none;
+            font-weight: 500;
+        }
+
+        #addressDisplay.has-address { display: block; }
+
+        .address-content {
+            display: block;
+            margin-top: 0.75rem;
+        }
+
+        .address-content textarea {
+            width: 100%;
+            min-height: 76px;
+            box-sizing: border-box;
+            resize: vertical;
+            padding: .65rem .75rem;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            font: inherit;
+            line-height: 1.45;
+        }
+
+        .address-content textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 138, 212, 0.12);
+        }
+
+        .btn-confirm-location {
+            margin-top: 0.75rem;
+            width: 100%;
+            padding: 0.6rem 1rem;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-confirm-location:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-confirm-location.confirmed {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            cursor: default;
+        }
+
+        .btn-confirm-location.confirmed:hover {
+            transform: none;
+            box-shadow: 0 2px 4px rgba(107, 114, 128, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .modal-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--gray-800); }
+
+        .close { font-size: 1.75rem; cursor: pointer; color: var(--gray-400); line-height: 1; transition: all 0.2s ease; }
+
+        .close:hover { color: var(--danger); transform: scale(1.1); }
+
+        .qr-container {
+            text-align: center;
+            margin: 1.25rem 0;
+            padding: 1.25rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            border: 2px solid var(--gray-100);
+        }
+
+        .qr-container img { max-width: 200px; height: auto; border-radius: var(--radius-md); }
+
+        .payment-options { display: flex; gap: .75rem; margin: .75rem 0 1rem; }
+
+        .payment-method-section { margin-top: .75rem; }
+
+        .payment-method-title { font-size: .9rem; font-weight: 600; color: var(--gray-700); }
+
+        .proof-payment-section {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #dbeafe;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(145deg, #f8fbff, #ffffff);
+        }
+
+        .proof-payment-section.visible { display: block; }
+
+        .proof-payment-title {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            margin-bottom: .35rem;
+            color: #1e3a5f;
+            font-size: .95rem;
+            font-weight: 700;
+        }
+
+        .proof-payment-title i { color: #64748b; }
+
+        .proof-payment-help {
+            margin: 0 0 .8rem;
+            color: #7890ad;
+            font-size: .78rem;
+        }
+
+        .proof-upload-label {
+            display: flex;
+            min-height: 112px;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #bfdbfe;
+            border-radius: 12px;
+            color: #4f46e5;
+            cursor: pointer;
+            text-align: center;
+            transition: background .2s ease, border-color .2s ease;
+        }
+
+        .proof-upload-label:hover,
+        .proof-upload-label:focus-within {
+            border-color: #6366f1;
+            background: #f5f7ff;
+        }
+
+        .proof-upload-content i {
+            display: block;
+            margin-bottom: .35rem;
+            font-size: 1.8rem;
+        }
+
+        .proof-upload-content strong,
+        .proof-upload-content span { display: block; }
+        .proof-upload-content strong { font-size: .85rem; }
+        .proof-upload-content span { margin-top: .2rem; color: #94a3b8; font-size: .72rem; }
+        .proof-upload-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+        .proof-preview {
+            display: none;
+            position: relative;
+            width: 138px;
+            margin-top: .75rem;
+        }
+
+        .proof-preview.visible { display: block; }
+        .proof-preview img { display: block; width: 100%; height: 104px; object-fit: cover; border-radius: 10px; }
+
+        .proof-preview-remove {
+            position: absolute;
+            top: -.45rem;
+            right: -.45rem;
+            display: grid;
+            width: 24px;
+            height: 24px;
+            place-items: center;
+            border: 0;
+            border-radius: 50%;
+            background: #64748b;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .proof-review-status {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            margin-top: .75rem;
+            padding: .45rem .7rem;
+            border-radius: 999px;
+            background: #fff8e6;
+            color: #c0841a;
+            font-size: .75rem;
+        }
+
+        .payment-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            padding: .75rem .5rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: .9rem;
+            white-space: nowrap;
+        }
+
+        .payment-option:hover { border-color: var(--primary); background: var(--primary-light); }
+
+        .payment-option.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: #0369a1;
+        }
+
+        .payment-option input[type="radio"] {
+            appearance: auto !important;
+            width: 16px !important;
+            height: 16px !important;
+            min-height: 16px !important;
+            flex: 0 0 16px;
+            margin: 0;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 50% !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            accent-color: var(--primary);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+            border-color: var(--gray-300);
+            color: var(--gray-700);
+            transform: translateY(-2px);
+        }
+
+        /* Map Address Modal Styles */
+        .map-address-modal {
+            display: none;
+            position: fixed;
+            z-index: 2500;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.25s ease;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-modal-content {
+            background: white;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            margin: 2% auto;
+            padding: 1.5rem;
+            border-radius: var(--radius-xl);
+            width: 95%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--glass-border);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .map-modal-body {
+            padding: 1rem 0;
+        }
+
+        .map-modal-footer {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            padding-top: 1rem;
+            border-top: 2px solid var(--gray-100);
+            flex-wrap: wrap;
+        }
+
+        .map-modal-footer button {
+            flex: 1;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .map-modal-footer .btn-secondary {
+            flex: 0 0 auto;
+        }
+
+        #deliveryMapModal {
+            width: 100%;
+            height: 400px;
+            border-radius: var(--radius-lg);
+            margin: 0.75rem 0;
+            border: 2px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+            z-index: 1;
+        }
+
+        /* Modern Map Controls */
+        .leaflet-control-zoom {
+            border: none !important;
+            border-radius: var(--radius-md) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 18px !important;
+            color: var(--gray-700) !important;
+            background: white !important;
+            border: none !important;
+            transition: all 0.2s ease;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--primary-light) !important;
+            color: var(--primary) !important;
+        }
+
+        /* Custom Locate Button */
+        .locate-control {
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border: none;
+            font-size: 16px;
+            color: var(--primary);
+        }
+
+        .locate-control:hover {
+            background: var(--primary-light);
+            transform: scale(1.05);
+        }
+
+        .locate-control.loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Custom Markers */
+        .custom-marker-station {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            width: 40px;
+            height: 40px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-marker-station i {
+            transform: rotate(45deg);
+            color: white;
+            font-size: 16px;
+        }
+
+        .custom-marker-delivery {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            width: 44px;
+            height: 44px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-marker-delivery i {
+            transform: rotate(45deg);
+            color: white;
+            font-size: 18px;
+        }
+
+        .marker-pulse {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(231, 76, 60, 0.3);
+            animation: markerPulse 2s infinite;
+            z-index: -1;
+        }
+
+        @keyframes markerPulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+
+        /* Modern Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: var(--radius-lg);
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            padding: 12px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            color: var(--gray-700);
+        }
+
+        .leaflet-popup-tip {
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 10px 16px;
+            font-weight: 600;
+            margin: -12px -16px 10px -16px;
+        }
+
+        .popup-station { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+        .popup-delivery { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        .leaflet-container a.leaflet-popup-close-button {
+            color: white;
+            font-size: 20px;
+            top: 8px;
+            right: 8px;
+        }
+
+        .leaflet-container a.leaflet-popup-close-button:hover {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .btn-confirm-only {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-confirm-only:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-confirm-only:disabled {
+            background: var(--gray-400);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-confirm-only.confirmed {
+            background: linear-gradient(135deg, var(--success), #059669);
+        }
+
+        .btn-continue-modal {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-continue-modal:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-continue-modal:disabled {
+            background: var(--gray-400);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-continue-modal.confirmed {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1024px) { .two-column { grid-template-columns: 1fr; } .cart-section { position: static; } }
+
+        @media (max-width: 768px) { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .product-image { width: 60px; height: 60px; } }
+
+        /* Mobile-optimized Map Modal - Ultra Compact */
+        @media (max-width: 640px) {
+            .map-address-modal {
+                align-items: flex-end;
+            }
+
+            .map-modal-content {
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+                max-height: 98vh;
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+                padding: 0.75rem;
+            }
+
+            .map-modal-content .modal-header {
+                padding: 0.25rem 0;
+                margin-bottom: 0.375rem;
+            }
+
+            .map-modal-content .modal-header h2 {
+                font-size: 1rem;
+            }
+
+            .map-modal-body {
+                padding: 0.25rem 0;
+            }
+
+            /* Compact Locate Button */
+            .map-modal-body .btn-locate {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+                margin-bottom: 0.25rem;
+            }
+
+            /* Hide hint on mobile to save space */
+            .map-hint {
+                display: none;
+            }
+
+            /* Maximize map height */
+            #deliveryMapModal {
+                height: 55vh;
+                min-height: 280px;
+                margin: 0.25rem 0;
+            }
+
+            /* Compact address display */
+            #addressDisplayModal .address-content {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+                margin-top: 0.5rem;
+            }
+
+            #addressDisplayModal {
+                margin-top: 0.25rem;
+            }
+
+            /* Ultra compact footer */
+            .map-modal-footer {
+                padding-top: 0.5rem;
+                gap: 0.375rem;
+                margin-top: 0.25rem;
+            }
+
+            .map-modal-footer button {
+                min-width: 0;
+                padding: 0.5rem 0.5rem;
+                font-size: 0.75rem;
+                flex: 1;
+            }
+
+            /* Stack buttons on narrow screens */
+            .btn-confirm-only,
+            .btn-continue-modal {
+                padding: 0.5rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .btn-secondary {
+                padding: 0.5rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            /* Smaller map controls on mobile */
+            .leaflet-control-zoom a {
+                width: 28px !important;
+                height: 28px !important;
+                line-height: 28px !important;
+                font-size: 14px !important;
+            }
+
+            .locate-control {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+
+            /* Hide live location indicator on mobile */
+            .live-location-indicator {
+                display: none;
+            }
+
+            /* Compact location status */
+            .location-status-message {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.75rem;
+                margin-bottom: 0.25rem;
+            }
+        }
+
+        /* Very small screens - Ultra Compact */
+        @media (max-width: 380px) {
+            .map-modal-content {
+                padding: 0.5rem;
+                border-radius: var(--radius-md) var(--radius-md) 0 0;
+            }
+
+            #deliveryMapModal {
+                height: 50vh;
+                min-height: 240px;
+            }
+
+            .map-modal-footer {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+
+            .map-modal-footer button {
+                width: auto;
+                flex: 1;
+                min-width: 80px;
+                padding: 0.5rem 0.375rem;
+                font-size: 0.7rem;
+            }
+
+            .map-modal-footer .btn-secondary {
+                order: 3;
+                flex: 0 0 100%;
+            }
+
+            .modal-header h2 {
+                font-size: 0.9rem;
+            }
+
+            .btn-close {
+                font-size: 1.25rem;
+            }
+        }
+
+        /* ── Refined order experience ── */
+        body {
+            background:
+                radial-gradient(circle at 8% 0%, rgba(26, 138, 212, 0.08), transparent 28rem),
+                var(--bg);
+        }
+
+        .main-content {
+            padding: 2.25rem clamp(1rem, 3vw, 3rem);
+        }
+
+        .dashboard-header {
+            margin-bottom: 1.75rem;
+        }
+
+        .dashboard-header h1 {
+            color: var(--gray-900);
+            font-size: clamp(1.5rem, 2.4vw, 2rem);
+            letter-spacing: -0.03em;
+        }
+
+        .dashboard-header h1 i {
+            color: var(--primary);
+            margin-right: 0.35rem;
+        }
+
+        .two-column {
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+            gap: 1.25rem;
+            align-items: start;
+        }
+
+        .products-section,
+        .cart-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(15, 60, 110, 0.06);
+            padding: clamp(1.1rem, 2vw, 1.5rem);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+
+        .cart-section {
+            top: 1.25rem;
+        }
+
+        .section-header {
+            margin-bottom: 1rem;
+        }
+
+        .section-header h2,
+        .cart-header h3 {
+            color: var(--gray-900);
+            letter-spacing: -0.02em;
+        }
+
+        .section-header h2 i,
+        .cart-header h3 i {
+            color: var(--primary);
+        }
+
+        .category-tabs {
+            gap: 0.35rem;
+            padding: 0.25rem;
+            margin-bottom: 1rem;
+            border: 0;
+            border-radius: 10px;
+            background: var(--gray-50);
+        }
+
+        .category-tab {
+            flex: 1;
+            border: 0;
+            border-radius: 8px;
+            padding: 0.65rem 0.8rem;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
+        .category-tab.active,
+        .category-tab.active:hover {
+            color: var(--primary-dark);
+            background: white;
+            box-shadow: 0 2px 8px rgba(15, 60, 110, 0.1);
+        }
+
+        .category-tab.active::after {
+            display: none;
+        }
+
+        .search-wrap {
+            margin: 0 0 1rem;
+        }
+
+        .search-wrap input {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--gray-50);
+            box-shadow: none;
+        }
+
+        .search-wrap input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 138, 212, 0.12);
+        }
+
+        .product-grid {
+            gap: 0.8rem;
+        }
+
+        .product-card,
+        .product-card-inner {
+            min-height: 248px;
+        }
+
+        .product-card-face {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(15, 60, 110, 0.03);
+        }
+
+        .product-card:hover .product-card-front {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(15, 60, 110, 0.1);
+        }
+
+        .product-image {
+            width: 72px;
+            height: 72px;
+        }
+
+        .btn-add-small {
+            background: var(--primary);
+            border-radius: 8px;
+            box-shadow: none;
+        }
+
+        .btn-add-small:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 6px 14px rgba(26, 138, 212, 0.2);
+        }
+
+        .cart-header {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .btn-small {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--gray-50);
+        }
+
+        .form-group input,
+        .form-group textarea {
+            border-color: var(--border);
+            border-radius: 9px;
+            background: var(--gray-50);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 138, 212, 0.12);
+        }
+
+        .delivery-address-display {
+            min-height: 76px;
+            resize: vertical;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .btn-change-location {
+            width: 100%;
+            margin-top: .55rem;
+            padding: .65rem .9rem;
+            border: 1px solid #bae6fd;
+            border-radius: 9px;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: .82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s ease, border-color .2s ease;
+        }
+
+        .btn-change-location:hover {
+            background: #bae6fd;
+            border-color: #7dd3fc;
+        }
+
+        .cart-item {
+            border-color: var(--border);
+            border-radius: 10px;
+        }
+
+        .btn-order {
+            background: var(--primary);
+            border-radius: 9px;
+            box-shadow: 0 6px 14px rgba(26, 138, 212, 0.2);
+        }
+
+        .btn-order:hover:not(:disabled) {
+            background: var(--primary-dark);
+            box-shadow: 0 9px 20px rgba(26, 138, 212, 0.25);
+        }
+
+        @media (max-width: 1024px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .cart-section {
+                top: auto;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .main-content {
+                padding: 1.25rem 0.85rem 2rem;
+            }
+
+            .dashboard-header {
+                margin-bottom: 1rem;
+            }
+
+            .products-section,
+            .cart-section {
+                border-radius: 14px;
+                padding: 1rem;
+            }
+
+            .product-grid {
+                gap: 0.6rem;
+            }
+
+            .product-card,
+            .product-card-inner {
+                min-height: 225px;
+            }
+        }
+
+        /* Final minimalist treatment for every order-page card */
+        .products-section,
+        .cart-section,
+        .product-card-face {
+            background: var(--card-bg) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: var(--shadow) !important;
+        }
+        .products-section,
+        .cart-section {
+            border-radius: var(--radius-lg) !important;
+        }
+        .product-card-face::before { background: var(--primary) !important; }
+        .product-name { color: var(--text) !important; }
+        .product-description,
+        .product-stock { color: var(--text-sub) !important; }
+        .product-price {
+            background: none !important;
+            -webkit-text-fill-color: var(--primary) !important;
+            color: var(--primary) !important;
+        }
+        .product-card:hover .product-card-front {
+            border-color: var(--border-mid) !important;
+            box-shadow: var(--shadow-hover) !important;
+        }
+        .cart-header h3 { color: var(--text) !important; }
+        .cart-header,
+        .cart-summary { border-color: var(--border) !important; }
+        .cart-item {
+            background: #f6faff !important;
+            border-color: #dbeafe !important;
+            padding: .75rem !important;
+        }
+        .cart-item:hover { background: #eff6ff !important; }
+        .cart-item-info h4 { color: var(--text) !important; }
+        .cart-item-info p,
+        .summary-row { color: var(--text-sub) !important; }
+        .cart-item-info {
+            min-width: 0;
+            flex: 1;
+            margin-right: .75rem;
+        }
+        .cart-item-info h4 {
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+        .cart-item-type {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            margin-bottom: .35rem;
+            padding: .22rem .5rem;
+            border-radius: 999px;
+            font-size: .58rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+        .cart-item-type.refill { background: #e7fbfc; color: #087f8c; }
+        .cart-item-type.gallon { background: #e8f1ff; color: #1558c9; }
+        .cart-item-quantity { flex-shrink: 0; }
+        .cart-item-quantity input {
+            width: 40px;
+            height: 36px;
+            box-sizing: border-box;
+            background: var(--surface);
+            border-color: var(--border);
+        }
+        .cart-item-quantity button {
+            width: 28px;
+            height: 28px;
+        }
+        .btn-remove-item {
+            color: #c82333;
+            margin-left: .35rem;
+        }
+        .summary-row.total {
+            color: var(--text) !important;
+            border-top-color: var(--border) !important;
+        }
+        .btn-add-small,
+        .btn-order {
+            background: var(--primary) !important;
+            box-shadow: none !important;
+        }
+        .btn-add-small:hover,
+        .btn-order:hover:not(:disabled) {
+            background: var(--secondary) !important;
+            box-shadow: var(--shadow) !important;
+        }
+        .cart-item-quantity button {
+            background: var(--primary) !important;
+            box-shadow: none !important;
+        }
+        .cart-item-quantity button:hover:not(:disabled) {
+            background: var(--secondary) !important;
+        }
+
+        /* Match the compact product-card layout from the reference */
+        .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)) !important;
+            gap: 1rem !important;
+        }
+        .product-card,
+        .product-card-inner {
+            min-height: 270px !important;
+        }
+        .product-card {
+            padding: 0 !important;
+            border: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+        .product-card-face {
+            border: 1px solid #cfe1f7 !important;
+            border-radius: 14px !important;
+            padding: .8rem !important;
+            box-shadow: 0 5px 16px rgba(29, 91, 155, .08) !important;
+        }
+        .product-card:hover .product-card-front {
+            border-color: var(--primary) !important;
+            transform: translateY(-3px) !important;
+            box-shadow: 0 9px 20px rgba(29, 91, 155, .14) !important;
+        }
+        .product-image {
+            width: 76px !important;
+            height: 76px !important;
+            margin-bottom: .55rem !important;
+        }
+        .product-name {
+            font-size: .82rem !important;
+            line-height: 1.3 !important;
+            margin-bottom: .3rem !important;
+        }
+        .product-price {
+            font-size: 1.05rem !important;
+            margin: .3rem 0 .65rem !important;
+        }
+        .product-stock {
+            font-size: .65rem !important;
+        }
+        .btn-add-small {
+            min-width: 110px !important;
+            padding: .45rem .8rem !important;
+            font-size: .78rem !important;
+        }
+
+        @media (max-width: 640px) {
+            .product-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: .6rem !important;
+            }
+
+            .product-card,
+            .product-card-inner {
+                min-height: 225px !important;
+            }
+
+            .product-card-face {
+                padding: .65rem !important;
+                min-height: 225px;
+            }
+
+            .product-image {
+                width: 60px !important;
+                height: 60px !important;
+            }
+
+            .product-name {
+                font-size: .76rem !important;
+            }
+
+            .product-price {
+                font-size: .95rem !important;
+            }
+
+            .btn-add-small {
+                min-width: 0 !important;
+                width: 100%;
+                padding: .4rem .35rem !important;
+                font-size: .72rem !important;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+
+<div class="dashboard-container">
+
+
+
+    <nav class="sidebar">
+
+        <div class="sidebar-header">
+
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+
+            <h2>GRATEFUL</h2>
+
+            <p>Water Station</p>
+
+        </div>
+
+        <ul class="nav-links">
+
+           <li><a href="{% url 'customer_dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+
+            <li><a href="{% url 'customer_order' %}"><i class="fas fa-shopping-cart"></i> Place Order</a></li>
+            <li><a href="{% url 'customer_orders' %}"><i class="fas fa-history"></i> My Orders</a></li>
+            <li><a href="{% url 'customer_returns' %}"><i class="fas fa-undo"></i> Return</a></li>
+            <li><a href="{% url 'messaging_inbox' %}"><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+
+            <li><a href="{% url 'customer_profile' %}"><i class="fas fa-user"></i> Profile</a></li>
+
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+
+        </ul>
+
+        <div class="user-info">
+
+            <p>Welcome, {{ request.user.first_name }}!</p>
+
+            <p class="role-badge customer">Customer</p>
+
+        </div>
+
+    </nav>
+
+
+
+    <main class="main-content">
+
+        <header class="dashboard-header">
+
+            <h1><i class="fas fa-shopping-cart"></i> Place Order</h1>
+
+        
+            <div class='header-actions dashboard-topbar-actions'>
+                {% include 'accounts/dashboard_header_actions.html' %}
+            </div>
+        </header>
+
+        <div class="customer-promo-banner" role="note" aria-label="Current promotion: Buy 10, Get 1 Free">
+            <div class="customer-promo-icon" aria-hidden="true"><i class="fas fa-gift"></i></div>
+            <div>
+                <strong>Buy 10, Get 1 Free!</strong>
+                <span>Automatically applied when you add 11 items. The lowest-priced item is free.</span>
+            </div>
+        </div>
+
+        <div class="two-column">
+
+            <!-- Products -->
+
+            <div class="products-section">
+
+                <div class="section-header">
+
+                    <h2><i class="fas fa-box"></i> Products</h2>
+
+                </div>
+
+                <!-- Category Tabs -->
+                <div class="category-tabs">
+                    <button class="category-tab active" data-category="refill">Water Refill</button>
+                    <button class="category-tab" data-category="gallon">Water Gallon</button>
+                </div>
+
+                <div class="search-wrap">
+
+                    <i class="fas fa-search"></i>
+
+                    <input type="text" id="quickSearch" placeholder="Search products...">
+
+                </div>
+
+                <div class="product-grid" id="productGrid">
+
+                    {% for product in products %}
+
+                    <div class="product-card {% if product.product_type == 'gallon' and product.stock_quantity <= 0 %}out-of-stock{% endif %}"
+                         data-name="{{ product.name|lower }}"
+                         data-category="{{ product.product_type|default:'refill' }}">
+                        <div class="product-card-inner">
+                            <div class="product-card-face product-card-front">
+
+                        {% if product.get_main_image %}
+                            <img src="{{ product.get_main_image }}" alt="{{ product.name }}" class="product-image">
+                        {% elif product.container_type == 'distilled' %}
+
+                            <img src="{% static 'pos/images/distilled_water.png' %}" alt="{{ product.name }}" class="product-image">
+
+                        {% elif product.container_type == 'container_5g' %}
+
+                            <img src="{% static 'pos/images/Blue_Water_Dispenser_Round_Container-removebg-preview.png' %}" alt="{{ product.name }}" class="product-image">
+
+                        {% elif product.container_type == 'bottle_350ml' %}
+
+                            <img src="{% static 'pos/images/gallon_slim-removebg-preview.png' %}" alt="{{ product.name }}" class="product-image">
+
+                        {% else %}
+
+                            <img src="{% static 'pos/images/Gallon_Blue_Water_Container-removebg-preview.png' %}" alt="{{ product.name }}" class="product-image">
+
+                        {% endif %}
+
+                        <span class="product-type-label {% if product.product_type == 'gallon' %}gallon{% else %}refill{% endif %}">
+                            <i class="fas {% if product.product_type == 'gallon' %}fa-bottle-water{% else %}fa-droplet{% endif %}"></i>
+                            {% if product.product_type == 'gallon' %}Gallon{% else %}Refill{% endif %}
+                        </span>
+                        <div class="product-name">{{ product.name }}</div>
+
+                        <div class="product-description{% if product.product_type == 'gallon' %} gallon-description{% endif %}">{% if product.product_type == 'gallon' %}{{ product.description|cut:"Purified Water"|default:"Product details unavailable." }}{% else %}{{ product.description|default:"Product details unavailable." }}{% endif %}</div>
+
+                        <div class="product-price">₱{{ product.price|floatformat:2 }}</div>
+
+                        {% if product.product_type == 'refill' or product.stock_quantity > 0 %}
+
+                        <button class="btn-add-small" onclick="addToCart({{ product.id }}, '{{ product.name|escapejs }}', {{ product.price }}, {% if product.product_type == 'refill' %}999999{% else %}{{ product.stock_quantity }}{% endif %}, '{{ product.product_type|default:'refill'|escapejs }}')">
+
+                            <i class="fas fa-cart-plus"></i> Add
+
+                        </button>
+
+                        {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% empty %}
+
+                    <div class="text-center" style="grid-column:1/-1; padding:2rem;">No products available.</div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Order Details -->
+
+            <div class="cart-section">
+
+                <div class="cart-header">
+
+                    <h3><i class="fas fa-shopping-cart"></i> Order Details</h3>
+
+                    <button class="btn-small" onclick="clearCart()"><i class="fas fa-trash"></i> Clear</button>
+
+                </div>
+
+
+
+                <!-- Customer Info (pre-filled, read-only) -->
+
+                <div class="form-group">
+
+                    <label><i class="fas fa-user"></i> Customer</label>
+
+                    <input type="text" value="{{ request.user.first_name }} {{ request.user.last_name }}" readonly>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label><i class="fas fa-phone"></i> Phone Number</label>
+
+                    <input type="text" value="{{ request.user.profile.phone_number|default:'Not set' }}" readonly>
+                    {% if not request.user.profile.phone_number %}
+                    <span class="help-text">Add your phone number in <a href="{% url 'customer_profile' %}">your profile</a>.</span>
+                    {% endif %}
+
+                </div>
+
+
+
+                  <div class="form-group">
+
+                    <label><i class="fas fa-map-marker-alt"></i> Delivery Address</label>
+
+                    <textarea id="orderDeliveryAddress" class="delivery-address-display" rows="3" readonly>{{ request.user.profile.address|default:'Not set' }}</textarea>
+                    <button type="button" class="btn-change-location" onclick="openMapModal()">
+                        <i class="fas fa-map-marker-alt"></i> Change Location
+                    </button>
+                    {% if not request.user.profile.address %}
+                    <span class="help-text">Add your delivery address in <a href="{% url 'customer_profile' %}">your profile</a>.</span>
+                    {% endif %}
+
+                </div>
+
+
+
+                <!-- Hidden fields for delivery address (set in map modal) -->
+                <input type="hidden" id="deliveryAddressHidden" name="delivery_address" value="{{ request.user.profile.address }}">
+                <input type="hidden" id="deliveryLatHidden" name="delivery_lat" value="{{ request.user.profile.default_latitude|default:'' }}">
+                <input type="hidden" id="deliveryLngHidden" name="delivery_lng" value="{{ request.user.profile.default_longitude|default:'' }}">
+
+                <div class="form-group">
+
+                    <label><i class="fas fa-sticky-note"></i> Notes (optional)</label>
+
+                    <textarea id="orderNotes" rows="2" placeholder="Special instructions..."></textarea>
+
+                </div>
+
+
+
+                <div class="cart-items" id="cartItems">
+
+                    <p class="text-muted text-center" style="padding:1.25rem;">
+
+                        <i class="fas fa-shopping-basket" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.4;"></i>
+
+                        Cart is empty
+
+                    </p>
+
+                </div>
+
+
+
+                <div class="cart-summary">
+                    <div class="summary-row"><span>Subtotal:</span><span id="subtotal">₱0.00</span></div>
+                    <div class="summary-row" id="promoDiscountRow" style="display:none;">
+                        <span>Buy 10, Get 1 Free:</span><span id="promoDiscountAmount">-₱0.00</span>
+                    </div>
+                    <div class="summary-row"><span>Delivery fee:</span><span id="deliveryFee">₱{{ delivery_base_fee|floatformat:2 }}</span></div>
+                    <p class="delivery-fee-note" id="deliveryFeeNote"><i class="fas fa-route"></i> <span id="deliveryFeeNoteText">Within 200 meters and Hongkong / Station Area: Free delivery. Beyond 200 meters: ₱{{ delivery_fee_rates.up_to_2km|floatformat:2 }} up to 2 km, ₱{{ delivery_fee_rates.up_to_3km|floatformat:2 }} from over 2 km up to 3 km, and the 3 km rate applies beyond 3 km.</span></p>
+                    <div class="payment-method-section">
+                        <div class="payment-method-title"><i class="fas fa-credit-card"></i> Payment Method</div>
+                        <div class="payment-options">
+                            <label class="payment-option selected" onclick="selectPayment('cod', this)">
+                                <input type="radio" name="payment_method" value="cod" id="codRadio" checked> Cash on Delivery
+                            </label>
+                            <label class="payment-option" onclick="selectPayment('gcash', this)">
+                                <input type="radio" name="payment_method" value="gcash" id="gcashRadio"> GCash
+                            </label>
+                        </div>
+                        <div id="gcashQR" class="qr-container" style="display: none;">
+                            <p style="margin: 0 0 .5rem; font-size: .85rem;">
+                                Owner GCash number: <strong id="ownerGcashNumber">09518551297</strong>
+                            </p>
+                            <img src="{% static 'accounts/images/gcash_qr.png' %}" alt="GCash QR Code">
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem;">Scan the QR code or use the owner number to pay via GCash.</p>
+                        </div>
+                        <div id="proofPaymentSection" class="proof-payment-section" aria-live="polite">
+                            <div class="proof-payment-title"><i class="fas fa-image"></i> Proof of Payment</div>
+                            <p class="proof-payment-help">Upload a screenshot of your successful GCash payment.</p>
+                            <label id="proofUploadLabel" class="proof-upload-label" for="proofOfPayment">
+                                <span class="proof-upload-content">
+                                    <i class="fas fa-image"></i>
+                                    <strong>Tap to upload receipt</strong>
+                                    <span>JPG, PNG up to 5 MB</span>
+                                </span>
+                            </label>
+                            <input id="proofOfPayment" name="payment_proof" class="proof-upload-input" type="file" accept="image/jpeg,image/png">
+                            <div id="proofPreview" class="proof-preview">
+                                <img id="proofPreviewImage" alt="Payment receipt preview">
+                                <button type="button" class="proof-preview-remove" id="removeProofButton" aria-label="Remove payment receipt">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="proof-review-status"><i class="fas fa-clock"></i> Payment verification: Pending review</div>
+                        </div>
+                    </div>
+                    <div class="summary-row total"><span>Total:</span><span id="total">₱0.00</span></div>
+
+                </div>
+
+
+
+                <button class="btn-order" id="placeOrderBtn" onclick="handlePlaceOrder()" disabled>
+                    <i class="fas fa-check-circle"></i> Place Order
+                </button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+
+<!-- Location Permission Modal -->
+<div id="locationPermissionModal" class="location-permission-modal">
+    <div class="permission-modal-content">
+        <div class="permission-icon">
+            <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <h3>Allow Location Access?</h3>
+        <p>We need access to your location to accurately determine your delivery address and calculate delivery distance from our station.</p>
+        
+        <div class="permission-purpose">
+            <h4><i class="fas fa-shield-alt"></i> How we use your location:</h4>
+            <ul>
+                <li><i class="fas fa-check"></i> Set your exact delivery pin on the map</li>
+                <li><i class="fas fa-check"></i> Calculate accurate delivery time estimates</li>
+                <li><i class="fas fa-check"></i> Find the nearest available delivery route</li>
+                <li><i class="fas fa-check"></i> Track delivery progress in real-time</li>
+            </ul>
+        </div>
+        
+        <div class="permission-actions">
+            <button class="btn-allow-location" onclick="allowLocationAccess()">
+                <i class="fas fa-check"></i> Allow Access
+            </button>
+            <button class="btn-deny-location" onclick="denyLocationAccess()">
+                Deny
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Map Address Modal -->
+<div id="mapAddressModal" class="map-address-modal">
+    <div class="map-modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-map-marker-alt" style="color:#e74c3c;"></i> Change Delivery Location</h2>
+            <span class="close" onclick="closeMapModal()">&times;</span>
+        </div>
+        
+        <div class="map-modal-body">
+            <!-- Live Location Indicator -->
+            <div class="live-location-indicator" id="liveLocationIndicator">
+                <div class="pulse-dot"></div>
+                <i class="fas fa-satellite-dish"></i>
+                <span>Live location active</span>
+            </div>
+            
+            <div style="margin-bottom: 0.5rem;">
+                <button class="btn-locate" id="btnLocateModal" onclick="requestLocationPermission()" title="Use my current location">
+                    <i class="fas fa-crosshairs"></i> <span id="locateBtnTextModal">Locate Me</span>
+                </button>
+            </div>
+            
+            <!-- Location Status Message -->
+            <div class="location-status-message" id="locationStatusMessageModal">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="locationStatusTextModal"></span>
+            </div>
+            
+            <div class="map-hint">
+                <i class="fas fa-info-circle"></i> Click "Locate Me" or <strong>tap anywhere on the map</strong> to set your delivery pin.
+            </div>
+            
+            <div id="deliveryMapModal"></div>
+            
+            <div id="addressDisplayModal"></div>
+        </div>
+        
+        <div class="map-modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeMapModal()">Cancel</button>
+            <button type="button" class="btn-confirm-only" id="btnConfirmOnly" onclick="confirmLocationOnly()" disabled>
+                <i class="fas fa-map-marker-alt"></i> Confirm Location
+            </button>
+            <button type="button" class="btn-continue-modal" id="btnContinueModal" onclick="continueToOrderDetails()" disabled>
+                Continue <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Leaflet JS -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+
+
+<script>
+
+    /* ═══════════════════════════════════════════════
+
+       MAP ADDRESS PICKER
+
+    ═══════════════════════════════════════════════ */
+
+    let deliveryMap, deliveryMarker;
+    let deliveryModalOriginalState = null;
+    let deliveryBoundaryLayer;
+    let lastAllowedDeliveryPosition = null;
+    const SERVICE_AREA_MESSAGE = 'Our water station only serves Bacoor, Cavite and Las Piñas City.';
+    const SERVICE_AREA = [
+        [14.392, 120.945],
+        [14.392, 120.980],
+        [14.425, 121.020],
+        [14.475, 121.035],
+        [14.525, 121.025],
+        [14.525, 120.970],
+        [14.490, 120.950],
+        [14.445, 120.935],
+        [14.410, 120.940]
+    ];
+    const SERVICE_MAP_BOUNDS = L.latLngBounds([14.375, 120.925], [14.545, 121.055]);
+
+    function isWithinServiceArea(lat, lng) {
+        let inside = false;
+        for (let i = 0, j = SERVICE_AREA.length - 1; i < SERVICE_AREA.length; j = i++) {
+            const [latI, lngI] = SERVICE_AREA[i];
+            const [latJ, lngJ] = SERVICE_AREA[j];
+            const intersects = ((lngI > lng) !== (lngJ > lng))
+                && (lat < (latJ - latI) * (lng - lngI) / (lngJ - lngI) + latI);
+            if (intersects) inside = !inside;
+        }
+        return inside;
+    }
+
+    function showServiceAreaWarning() {
+        showLocationStatusModal(
+            `${SERVICE_AREA_MESSAGE} Please choose a location within the service area.`,
+            'error'
+        );
+    }
+
+    function isAllowedServiceAddress(address) {
+        const area = [
+            address?.city,
+            address?.municipality,
+            address?.town,
+            address?.city_district,
+            address?.county
+        ].filter(Boolean).join(' ').toLowerCase();
+        return area.includes('bacoor') || area.includes('las piñas') || area.includes('las pinas');
+    }
+
+
+
+    // Station coordinates (update to your actual station location)
+
+    const STATION_LAT = {{ station_lat|default:"14.5995" }};
+
+    const STATION_LNG = {{ station_lng|default:"120.9842" }};
+    const DELIVERY_FEE_RATES = {
+        upTo2km: Number("{{ delivery_fee_rates.up_to_2km }}"),
+        upTo3km: Number("{{ delivery_fee_rates.up_to_3km }}"),
+    };
+
+    function calculateDeliveryFee(latitude, longitude, address) {
+        const normalizedAddress = (address || '').toLowerCase().replace(/-/g, ' ');
+        if (normalizedAddress.includes('hongkong') || normalizedAddress.includes('hong kong')) return 0;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return DELIVERY_FEE_RATES.upTo2km;
+        const toRadians = value => value * Math.PI / 180;
+        const latDelta = toRadians(latitude - STATION_LAT);
+        const lngDelta = toRadians(longitude - STATION_LNG);
+        const stationLat = toRadians(STATION_LAT);
+        const customerLat = toRadians(latitude);
+        const haversine = Math.sin(latDelta / 2) ** 2
+            + Math.cos(stationLat) * Math.cos(customerLat) * Math.sin(lngDelta / 2) ** 2;
+        const distance = 2 * 6371 * Math.asin(Math.sqrt(haversine));
+        if (distance <= 0.2) return 0;
+        const distanceKm = Math.round(distance * 100) / 100;
+        if (distanceKm <= 2) return DELIVERY_FEE_RATES.upTo2km;
+        return DELIVERY_FEE_RATES.upTo3km;
+    }
+
+
+
+    // Pre-fill from profile address if available
+
+    const profileAddress = "{{ request.user.profile.address|escapejs }}";
+    const profileLatitude = Number("{{ request.user.profile.default_latitude|default:'' }}");
+    const profileLongitude = Number("{{ request.user.profile.default_longitude|default:'' }}");
+    const hasProfileCoordinates = Number.isFinite(profileLatitude)
+        && Number.isFinite(profileLongitude)
+        && "{{ request.user.profile.default_latitude|default:'' }}" !== ""
+        && "{{ request.user.profile.default_longitude|default:'' }}" !== "";
+    let deliveryLocationConfirmed = false;
+
+
+
+    // Don't auto-init map - it will be initialized when modal opens
+    let mapInitialized = false;
+
+
+
+    function initDeliveryMap() {
+        if (mapInitialized) {
+            // Refresh map size when modal opens
+            setTimeout(() => {
+                if (deliveryMap) deliveryMap.invalidateSize();
+            }, 100);
+            return;
+        }
+
+        const hasUsableProfileCoordinates = hasProfileCoordinates
+            && isWithinServiceArea(profileLatitude, profileLongitude);
+
+        // Prefer the customer's saved location; otherwise show the station.
+        deliveryMap = L.map('deliveryMapModal', {
+            attributionControl: false,
+            zoomControl: true,
+            maxBounds: SERVICE_MAP_BOUNDS,
+            maxBoundsViscosity: 1
+        }).setView(
+            hasUsableProfileCoordinates ? [profileLatitude, profileLongitude] : [STATION_LAT, STATION_LNG],
+            hasUsableProfileCoordinates ? 16 : 14
+        );
+
+        const tileLayerConfig = {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Sources: Esri, HERE, Garmin, <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, and the GIS user community'
+        };
+        const mapTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', tileLayerConfig);
+
+        mapTileLayer.addTo(deliveryMap);
+        deliveryBoundaryLayer = L.polygon(SERVICE_AREA, {
+            color: '#e74c3c',
+            weight: 2,
+            dashArray: '7 6',
+            fillColor: '#e74c3c',
+            fillOpacity: 0.06,
+            interactive: false
+        }).addTo(deliveryMap);
+
+        // Custom Station Marker with FontAwesome icon
+        const stationIcon = L.divIcon({
+            html: '<div class="custom-marker-station"><i class="fas fa-tint"></i></div>',
+            className: '',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        });
+
+        // Station marker with modern popup
+        const stationMarker = L.marker([STATION_LAT, STATION_LNG], { icon: stationIcon })
+            .addTo(deliveryMap)
+            .bindPopup(`
+                <div class="popup-header popup-station">💧 Grateful Water Station</div>
+                <div style="padding: 8px 0;">
+                    <i class="fas fa-map-pin" style="color: var(--primary);"></i> Your trusted water station
+                </div>
+            `, { closeButton: true });
+
+        // Add custom locate control button
+        const locateControl = L.Control.extend({
+            options: { position: 'topleft' },
+            onAdd: function(map) {
+                const btn = L.DomUtil.create('button', 'locate-control');
+                btn.innerHTML = '<i class="fas fa-crosshairs"></i>';
+                btn.title = 'Locate me';
+                btn.onclick = function() {
+                    btn.classList.add('loading');
+                    requestLocationPermission();
+                    setTimeout(() => btn.classList.remove('loading'), 2000);
+                };
+                return btn;
+            }
+        });
+        deliveryMap.addControl(new locateControl());
+
+        // Click on map to place delivery pin
+        deliveryMap.on('click', function (e) {
+            placePin(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Restore a saved pin so the customer can confirm it without locating again.
+        if (hasUsableProfileCoordinates) {
+            placePin(profileLatitude, profileLongitude, false);
+            setDeliveryAddress(
+                profileAddress || `${profileLatitude.toFixed(5)}, ${profileLongitude.toFixed(5)}`,
+                profileLatitude,
+                profileLongitude
+            );
+        } else if (profileAddress && profileAddress.trim() !== '') {
+            geocodeAndPin(profileAddress, false);
+        }
+
+        mapInitialized = true;
+    }
+
+
+
+    function placePin(lat, lng, shouldReverseGeocode = true) {
+        if (!isWithinServiceArea(lat, lng)) {
+            if (deliveryMarker && lastAllowedDeliveryPosition) {
+                deliveryMarker.setLatLng(lastAllowedDeliveryPosition);
+            }
+            showServiceAreaWarning();
+            return false;
+        }
+        deliveryLocationConfirmed = false;
+        const previousAllowedPosition = lastAllowedDeliveryPosition;
+        lastAllowedDeliveryPosition = [lat, lng];
+
+        // Modern delivery marker with pulse animation
+        const deliveryIcon = L.divIcon({
+            html: `
+                <div style="position: relative;">
+                    <div class="marker-pulse"></div>
+                    <div class="custom-marker-delivery"><i class="fas fa-home"></i></div>
+                </div>
+            `,
+            className: '',
+            iconSize: [44, 44],
+            iconAnchor: [22, 44]
+        });
+
+        if (deliveryMarker) {
+            deliveryMarker.setLatLng([lat, lng]);
+        } else {
+            deliveryMarker = L.marker([lat, lng], { icon: deliveryIcon, draggable: true })
+                .addTo(deliveryMap)
+                .bindPopup(`
+                    <div class="popup-header popup-delivery">
+                        <i class="fas fa-map-marker-alt"></i> Delivery Location
+                    </div>
+                    <div style="padding: 8px 0; font-size: 0.85rem;">
+                        <i class="fas fa-arrows-alt" style="color: #e74c3c;"></i> Drag pin to adjust
+                    </div>
+                `, { closeButton: true });
+
+            deliveryMarker.on('dragend', function (e) {
+                const pos = e.target.getLatLng();
+                if (!isWithinServiceArea(pos.lat, pos.lng)) {
+                    e.target.setLatLng(lastAllowedDeliveryPosition);
+                    showServiceAreaWarning();
+                    return;
+                }
+                placePin(pos.lat, pos.lng);
+            });
+        }
+
+        deliveryMarker.openPopup();
+        if (shouldReverseGeocode) reverseGeocode(lat, lng, previousAllowedPosition);
+
+
+
+        // Store coordinates
+
+        document.getElementById('deliveryLatHidden').value = lat;
+
+        document.getElementById('deliveryLngHidden').value = lng;
+        return true;
+
+    }
+
+
+
+    function reverseGeocode(lat, lng, fallbackPosition = null) {
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+
+            .then(r => r.json())
+
+            .then(data => {
+                if (!isAllowedServiceAddress(data.address)) {
+                    if (deliveryMarker && fallbackPosition) {
+                        deliveryMarker.setLatLng(fallbackPosition);
+                        lastAllowedDeliveryPosition = fallbackPosition;
+                    }
+                    document.getElementById('deliveryLatHidden').value = fallbackPosition ? fallbackPosition[0] : '';
+                    document.getElementById('deliveryLngHidden').value = fallbackPosition ? fallbackPosition[1] : '';
+                    deliveryLocationConfirmed = false;
+                    showServiceAreaWarning();
+                    return;
+                }
+
+                // Build a clean address from address components
+
+                let addr = buildCleanAddress(data.address);
+
+                if (!addr) addr = data.display_name;
+
+                if (!addr) addr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+                setDeliveryAddress(addr, lat, lng);
+
+            })
+
+            .catch(() => {
+
+                setDeliveryAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng);
+
+            });
+
+    }
+
+
+
+    function buildCleanAddress(addr) {
+
+        if (!addr) return null;
+
+        const parts = [];
+
+        // Add house number and road
+
+        if (addr.house_number) parts.push(addr.house_number);
+
+        if (addr.road) parts.push(addr.road);
+
+        else if (addr.street) parts.push(addr.street);
+
+        // Add neighborhood/suburb
+
+        if (addr.suburb) parts.push(addr.suburb);
+
+        else if (addr.neighbourhood) parts.push(addr.neighbourhood);
+
+        // Add city/municipality
+
+        if (addr.city) parts.push(addr.city);
+
+        else if (addr.municipality) parts.push(addr.municipality);
+
+        else if (addr.town) parts.push(addr.town);
+
+        // Return joined address or null if no parts found
+
+        return parts.length > 0 ? parts.join(', ') : null;
+
+    }
+
+
+
+    function geocodeAndPin(address, zoom = true) {
+
+        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`)
+
+            .then(r => r.json())
+
+            .then(data => {
+
+                if (data.length > 0) {
+
+                    const lat = parseFloat(data[0].lat);
+
+                    const lng = parseFloat(data[0].lon);
+
+                    if (!isWithinServiceArea(lat, lng)) {
+                        showServiceAreaWarning();
+                        return;
+                    }
+                    if (zoom) deliveryMap.setView([lat, lng], 16);
+
+                    placePin(lat, lng, false);
+
+                    setDeliveryAddress(address, lat, lng);
+
+                } else {
+
+                    // Just show address text even without a pin
+
+                    setDeliveryAddress(address, null, null);
+
+                }
+
+            })
+
+            .catch(() => setDeliveryAddress(address, null, null));
+
+    }
+
+
+
+    function setDeliveryAddress(address, lat, lng) {
+        document.getElementById('deliveryAddressHidden').value = address;
+
+        const display = document.getElementById('addressDisplayModal');
+        const confirmBtn = document.getElementById('btnConfirmOnly');
+        const continueBtn = document.getElementById('btnContinueModal');
+        display.replaceChildren();
+
+        const addressContent = document.createElement('div');
+        addressContent.className = 'address-content';
+        const addressLabel = document.createElement('label');
+        addressLabel.textContent = 'Delivery Address';
+        addressLabel.style.cssText = 'display:block;margin-bottom:.45rem;font-weight:600;color:var(--gray-700);';
+        const addressText = document.createElement('textarea');
+        addressText.value = address;
+        addressText.rows = 3;
+        addressText.setAttribute('aria-label', 'Delivery address');
+        addressText.addEventListener('input', event => {
+            const updatedAddress = event.target.value.trim();
+            document.getElementById('deliveryAddressHidden').value = updatedAddress;
+            deliveryLocationConfirmed = false;
+            if (confirmBtn) {
+                confirmBtn.disabled = !updatedAddress
+                    || !document.getElementById('deliveryLatHidden').value
+                    || !document.getElementById('deliveryLngHidden').value;
+                confirmBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Confirm Location';
+                confirmBtn.classList.remove('confirmed');
+            }
+            if (continueBtn) {
+                continueBtn.disabled = true;
+                continueBtn.classList.remove('confirmed');
+            }
+        });
+        addressContent.append(addressLabel, addressText);
+        display.appendChild(addressContent);
+
+        display.classList.add('has-address');
+
+        if (lat) document.getElementById('deliveryLatHidden').value = lat;
+        if (lng) document.getElementById('deliveryLngHidden').value = lng;
+
+        // Enable both buttons when location is set
+        if (confirmBtn) confirmBtn.disabled = false;
+        if (continueBtn) continueBtn.disabled = false;
+    }
+
+    // For backward compatibility
+    function confirmLocation() {
+        confirmLocationOnly();
+    }
+
+    // ==================== MAP MODAL FUNCTIONS ====================
+
+    function openMapModal() {
+        const modal = document.getElementById('mapAddressModal');
+        deliveryModalOriginalState = {
+            address: document.getElementById('orderDeliveryAddress').value,
+            latitude: document.getElementById('deliveryLatHidden').value,
+            longitude: document.getElementById('deliveryLngHidden').value
+        };
+        deliveryLocationConfirmed = false;
+        modal.style.display = 'flex';
+
+        // Reset button states
+        const confirmBtn = document.getElementById('btnConfirmOnly');
+        const continueBtn = document.getElementById('btnContinueModal');
+        const hasSelectedLocation = Boolean(
+            document.getElementById('deliveryAddressHidden').value
+            && document.getElementById('deliveryLatHidden').value
+            && document.getElementById('deliveryLngHidden').value
+        );
+        if (confirmBtn) {
+            confirmBtn.disabled = !hasSelectedLocation;
+            confirmBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Confirm Location';
+            confirmBtn.classList.remove('confirmed');
+        }
+        if (continueBtn) {
+            continueBtn.disabled = !hasSelectedLocation;
+            continueBtn.innerHTML = 'Continue <i class="fas fa-arrow-right"></i>';
+            continueBtn.classList.remove('confirmed');
+        }
+
+        // Initialize map if not already done
+        setTimeout(() => {
+            initDeliveryMap();
+        }, 100);
+    }
+
+    function closeMapModal() {
+        if (!deliveryLocationConfirmed && deliveryModalOriginalState) {
+            const original = deliveryModalOriginalState;
+            document.getElementById('orderDeliveryAddress').value = original.address;
+            document.getElementById('deliveryAddressHidden').value = original.address;
+            document.getElementById('deliveryLatHidden').value = original.latitude;
+            document.getElementById('deliveryLngHidden').value = original.longitude;
+
+            if (deliveryMarker && original.latitude && original.longitude) {
+                const originalPosition = [
+                    Number(original.latitude),
+                    Number(original.longitude)
+                ];
+                deliveryMarker.setLatLng(originalPosition);
+                lastAllowedDeliveryPosition = originalPosition;
+            }
+            deliveryLocationConfirmed = Boolean(
+                original.address && original.latitude && original.longitude
+            );
+        }
+        document.getElementById('mapAddressModal').style.display = 'none';
+        deliveryModalOriginalState = null;
+    }
+
+    function confirmLocationOnly() {
+        const address = document.getElementById('deliveryAddressHidden').value;
+        const lat = document.getElementById('deliveryLatHidden').value;
+        const lng = document.getElementById('deliveryLngHidden').value;
+
+        if (!address || !lat || !lng) {
+            showLocationStatusModal('Please select a location on the map first.', 'error');
+            return;
+        }
+
+        deliveryLocationConfirmed = true;
+        document.getElementById('orderDeliveryAddress').value = address;
+        calcTotals();
+
+        // Update confirm button to show it's confirmed
+        const confirmBtn = document.getElementById('btnConfirmOnly');
+        if (confirmBtn) {
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> Location Confirmed';
+            confirmBtn.classList.add('confirmed');
+            confirmBtn.disabled = true;
+        }
+
+        // Change continue button style to indicate ready
+        const continueBtn = document.getElementById('btnContinueModal');
+        if (continueBtn) {
+            continueBtn.disabled = false;
+            continueBtn.classList.add('confirmed');
+        }
+
+        showNotification('Delivery location confirmed!', 'success');
+    }
+
+    function continueToOrderDetails() {
+        const address = document.getElementById('deliveryAddressHidden').value;
+        const lat = document.getElementById('deliveryLatHidden').value;
+        const lng = document.getElementById('deliveryLngHidden').value;
+
+        if (!address || !lat || !lng) {
+            showLocationStatusModal('Please select a location on the map first.', 'error');
+            return;
+        }
+
+        if (!deliveryLocationConfirmed) {
+            showLocationStatusModal('Please confirm your delivery location first.', 'error');
+            return;
+        }
+
+        document.getElementById('orderDeliveryAddress').value = address;
+        calcTotals();
+        closeMapModal();
+        document.getElementById('orderDeliveryAddress').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function handlePlaceOrder() {
+        if (cart.length === 0) {
+            alert('Cart is empty!');
+            return;
+        }
+
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+        if (selectedPayment && selectedPayment.value === 'gcash' && !hasPaymentProof()) {
+            alert('Please upload your GCash proof of payment before placing the order.');
+            return;
+        }
+
+        confirmOrder();
+    }
+
+    function showLocationStatusModal(message, type = 'info') {
+        const statusDiv = document.getElementById('locationStatusMessageModal');
+        const statusText = document.getElementById('locationStatusTextModal');
+
+        if (statusDiv && statusText) {
+            statusText.textContent = message;
+            statusDiv.style.display = 'flex';
+            statusDiv.className = 'location-status-message ' + type;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+    }
+
+
+
+    // ==================== LIVE LOCATION & PERMISSION HANDLING ====================
+
+    let locationWatchId = null;
+    let isLiveTracking = false;
+
+    /**
+     * Request location permission with purpose modal
+     * Always shows modal first on mobile for better UX, then requests browser permission
+     */
+    function requestLocationPermission() {
+        // Check if geolocation is supported
+        if (!navigator.geolocation) {
+            showLocationStatusModal('Geolocation is not supported by your browser.', 'error');
+            return;
+        }
+
+        // On mobile/iOS Safari, permission check can block or behave unexpectedly
+        // Always show our custom modal first, regardless of permission state
+        // This gives users context before the browser permission prompt
+        showLocationPermissionModal();
+    }
+
+    /**
+     * Show the location permission modal
+     */
+    function showLocationPermissionModal() {
+        const modal = document.getElementById('locationPermissionModal');
+        modal.classList.add('active');
+    }
+
+    /**
+     * Hide the location permission modal
+     */
+    function hideLocationPermissionModal() {
+        const modal = document.getElementById('locationPermissionModal');
+        modal.classList.remove('active');
+    }
+
+    /**
+     * User clicked "Allow Access" in the modal
+     */
+    function allowLocationAccess() {
+        hideLocationPermissionModal();
+        useMyLocation();
+    }
+
+    /**
+     * User clicked "Deny" in the modal
+     */
+    function denyLocationAccess() {
+        hideLocationPermissionModal();
+        showLocationStatusModal('You can still set your delivery address by tapping on the map.', 'info');
+    }
+
+    /**
+     * Show location status message
+     */
+    function showLocationStatus(message, type) {
+        const statusDiv = document.getElementById('locationStatusMessage');
+        const statusText = document.getElementById('locationStatusText');
+        
+        statusText.textContent = message;
+        statusDiv.className = 'location-status-message ' + type;
+        
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                statusDiv.className = 'location-status-message';
+            }, 5000);
+        }
+    }
+
+    /**
+     * Hide location status message
+     */
+    function hideLocationStatus() {
+        const statusDiv = document.getElementById('locationStatusMessage');
+        statusDiv.className = 'location-status-message';
+    }
+
+    /**
+     * Enhanced useMyLocation with loading state and live tracking option
+     */
+    function useMyLocation() {
+        const btn = document.getElementById('btnLocateModal');
+        const btnText = document.getElementById('locateBtnTextModal');
+        const originalText = btnText ? btnText.textContent : 'Locate Me';
+
+        // Set loading state
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('loading');
+        }
+        if (btnText) btnText.textContent = 'Getting location...';
+
+        // Hide any existing status messages
+        const statusDiv = document.getElementById('locationStatusMessageModal');
+        if (statusDiv) statusDiv.style.display = 'none';
+
+        // Location options for better accuracy
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const accuracy = pos.coords.accuracy;
+
+                // Reset button state
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                }
+                if (btnText) btnText.textContent = originalText;
+
+                if (!isWithinServiceArea(lat, lng)) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.classList.remove('loading');
+                    }
+                    if (btnText) btnText.textContent = originalText;
+                    showServiceAreaWarning();
+                    return;
+                }
+
+                // Update map and place pin
+                deliveryMap.setView([lat, lng], 17);
+                placePin(lat, lng);
+
+                // Show accuracy info
+                let accuracyMsg = 'Location found';
+                if (accuracy) {
+                    const accuracyMeters = Math.round(accuracy);
+                    if (accuracyMeters < 50) {
+                        accuracyMsg = `Location found (High accuracy: ~${accuracyMeters}m)`;
+                    } else if (accuracyMeters < 200) {
+                        accuracyMsg = `Location found (Good accuracy: ~${accuracyMeters}m)`;
+                    } else {
+                        accuracyMsg = `Location found (Accuracy: ~${accuracyMeters}m). You can drag the pin for more precision.`;
+                    }
+                }
+                showLocationStatusModal(accuracyMsg, 'success');
+
+                // Optionally start live tracking for delivery tracking
+                startLiveLocationTracking();
+            },
+            err => {
+                // Reset button state
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                }
+                if (btnText) btnText.textContent = originalText;
+
+                // Handle specific error codes
+                let errorMsg = 'Unable to get your location. Please tap on the map to set your address.';
+
+                switch(err.code) {
+                    case err.PERMISSION_DENIED:
+                        errorMsg = 'Location access was denied. Please enable location permissions in your browser settings, or tap on the map to set your address manually.';
+                        break;
+                    case err.POSITION_UNAVAILABLE:
+                        errorMsg = 'Location information is unavailable. Please check your GPS or network connection, or tap on the map.';
+                        break;
+                    case err.TIMEOUT:
+                        errorMsg = 'Location request timed out. Please try again or tap on the map to set your address.';
+                        break;
+                }
+
+                showLocationStatusModal(errorMsg, 'error');
+            },
+            options
+        );
+    }
+
+    /**
+     * Start live location tracking (for delivery tracking purposes)
+     * This keeps monitoring the user's location for accurate delivery
+     */
+    function startLiveLocationTracking() {
+        if (locationWatchId || isLiveTracking) return;
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
+        locationWatchId = navigator.geolocation.watchPosition(
+            pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                
+                // Update the hidden fields with latest position
+                document.getElementById('deliveryLatHidden').value = lat;
+                document.getElementById('deliveryLngHidden').value = lng;
+
+                // Show live indicator
+                const indicator = document.getElementById('liveLocationIndicator');
+                indicator.classList.add('active');
+                isLiveTracking = true;
+
+                // If marker exists, update its position
+                if (deliveryMarker) {
+                    deliveryMarker.setLatLng([lat, lng]);
+                }
+            },
+            err => {
+                console.log('Live tracking error:', err);
+                stopLiveLocationTracking();
+            },
+            options
+        );
+    }
+
+    /**
+     * Stop live location tracking
+     */
+    function stopLiveLocationTracking() {
+        if (locationWatchId) {
+            navigator.geolocation.clearWatch(locationWatchId);
+            locationWatchId = null;
+        }
+        isLiveTracking = false;
+        
+        const indicator = document.getElementById('liveLocationIndicator');
+        indicator.classList.remove('active');
+    }
+
+    // Stop live tracking when leaving the page
+    window.addEventListener('beforeunload', stopLiveLocationTracking);
+
+
+
+    /* ═══════════════════════════════════════════════
+
+       CART LOGIC
+
+    ═══════════════════════════════════════════════ */
+
+    const CART_STORAGE_KEY = 'gws-cart-{{ request.user.pk }}';
+
+    function loadCart() {
+        try {
+            const storedCart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+            if (!Array.isArray(storedCart)) return [];
+
+            return storedCart.filter(item =>
+                item
+                && Number.isInteger(Number(item.id))
+                && typeof item.name === 'string'
+                && Number.isFinite(Number(item.price))
+                && Number.isFinite(Number(item.max_stock))
+                && Number(item.max_stock) > 0
+                && Number.isInteger(Number(item.quantity))
+                && Number(item.quantity) > 0
+            ).map(item => ({
+                id: Number(item.id),
+                name: item.name,
+                price: Number(item.price),
+                quantity: Math.min(Number(item.quantity), Number(item.max_stock)),
+                max_stock: Number(item.max_stock),
+                product_type: item.product_type === 'gallon' ? 'gallon' : 'refill'
+            }));
+        } catch (error) {
+            console.warn('Unable to restore the saved cart.', error);
+            return [];
+        }
+    }
+
+    function saveCart() {
+        try {
+            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        } catch (error) {
+            console.warn('Unable to save the cart for the next page visit.', error);
+        }
+    }
+
+    function clearSavedCart() {
+        cart = [];
+        try {
+            localStorage.removeItem(CART_STORAGE_KEY);
+        } catch (error) {
+            console.warn('Unable to clear the saved cart.', error);
+        }
+    }
+
+    let cart = loadCart();
+
+
+
+    function addToCart(id, name, price, maxStock, productType = 'refill') {
+
+        const existing = cart.find(i => i.id === id);
+
+        if (existing) {
+
+            existing.max_stock = maxStock;
+            existing.quantity = Math.min(existing.quantity, maxStock);
+            if (existing.quantity < maxStock) { existing.quantity++; }
+
+            else { alert('Maximum stock reached!'); return; }
+
+        } else {
+
+            cart.push({ id, name, price, quantity: 1, max_stock: maxStock, product_type: productType === 'gallon' ? 'gallon' : 'refill' });
+
+        }
+
+        renderCart();
+
+    }
+
+
+
+    function renderCart() {
+
+        const container = document.getElementById('cartItems');
+
+        const orderBtn = document.getElementById('placeOrderBtn');
+
+        saveCart();
+
+        if (cart.length === 0) {
+
+            container.innerHTML = '<p class="text-muted text-center" style="padding:1.25rem;"><i class="fas fa-shopping-basket" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.4;"></i>Cart is empty</p>';
+
+            orderBtn.disabled = true;
+
+        } else {
+
+            container.innerHTML = cart.map((item, i) => `
+
+                <div class="cart-item">
+
+                    <div class="cart-item-info">
+
+                        <span class="cart-item-type ${item.product_type === 'gallon' ? 'gallon' : 'refill'}">
+                            <i class="fas ${item.product_type === 'gallon' ? 'fa-bottle-water' : 'fa-droplet'}"></i>
+                            ${item.product_type === 'gallon' ? 'Gallon' : 'Refill'}
+                        </span>
+                        <h4>${item.name}</h4>
+
+                        <p>₱${item.price.toFixed(2)} each</p>
+
+                    </div>
+
+                    <div style="display:flex;align-items:center;">
+
+                        <div class="cart-item-quantity">
+
+                            <button onclick="window._c.uq(${i},-1)" ${item.quantity<=1?'disabled':''}>-</button>
+
+                            <input type="number" value="${item.quantity}" min="1" max="${item.max_stock}" onchange="window._c.sq(${i},this.value)">
+
+                            <button onclick="window._c.uq(${i},1)" ${item.quantity>=item.max_stock?'disabled':''}>+</button>
+
+                        </div>
+
+                        <button class="btn-remove-item" onclick="window._c.rm(${i})"><i class="fas fa-times-circle"></i></button>
+
+                    </div>
+
+                </div>`).join('');
+
+            updatePlaceOrderButton();
+        }
+
+        calcTotals();
+
+    }
+
+
+
+    function calcTotals() {
+
+        const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const freeItemCount = Math.floor(cart.reduce((sum, item) => sum + item.quantity, 0) / 11);
+        let remainingFreeItems = freeItemCount;
+        const promoDiscount = cart.slice().sort((a, b) => a.price - b.price).reduce((discount, item) => {
+            const freeFromItem = Math.min(remainingFreeItems, item.quantity);
+            remainingFreeItems -= freeFromItem;
+            return discount + freeFromItem * item.price;
+        }, 0);
+        const latitude = parseFloat(document.getElementById('deliveryLatHidden').value);
+        const longitude = parseFloat(document.getElementById('deliveryLngHidden').value);
+        const address = document.getElementById('deliveryAddressHidden').value;
+        const deliveryFee = calculateDeliveryFee(latitude, longitude, address);
+
+        document.getElementById('subtotal').textContent = `₱${subtotal.toFixed(2)}`;
+        const promoDiscountRow = document.getElementById('promoDiscountRow');
+        promoDiscountRow.style.display = promoDiscount > 0 ? 'flex' : 'none';
+        document.getElementById('promoDiscountAmount').textContent = `-₱${promoDiscount.toFixed(2)}`;
+        document.getElementById('deliveryFee').textContent = `₱${deliveryFee.toFixed(2)}`;
+        document.getElementById('total').textContent = `₱${(subtotal - promoDiscount + deliveryFee).toFixed(2)}`;
+
+    }
+
+    document.addEventListener('gws:delivery-fee-update', event => {
+        const updatedRates = event.detail?.delivery_fee_rates;
+        if (!updatedRates) return;
+
+        DELIVERY_FEE_RATES.upTo2km = Number(updatedRates.up_to_2km);
+        DELIVERY_FEE_RATES.upTo3km = Number(updatedRates.up_to_3km);
+
+        document.getElementById('deliveryFeeNoteText').textContent =
+            `Within 200 meters and Hongkong / Station Area: Free delivery. Beyond 200 meters: ₱${DELIVERY_FEE_RATES.upTo2km.toFixed(2)} up to 2 km, ₱${DELIVERY_FEE_RATES.upTo3km.toFixed(2)} from over 2 km up to 3 km, and the 3 km rate applies beyond 3 km.`;
+
+        calcTotals();
+    });
+
+
+
+    function clearCart() {
+
+        if (cart.length > 0 && confirm('Clear all items?')) {
+
+            cart = [];
+
+            saveCart();
+            renderCart();
+
+        }
+
+    }
+
+
+
+    function selectPayment(method, element) {
+
+        const codRadio = document.getElementById('codRadio');
+
+        const gcashRadio = document.getElementById('gcashRadio');
+
+        const qrDiv = document.getElementById('gcashQR');
+
+        if (method === 'cod') {
+
+            codRadio.checked = true; gcashRadio.checked = false;
+
+            qrDiv.style.display = 'none';
+
+        } else {
+
+            codRadio.checked = false; gcashRadio.checked = true;
+
+            qrDiv.style.display = 'block';
+
+        }
+
+        document.getElementById('proofPaymentSection').classList.toggle('visible', method === 'gcash');
+        document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('selected'));
+
+        element.classList.add('selected');
+        updatePlaceOrderButton();
+
+    }
+
+    let selectedPaymentProof = null;
+
+    function hasPaymentProof() {
+        const proofInput = document.getElementById('proofOfPayment');
+        return Boolean(
+            selectedPaymentProof
+            || (proofInput && proofInput.files && proofInput.files.length > 0)
+        );
+    }
+
+    function updatePlaceOrderButton() {
+        const orderButton = document.getElementById('placeOrderBtn');
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+        if (!orderButton) return;
+
+        const requiresProof = selectedPayment && selectedPayment.value === 'gcash';
+        orderButton.disabled = cart.length === 0 || (requiresProof && !hasPaymentProof());
+    }
+
+    function previewProofOfPayment(file) {
+        const preview = document.getElementById('proofPreview');
+        const previewImage = document.getElementById('proofPreviewImage');
+        const uploadLabel = document.getElementById('proofUploadLabel');
+        if (!file) {
+            selectedPaymentProof = null;
+            preview.classList.remove('visible');
+            previewImage.removeAttribute('src');
+            uploadLabel.style.display = '';
+            updatePlaceOrderButton();
+            return;
+        }
+        if (!file.type.startsWith('image/')) {
+            selectedPaymentProof = null;
+            alert('Please upload a JPG or PNG image.');
+            document.getElementById('proofOfPayment').value = '';
+            updatePlaceOrderButton();
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            selectedPaymentProof = null;
+            alert('Payment receipt must be 5 MB or smaller.');
+            document.getElementById('proofOfPayment').value = '';
+            updatePlaceOrderButton();
+            return;
+        }
+        selectedPaymentProof = file;
+        previewImage.src = URL.createObjectURL(file);
+        preview.classList.add('visible');
+        uploadLabel.style.display = 'none';
+        updatePlaceOrderButton();
+    }
+
+    function confirmOrder() {
+
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+        if (!selectedPayment) {
+            alert('Please select a payment method.');
+            return;
+        }
+        const paymentMethod = selectedPayment.value;
+        const proofInput = document.getElementById('proofOfPayment');
+        if (paymentMethod === 'gcash' && !hasPaymentProof()) {
+            alert('Please upload your GCash proof of payment.');
+            return;
+        }
+        const deliveryAddress = document.getElementById('deliveryAddressHidden').value;
+
+
+
+        if (!deliveryAddress || deliveryAddress.trim() === '') {
+
+            alert('Please set your delivery address on the map.');
+
+            return;
+
+        }
+
+
+
+        const notes = document.getElementById('orderNotes').value;
+
+
+
+        const form = document.createElement('form');
+
+        form.method = 'POST';
+        form.action = "{% url 'customer_place_order' %}";
+        form.enctype = 'multipart/form-data';
+        form.style.display = 'none';
+
+
+
+        const fields = {
+
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+
+            cart_items: JSON.stringify(cart),
+
+            notes: notes,
+
+            payment_method: paymentMethod,
+
+            delivery_address: deliveryAddress,
+
+            delivery_lat: document.getElementById('deliveryLatHidden').value,
+
+            delivery_lng: document.getElementById('deliveryLngHidden').value,
+
+        };
+
+        for (const [name, value] of Object.entries(fields)) {
+
+            const inp = document.createElement('input');
+
+            inp.type = 'hidden'; inp.name = name; inp.value = value;
+
+            form.appendChild(inp);
+        }
+
+        if (proofInput.files.length) {
+            form.appendChild(proofInput);
+        }
+
+        document.body.appendChild(form);
+
+        clearSavedCart();
+        form.submit();
+
+    }
+
+
+
+    window._c = {
+
+        uq: (i, d) => { const it = cart[i]; const nq = it.quantity + d; if (nq >= 1 && nq <= it.max_stock) { it.quantity = nq; renderCart(); } },
+
+        sq: (i, v) => { const it = cart[i]; const nq = parseInt(v); if (nq >= 1 && nq <= it.max_stock) { it.quantity = nq; renderCart(); } else alert(`Qty must be 1–${it.max_stock}`); },
+
+        rm: (i)    => { cart.splice(i, 1); renderCart(); }
+
+    };
+
+    window.addToCart = addToCart;
+
+    window.clearCart = clearCart;
+
+    window.openMapModal = openMapModal;
+
+    window.closeMapModal = closeMapModal;
+
+    window.confirmLocationOnly = confirmLocationOnly;
+
+    window.continueToOrderDetails = continueToOrderDetails;
+
+    window.handlePlaceOrder = handlePlaceOrder;
+
+    window.selectPayment = selectPayment;
+
+    window.confirmOrder = confirmOrder;
+
+    renderCart();
+
+    // Category Tabs Functionality
+    let activeCategory = 'refill';
+
+    function filterByCategory(category) {
+        activeCategory = category;
+        const productCards = document.querySelectorAll('.product-card');
+
+        productCards.forEach(card => {
+            if (card.dataset.category === category) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Update active tab styling
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.category === category) {
+                tab.classList.add('active');
+            }
+        });
+
+        // Re-apply search filter if there's a search query
+        const searchInput = document.getElementById('quickSearch');
+        if (searchInput.value) {
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }
+
+    // Initialize category tabs
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            filterByCategory(this.dataset.category);
+        });
+    });
+
+    // Initialize with refill category active
+    filterByCategory('refill');
+
+    document.getElementById('quickSearch').addEventListener('input', function () {
+
+        const q = this.value.toLowerCase();
+
+        document.querySelectorAll('.product-card').forEach(c => {
+
+            // Only search within visible (active category) products
+            const isVisible = c.style.display !== 'none';
+            const matchesSearch = c.dataset.name.includes(q);
+
+            if (isVisible && matchesSearch) {
+                c.style.display = '';
+            } else {
+                c.style.display = 'none';
+            }
+
+        });
+
+    });
+
+
+
+    // Mobile sidebar
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const proofInput = document.getElementById('proofOfPayment');
+        const removeProofButton = document.getElementById('removeProofButton');
+        proofInput.addEventListener('change', () => previewProofOfPayment(proofInput.files[0]));
+        removeProofButton.addEventListener('click', () => {
+            proofInput.value = '';
+            previewProofOfPayment(null);
+        });
+
+        const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+
+        const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+
+        document.body.append(btn, ov);
+
+        const sb = document.querySelector('.sidebar');
+
+        const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+
+        const open  = () => { sb.classList.add('active');    ov.classList.add('active');    btn.querySelector('i').className = 'fas fa-times'; };
+
+        btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+
+        ov.addEventListener('click', close);
+
+        document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+                close();
+            }
+        }));
+
+        window.addEventListener('resize', () => window.innerWidth > 768 && close());
+
+        document.addEventListener('keydown', e => e.key === 'Escape' && close());
+
+
+
+        // ── Poll unread count for Messages badge ──
+
+        const UNREAD_URL = "{% url 'unread_message_count_api' %}";
+
+        function pollUnreadBadge() {
+
+            fetch(UNREAD_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+
+            .then(r => r.json())
+
+            .then(data => {
+
+                document.querySelectorAll('.sidebar .unread-badge').forEach(badge => {
+
+                    if (data.count > 0) {
+
+                        badge.textContent = data.count;
+
+                        badge.style.display = 'inline-flex';
+
+                    } else {
+
+                        badge.style.display = 'none';
+
+                    }
+
+                });
+
+            })
+
+            .catch(() => {});
+
+        }
+
+        setInterval(pollUnreadBadge, 5000);
+
+        pollUnreadBadge(); // Run immediately on load
+
+    });
+
+</script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register("{% static 'accounts/sw.js' %}")
+                    .then(function(registration) {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch(function(error) {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+</body>
+
+</html>

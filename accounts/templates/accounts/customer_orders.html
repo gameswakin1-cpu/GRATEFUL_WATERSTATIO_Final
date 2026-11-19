@@ -1,0 +1,2256 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Special+Elite&display=swap');
+
+        /* Orders Page Specific Styles - CSS variables in shared styles.css */
+
+        /* Table overrides for orders page */
+        .data-table {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .data-table thead th {
+            background: var(--gray-50);
+            color: var(--gray-600);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .data-table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .data-table tbody td {
+            padding: 1.25rem 1rem;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 0.875rem;
+            color: var(--gray-700);
+        }
+
+        .data-table tbody td strong {
+            color: var(--gray-800);
+            font-weight: 600;
+        }
+
+        .product-cell { display: flex; align-items: center; gap: 12px; }
+        .product-cell img { width: 50px; height: 50px; object-fit: contain; }
+        .product-cell span { font-weight: 500; color: var(--gray-700); }
+
+        /* Modern Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            border: 1px solid transparent;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-badge.awaiting_payment { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+        .status-badge.pending { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+        .status-badge.processing { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+        .status-badge.out_for_delivery { background: #fed7aa; color: #9a3412; border-color: #fdba74; }
+        .status-badge.delivered { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+        .status-badge.cancelled { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+        /* Modern Buttons */
+        .btn-track {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-track:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #0369a1 100%);
+        }
+
+        .btn-track.green {
+            background: linear-gradient(135deg, var(--success) 0%, #15803d 100%);
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-track.green:hover {
+            box-shadow: 0 8px 16px -4px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+        }
+
+        .text-muted { color: var(--gray-500); font-size: 0.8rem; }
+        .actions { text-align: center; }
+
+        /* ── TRACKING MODAL ── */
+        .tracking-modal {
+            display: none; position: fixed; z-index: 3000; inset: 0;
+            background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+        }
+
+        .tracking-modal-content {
+            background: white;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            width: 95%; max-width: 650px;
+            max-height: 92vh; overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--glass-border);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .tracking-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .tracking-header h2 { font-size: 1.25rem; color: var(--primary); font-weight: 700; }
+
+        #trackingMap {
+            height: 340px;
+            border-radius: var(--radius-lg);
+            border: 2px solid var(--gray-200);
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Hide Leaflet watermark */
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+
+        .rider-info-box {
+            background: linear-gradient(135deg, var(--primary-light) 0%, rgba(6,182,212,0.1) 100%);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rider-info-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+        }
+
+        .rider-info-box i {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .rider-info-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; color: var(--gray-800); }
+        .rider-info-box p { font-size: 0.875rem; color: var(--gray-600); margin: 0; }
+
+        /* Simple, minimalist order cards and controls */
+        .data-table {
+            background: var(--card-bg) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: var(--shadow) !important;
+        }
+        .data-table thead th {
+            background: var(--blue-50) !important;
+            color: var(--text-sub) !important;
+            border-bottom: 1px solid var(--border) !important;
+        }
+        .data-table tbody tr:hover { background: var(--surface) !important; }
+        .data-table tbody td {
+            color: var(--text-sub) !important;
+            border-bottom-color: var(--border) !important;
+        }
+        .data-table tbody td strong,
+        .product-cell span { color: var(--text) !important; }
+        .btn-track {
+            background: var(--primary) !important;
+            box-shadow: none !important;
+        }
+        .btn-track:hover { background: var(--secondary) !important; transform: translateY(-1px); }
+        .btn-track.green {
+            background: #15803d !important;
+            box-shadow: none !important;
+        }
+        .rider-info-box {
+            background: var(--blue-50) !important;
+            border-color: var(--border-mid) !important;
+        }
+        .rider-info-box::before { background: var(--primary) !important; }
+        .rider-info-box i {
+            background: none !important;
+            -webkit-text-fill-color: var(--primary) !important;
+            color: var(--primary) !important;
+        }
+        .tracking-modal-content {
+            border: 1px solid var(--border) !important;
+            box-shadow: var(--shadow-hover) !important;
+        }
+
+        /* Progress Steps in Modal */
+        .progress-steps {
+            display: flex; justify-content: space-between; position: relative;
+            margin-bottom: 1.5rem; padding: 0 1rem;
+        }
+        .progress-steps::before {
+            content: ''; position: absolute; top: 20px; left: 1.5rem; right: 1.5rem;
+            height: 4px; background: var(--gray-200); border-radius: 2px; z-index: 0;
+        }
+        .progress-fill {
+            position: absolute; top: 20px; left: 1.5rem;
+            height: 4px; background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px; z-index: 1;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .step { text-align: center; flex: 1; z-index: 2; position: relative; }
+        .step-dot {
+            width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--gray-200);
+            background: white; margin: 0 auto 0.5rem; display: flex;
+            align-items: center; justify-content: center; font-size: 0.9rem;
+            color: var(--gray-400); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .step.done .step-dot {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-color: var(--primary); color: white;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+        .step.active .step-dot {
+            background: white; border-color: var(--primary); color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15), 0 4px 12px rgba(14, 165, 233, 0.2);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15), 0 4px 12px rgba(14, 165, 233, 0.2); }
+            50% { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0.1), 0 4px 16px rgba(14, 165, 233, 0.3); }
+        }
+        .step-label { font-size: 0.75rem; color: var(--gray-500); font-weight: 600; }
+        .step.done .step-label, .step.active .step-label { color: var(--primary); }
+
+        .no-rider-msg { text-align: center; padding: 2rem; color: var(--gray-400); }
+        .no-rider-msg i { font-size: 3rem; display: block; margin-bottom: 0.75rem; opacity: 0.4; }
+
+        /* ── RECEIPT MODAL ── */
+        .receipt-modal {
+            display: none; position: fixed; z-index: 4000; inset: 0;
+            background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+        }
+        .receipt-modal-content {
+            background: #ffffff;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 355px;
+            max-height: 95vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, .28);
+            font-family: inherit;
+        }
+        .receipt-header {
+            background: linear-gradient(145deg, #1598d0, #1485be);
+            color: white;
+            text-align: center;
+            padding: 1.25rem 1.2rem 1.15rem;
+        }
+        .receipt-header h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: .7px;
+            color: white;
+            margin-bottom: 0.15rem;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+        .receipt-logo {
+            width: 30px;
+            height: 30px;
+            padding: 3px;
+            border-radius: 8px;
+            background: rgba(255,255,255,.2);
+            object-fit: contain;
+            vertical-align: middle;
+            margin-right: .55rem;
+        }
+        .receipt-station-address {
+            font-size: 0.62rem;
+            color: rgba(255,255,255,.9);
+            margin-top: 0.25rem;
+            line-height: 1.3;
+            max-width: 240px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .receipt-date {
+            text-align: center;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,.85);
+            margin: 0.35rem 0 0.15rem;
+        }
+        .receipt-time {
+            text-align: center;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,.85);
+            margin: 0;
+        }
+        .receipt-divider {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 0;
+        }
+        .receipt-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            padding: .8rem 1.15rem;
+            background: #f8fbff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .receipt-summary strong {
+            display: block;
+            color: #075985;
+            font-size: .95rem;
+            margin-top: .2rem;
+        }
+        .receipt-section-label,
+        .receipt-section-title {
+            display: block;
+            color: #64748b;
+            font-size: .62rem;
+            font-weight: 800;
+            letter-spacing: .8px;
+        }
+        .receipt-section-title {
+            padding: .85rem 1.15rem .3rem;
+        }
+        .receipt-status {
+            background: #dcfce7;
+            color: #15803d;
+            border-radius: 999px;
+            padding: .38rem .65rem;
+            font-size: .65rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .receipt-items {
+            padding: .2rem 1.15rem .55rem;
+        }
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: #334155;
+            padding: 0.55rem 0;
+            line-height: 1.3;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .receipt-item-left {
+            display: flex;
+            gap: 0.55rem;
+            align-items: flex-start;
+        }
+        .receipt-item-qty {
+            min-width: 1.25rem;
+            text-align: center;
+            font-weight: 700;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 0;
+            border-radius: 5px;
+            padding: 2px 6px;
+            font-size: 0.68rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .receipt-total {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #075985;
+            padding: 0.85rem 1.15rem;
+            background: #f0f9ff;
+            border-top: 1px solid #dbeafe;
+            margin-top: 0;
+        }
+        .receipt-total span:first-child {
+            margin-right: auto;
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .receipt-delivery-fee {
+            display: flex;
+            justify-content: space-between;
+            padding: .62rem 1.15rem;
+            color: #475569;
+            font-size: .72rem;
+            border-top: 1px solid #dbeafe;
+        }
+        .receipt-promo-discount {
+            display: flex;
+            justify-content: space-between;
+            padding: .62rem 1.15rem;
+            color: #15803d;
+            font-size: .72rem;
+        }
+        .receipt-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.62rem 1.15rem;
+            font-size: 0.72rem;
+            color: #475569;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .receipt-info-row:not(:last-child) {
+            border-bottom: 1px solid #edf2f7;
+        }
+        .receipt-info-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+        .receipt-info-value {
+            color: #1e293b;
+            font-weight: 700;
+            text-align: right;
+        }
+        .receipt-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            padding: .8rem 1.15rem .95rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .btn-print-receipt {
+            background: #1598d0;
+            color: #ffffff;
+            border: 0;
+            border-radius: 8px;
+            padding: 0.62rem 0.75rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+        .btn-print-receipt:hover {
+            background: #0d7eaf;
+        }
+        .btn-close-receipt {
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid #dbe3ed;
+            border-radius: 8px;
+            padding: 0.62rem 0.75rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+        .btn-close-receipt:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+        .btn-view-receipt {
+            background: #64748b;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font: 600 0.8rem Arial, Helvetica, sans-serif;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-bottom: 5px;
+        }
+        .btn-view-receipt:hover {
+            background: #475569;
+        }
+        .btn-return {
+            background: #f59e0b;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font: 600 0.8rem Arial, Helvetica, sans-serif;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            margin-bottom: 5px;
+        }
+        .btn-return:hover {
+            background: #d97706;
+        }
+        .return-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 1rem;
+            margin-top: 0.35rem;
+            border: 1px solid #fcd34d;
+            border-radius: 9999px;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            white-space: nowrap;
+        }
+        .return-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .return-status.approved {
+            background: #d1fae5;
+            color: #065f46;
+            border-color: #6ee7b7;
+        }
+        .return-status.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+        .return-pickup-progress {
+            display: block;
+            max-width: 220px;
+            margin-top: .4rem;
+            color: #64748b;
+            font-size: .72rem;
+            line-height: 1.4;
+        }
+        .return-modal {
+            display: none;
+            position: fixed;
+            z-index: 3600;
+            inset: 0;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, .65);
+        }
+        .return-modal-content {
+            width: min(440px, 100%);
+            padding: 1.5rem;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, .25);
+        }
+        .return-modal-content h2 { margin: 0 0 .4rem; color: #1e293b; }
+        .return-modal-content p { margin: 0 0 1rem; color: #64748b; font-size: .85rem; }
+        .return-modal-content label { display: block; margin: .75rem 0 .3rem; color: #334155; font-size: .82rem; font-weight: 600; }
+        #returnItemsSelection { display: grid; gap: .45rem; max-height: 180px; overflow-y: auto; }
+        .return-item-choice {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 88px;
+            align-items: center;
+            gap: .65rem;
+            padding: .6rem .7rem;
+            border: 1px solid #dbe3ed;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+        .return-item-choice label { display: flex; align-items: center; gap: .45rem; margin: 0; }
+        .return-item-choice input[type="number"] { width: 100%; padding: .4rem; border: 1px solid #cbd5e1; border-radius: 6px; }
+        .return-modal-content select,
+        .return-modal-content textarea { width: 100%; padding: .65rem; border: 1px solid #cbd5e1; border-radius: 7px; font: inherit; box-sizing: border-box; }
+        .return-modal-content input[type="file"] { width: 100%; padding: .55rem 0; font-size: .8rem; }
+        .return-modal-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1rem; }
+        .return-modal-actions button { padding: .55rem .85rem; border: 0; border-radius: 7px; cursor: pointer; font-weight: 600; }
+        .return-cancel { background: #e2e8f0; color: #334155; }
+        .return-submit { background: #f59e0b; color: #fff; }
+        .btn-return-reason {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            width: 100px;
+            height: 32px;
+            margin-top: .35rem;
+            border: 0;
+            border-radius: 6px;
+            background: #1a8ad4;
+            color: #fff;
+            font: 600 .8rem Arial, Helvetica, sans-serif;
+            cursor: pointer;
+        }
+        .btn-return-reason:hover { background: #0d5990; }
+        .return-reason-text {
+            min-height: 64px;
+            padding: .8rem;
+            border: 1px solid #dbe3ec;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #334155;
+            font-size: .9rem;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+        .return-success-toast {
+            position: fixed;
+            z-index: 5000;
+            top: 18px;
+            right: 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: .85rem;
+            width: min(420px, calc(100vw - 36px));
+            box-sizing: border-box;
+            padding: 1rem;
+            border: 1px solid #dce7e1;
+            border-left: 4px solid #16a34a;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, .2);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-10px);
+            transition: opacity .2s ease, transform .2s ease, visibility .2s;
+        }
+        .return-success-toast.is-visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        .return-success-icon {
+            display: grid;
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border-radius: 50%;
+            background: #eaf9f0;
+            color: #15803d;
+            font-size: 1.05rem;
+        }
+        .return-success-copy { min-width: 0; flex: 1; padding-top: .1rem; }
+        .return-success-copy strong {
+            display: block;
+            margin-bottom: .2rem;
+            color: #19324d;
+            font-size: .95rem;
+        }
+        .return-success-copy p { margin: 0; color: #64748b; font-size: .82rem; line-height: 1.45; }
+        .return-success-close {
+            display: grid;
+            flex: 0 0 30px;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #64748b;
+            font-size: 1.25rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .return-success-close:hover { background: #f1f5f9; color: #1e293b; }
+        @media (max-width: 640px) {
+            .return-success-toast {
+                top: 12px;
+                right: 12px;
+                left: 12px;
+                width: auto;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .return-success-toast { transition: none; }
+        }
+
+        /* ── PHOTO MODAL ── */
+        .photo-modal {
+            display: none; position: fixed; z-index: 3500; inset: 0;
+            background: rgba(0,0,0,.85); backdrop-filter: blur(3px);
+            align-items: center; justify-content: center;
+        }
+        .photo-modal-content {
+            background: white; border-radius: 12px; padding: 1rem;
+            width: 95%; max-width: 600px; max-height: 90vh; overflow: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.4);
+        }
+        .photo-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0;
+        }
+        .photo-header h2 {
+            font-size: 1.1rem; color: #1a7db7; margin: 0;
+        }
+        .photo-close-btn {
+            background: none; border: none; font-size: 1.8rem;
+            cursor: pointer; color: #64748b; padding: 0; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .photo-close-btn:hover {
+            background: #f1f5f9; border-radius: 6px; color: #1a7db7;
+        }
+        .photo-image-container {
+            text-align: center; margin: 1rem 0;
+        }
+        .photo-image-container img {
+            max-width: 100%; height: auto; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        }
+        .photo-actions {
+            display: flex; gap: 0.75rem; justify-content: center;
+            padding-top: 1rem; border-top: 1px solid #e2e8f0;
+        }
+        .btn-download-photo {
+            background: #16a34a; color: white;
+            border: none; padding: 0.5rem 1rem;
+            border-radius: 6px; cursor: pointer;
+            font-size: 0.85rem; display: flex; align-items: center;
+            gap: 0.5rem; transition: all 0.2s;
+        }
+        .btn-download-photo:hover {
+            background: #15803d;
+        }
+
+        @media (max-width: 768px) {
+            .photo-modal-content {
+                width: 98%; max-height: 95vh;
+            }
+            .photo-header h2 {
+                font-size: 1rem;
+            }
+        }
+
+        /* Refined delivery photo viewer */
+        .photo-modal {
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .photo-modal-content {
+            width: min(720px, 100%);
+            max-height: min(92vh, 760px);
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 18px;
+            box-shadow: 0 24px 70px rgba(2, 8, 23, 0.35);
+            animation: photoModalIn 0.22s ease-out;
+        }
+
+        @keyframes photoModalIn {
+            from { opacity: 0; transform: translateY(10px) scale(.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .photo-header {
+            min-height: 64px;
+            margin: 0;
+            padding: 0.85rem 1.1rem;
+            border-bottom: 1px solid #e8eef5;
+            background: #ffffff;
+        }
+
+        .photo-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            min-width: 0;
+            color: #176fa5;
+            font-size: 0.98rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .photo-header h2 i {
+            color: #1a8ad4;
+        }
+
+        .photo-close-btn {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            font-size: 1.35rem;
+            color: #64748b;
+        }
+
+        .photo-close-btn:hover {
+            background: #eff6ff;
+            color: #176fa5;
+        }
+
+        .photo-image-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 260px;
+            max-height: calc(92vh - 145px);
+            margin: 0;
+            padding: 1rem;
+            background: #f4f7fb;
+        }
+
+        .photo-image-container img {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            max-height: calc(92vh - 185px);
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+        }
+
+        .photo-actions {
+            align-items: center;
+            margin: 0;
+            padding: 0.85rem 1.1rem;
+            border-top: 1px solid #e8eef5;
+            background: #ffffff;
+        }
+
+        .photo-actions button {
+            min-width: 108px;
+            justify-content: center;
+            border-radius: 9px;
+            padding: 0.62rem 0.9rem;
+            font-size: 0.8rem;
+            box-shadow: none;
+        }
+
+        .btn-download-photo {
+            background: #16a34a;
+        }
+
+        .btn-download-photo:hover {
+            background: #15803d;
+            transform: translateY(-1px);
+        }
+
+        .photo-actions .btn-track {
+            background: #1a8ad4;
+        }
+
+        .photo-actions .btn-track:hover {
+            background: #0d5990;
+            transform: translateY(-1px);
+        }
+
+        .orders-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .orders-summary .stat-card {
+            min-width: 0;
+            min-height: 108px;
+            gap: .9rem;
+            padding: 1rem 1.05rem;
+            border: 1px solid #b6d4f5 !important;
+            border-radius: 15px !important;
+            background: transparent !important;
+            box-shadow: 0 8px 24px rgba(55, 80, 111, .055) !important;
+            color: #19324d !important;
+            text-align: left;
+        }
+
+        .orders-summary .stat-icon {
+            display: flex;
+            flex: 0 0 38px;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: .9rem;
+        }
+
+        .orders-summary .stat-icon.blue { background: #e5f3ff; color: #1677d2; }
+        .orders-summary .stat-icon.green { background: #eaf9f0; color: #15803d; }
+        .orders-summary .stat-icon.orange { background: #fff7e6; color: #d97706; }
+        .orders-summary .stat-icon.teal { background: #e5f3ff; color: #1677d2; }
+
+        .orders-summary .stat-info {
+            min-width: 0;
+        }
+
+        .orders-summary .stat-info h3 {
+            margin: 0 0 .25rem;
+            color: #91a0af;
+            font-size: .62rem;
+            font-weight: 600;
+            line-height: 1.2;
+            letter-spacing: .45px;
+        }
+
+        .orders-summary .stat-number {
+            color: #19324d;
+            font-size: 1.32rem;
+            line-height: 1.1;
+            overflow-wrap: anywhere;
+        }
+
+        @media (min-width: 901px) {
+            .orders-summary .stat-card {
+                min-height: 120px;
+                padding: 1.15rem 1.2rem;
+            }
+
+            .orders-summary .stat-icon {
+                flex-basis: 50px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
+            }
+
+            .orders-summary .stat-info h3 {
+                font-size: .8rem;
+                letter-spacing: .55px;
+            }
+
+            .orders-summary .stat-number {
+                font-size: 1.65rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .orders-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: .55rem;
+            }
+
+            .orders-summary .stat-card {
+                min-height: 0;
+                gap: .5rem;
+                padding: .7rem;
+                border-color: #dde5ee !important;
+                border-radius: 14px !important;
+                background: rgba(255, 255, 255, .92) !important;
+            }
+
+            .orders-summary .stat-icon {
+                flex-basis: 32px;
+                width: 32px;
+                height: 32px;
+                border-radius: 11px;
+            }
+
+            .orders-summary .stat-info h3 {
+                margin-bottom: .25rem;
+                color: var(--text-sub);
+                font-size: .66rem;
+                font-weight: 400;
+                letter-spacing: normal;
+                text-transform: none;
+            }
+
+            .orders-summary .stat-number {
+                color: var(--text);
+                font-size: 1.05rem;
+            }
+
+            .photo-modal {
+                padding: 0.65rem;
+            }
+
+            .photo-modal-content {
+                width: 100%;
+                border-radius: 14px;
+            }
+
+            .photo-header {
+                min-height: 56px;
+                padding: 0.7rem 0.85rem;
+            }
+
+            .photo-header h2 {
+                font-size: 0.85rem;
+            }
+
+            .photo-image-container {
+                min-height: 220px;
+                padding: 0.65rem;
+            }
+
+            .photo-image-container img {
+                max-height: 62vh;
+                border-radius: 9px;
+            }
+
+            .photo-actions {
+                gap: 0.5rem;
+                padding: 0.7rem 0.85rem;
+            }
+
+            .photo-actions button {
+                flex: 1;
+                min-width: 0;
+            }
+        }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        <ul class="nav-links">
+        <li><a href="{% url 'customer_dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="{% url 'customer_order' %}"><i class="fas fa-shopping-cart"></i> Place Order</a></li>
+            <li><a href="{% url 'customer_orders' %}"><i class="fas fa-history"></i> My Orders</a></li>
+            <li><a href="{% url 'customer_returns' %}"><i class="fas fa-undo"></i> Return</a></li>
+            <li><a href="{% url 'messaging_inbox' %}"><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+            <li><a href="{% url 'customer_profile' %}"><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+         <div class="user-info">
+            <p>Welcome, {{ request.user.first_name }}!</p>
+            <p class="role-badge customer">Customer</p>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-history"></i> My Orders</h1>
+            <div class='header-actions dashboard-topbar-actions'>
+                {% include 'accounts/dashboard_header_actions.html' %}
+            </div>
+        </header>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Filter & Sort Controls -->
+        
+        <!-- Orders Summary Stats -->
+        <div class="orders-summary">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-shopping-cart" aria-hidden="true"></i></div>
+                <div class="stat-info"><h3>Total Orders</h3><div class="stat-number" id="totalOrdersCount">{{ orders|length }}</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-check-circle" aria-hidden="true"></i></div>
+                <div class="stat-info"><h3>Delivered</h3><div class="stat-number" id="deliveredCount">0</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange"><i class="fas fa-clock" aria-hidden="true"></i></div>
+                <div class="stat-info"><h3>Pending</h3><div class="stat-number" id="pendingCount">0</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon teal"><i class="fas fa-coins" aria-hidden="true"></i></div>
+                <div class="stat-info"><h3>Total Spent</h3><div class="stat-number" id="totalSpent">₱0</div></div>
+            </div>
+        </div>
+
+        <div class="data-table" id="ordersTable">
+            <div style="overflow-x: auto;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding:12px; text-align:left; background:#f8fafc;">Date & Time</th>
+                            <th style="padding:12px; text-align:left; background:#f8fafc;">Products</th>
+                            <th style="padding:12px; text-align:left; background:#f8fafc;">Total</th>
+                            <th style="padding:12px; text-align:left; background:#f8fafc;">Status</th>
+                            <th style="padding:12px; text-align:left; background:#f8fafc;">Delivery Photo</th>
+                            <th style="padding:12px; text-align:left; background:#f8fafc;">Delivered At</th>
+                            <th style="padding:12px; text-align:center; background:#f8fafc;">Actions</th>
+                        </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr class="order-row" data-order-id="{{ order.id }}" data-status="{{ order.status }}" data-date="{{ order.created_at|date:'Y-m-d' }}" data-amount="{{ order.total_amount }}" data-timestamp="{{ order.created_at|date:'U' }}">
+                            <td style="padding:12px; border-bottom:1px solid #e2e8f0;">{{ order.created_at|date:"M d, Y" }}<br>{{ order.created_at|date:"H:i" }}</td>
+                            <td style="padding:12px; border-bottom:1px solid #e2e8f0;">
+                                {% if order.items.exists %}
+                                    {% for item in order.items.all %}
+                                        <span class="order-return-item"
+                                            data-order-item-id="{{ item.id }}"
+                                            data-quantity="{{ item.quantity }}"
+                                            data-product-name="{{ item.product.name }}">
+                                            {{ item.quantity }} {{ item.product.name }}
+                                        </span><br>
+                                    {% endfor %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td style="padding:12px; border-bottom:1px solid #e2e8f0;"><strong>₱{{ order.total_amount|floatformat:2 }}</strong></td>
+                            <td style="padding:12px; border-bottom:1px solid #e2e8f0;">
+                                {% if order.return_request %}
+                                    <span class="return-status {{ order.return_request.status }}">
+                                        {% if order.return_request.status == 'approved' %}
+                                            Return Approved
+                                        {% elif order.return_request.status == 'rejected' %}
+                                            Return Rejected
+                                        {% else %}
+                                            Return
+                                        {% endif %}
+                                    </span>
+                                {% else %}
+                                    {% if order.status == 'awaiting_payment' %}
+                                        <span class="status-badge awaiting_payment">{{ order.get_status_display }}</span>
+                                        <br><small class="text-muted">Waiting for staff to confirm payment.</small>
+                                    {% elif order.status == 'choose_rider' %}
+                                        <span class="status-badge processing">Processing</span>
+                                    {% elif order.status == 'out_for_delivery' %}
+                                        <span class="status-badge out_for_delivery">On the Way</span>
+                                    {% else %}
+                                        <span class="status-badge {{ order.status }}">{{ order.get_status_display }}</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td style="padding:12px; border-bottom:1px solid #e2e8f0; text-align:center;">
+                                {% if order.delivery_image %}
+                                    <button onclick="openPhotoModal('{{ order.delivery_image.url }}', '{{ order.order_number }}')" class="btn-track green">
+                                        <i class="fas fa-camera"></i> View Photo
+                                    </button>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td style="padding:12px; border-bottom:1px solid #e2e8f0;">
+                                {% if order.delivered_at %}{{ order.delivered_at|date:"M d, Y H:i" }}{% else %}—{% endif %}
+                            </td>
+                            <td style="padding:12px; border-bottom:1px solid #e2e8f0; text-align:center;">
+                                <button type="button" class="btn-view-receipt" data-receipt-url="{% url 'get_order_json' order.id %}" style="width:100px; height:32px; display:inline-flex; align-items:center; justify-content:center;">
+                                    <i class="fas fa-receipt"></i> Receipt
+                                </button>
+                                <br style="padding-bottom: 20px;">
+                                {% if order.status == 'delivered' and not order.return_request %}
+                                    <button type="button" class="btn-return" data-return-order-id="{{ order.id }}"
+                                        data-return-url="{% url 'create_return_request' order.id %}" style="width:100px; height:32px;">
+                                        <i class="fas fa-undo"></i> Return
+                                    </button>
+                                    <br style="padding-bottom: 20px;">
+                                {% endif %}
+                                {% if order.status in 'pending,processing,send-to-rider,rider_accepted,out_for_delivery' %}
+                                    <button type="button" class="btn-track"
+                                        data-track-order-id="{{ order.id }}"
+                                        data-order-number="{{ order.order_number }}"
+                                        data-order-status="{{ order.status }}"
+                                        data-delivery-lat="{% if order.delivery_lat %}{{ order.delivery_lat }}{% endif %}"
+                                        data-delivery-lng="{% if order.delivery_lng %}{{ order.delivery_lng }}{% endif %}"
+                                        style="width:100px; height:32px; display:inline-flex; align-items:center; justify-content:center;">
+                                        <i class="fas fa-map-marked-alt"></i> Track
+                                    </button>
+                                {% endif %}
+                                {% if order.return_request %}
+                                    {% if order.return_request.status == 'approved' or order.return_request.status == 'rejected' %}
+                                        <button type="button" class="btn-return-reason"
+                                            data-return-reason="{{ order.return_request.review_notes }}">
+                                            <i class="fas fa-info-circle" aria-hidden="true"></i> Reason
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" style="padding:40px; text-align:center; color:#94a3b8;">
+                                <i class="fas fa-box-open" style="font-size:48px; margin-bottom:16px; display:block;"></i>
+                                You have not placed any orders yet.
+                                <div style="margin-top:16px;">
+                                    <a href="{% url 'customer_order' %}" class="btn-primary">Place Your First Order</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="receipt-modal">
+    <div class="receipt-modal-content" id="receiptContent">
+        <!-- Receipt content will be dynamically inserted here -->
+    </div>
+</div>
+
+<div id="returnModal" class="return-modal" role="dialog" aria-modal="true" aria-labelledby="returnModalTitle">
+    <div class="return-modal-content">
+        <h2 id="returnModalTitle">Request a return</h2>
+        <p>Returns must be requested within 3 days after delivery. Your request will be reviewed by the station.</p>
+        <form id="returnRequestForm">
+            {% csrf_token %}
+            <input type="hidden" id="returnOrderId">
+            <input type="hidden" id="returnRequestUrl">
+            <label>Select item(s) and quantity to return</label>
+            <div id="returnItemsSelection"></div>
+            <label for="returnReason">Reason</label>
+            <select id="returnReason" required>
+                <option value="">Select a reason</option>
+                <option value="damaged">Damaged item</option>
+                <option value="wrong_item">Wrong item received</option>
+                <option value="quality_issue">Quality issue</option>
+                <option value="other">Other</option>
+            </select>
+            <label for="returnDetails">Details</label>
+            <textarea id="returnDetails" rows="4" maxlength="1000" placeholder="Tell us what happened"></textarea>
+            <label for="returnEvidence">Photo evidence <span style="font-weight:400;color:#64748b;">(required, max 5 MB)</span></label>
+            <input id="returnEvidence" type="file" name="evidence_images" accept="image/*" capture="environment" multiple required>
+            <div class="return-modal-actions">
+                <button type="button" class="return-cancel" data-close-return>Cancel</button>
+                <button type="submit" class="return-submit">Submit request</button>
+            </div>
+            <p id="returnRequestError" style="display:none; margin: .75rem 0 0; color:#b91c1c;"></p>
+        </form>
+    </div>
+</div>
+
+<div id="returnSuccessToast" class="return-success-toast" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true">
+    <span class="return-success-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
+    <div class="return-success-copy">
+        <strong>Return request submitted</strong>
+        <p>The station will review your request.</p>
+    </div>
+    <button type="button" class="return-success-close" data-dismiss-return-toast aria-label="Dismiss notification">&times;</button>
+</div>
+
+<div id="returnReasonModal" class="return-modal" role="dialog" aria-modal="true" aria-labelledby="returnReasonTitle">
+    <div class="return-modal-content">
+        <h2 id="returnReasonTitle">Return instructions</h2>
+        <p>Instructions or reason provided by the station.</p>
+        <div id="returnReasonContent" class="return-reason-text"></div>
+        <div class="return-modal-actions">
+            <button type="button" class="return-cancel" data-close-return-reason>Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── PHOTO MODAL ── -->
+<div id="photoModal" class="photo-modal">
+    <div class="photo-modal-content">
+        <div class="photo-header">
+            <h2><i class="fas fa-image"></i> Delivery Photo - Order <span id="photoOrderNum"></span></h2>
+            <button class="photo-close-btn" onclick="closePhotoModal()" aria-label="Close delivery photo">&times;</button>
+        </div>
+        <div class="photo-image-container">
+            <img id="photoImage" src="" alt="Delivery Photo" style="max-width: 100%; height: auto;">
+        </div>
+        <div class="photo-actions">
+            <button class="btn-download-photo" onclick="downloadPhoto()">
+                <i class="fas fa-download"></i> Download
+            </button>
+            <button class="btn-track" onclick="closePhotoModal()">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── TRACKING MODAL ── -->
+<div id="trackingModal" class="tracking-modal">
+    <div class="tracking-modal-content">
+        <div class="tracking-header">
+            <h2><i class="fas fa-map-marked-alt"></i> Track Order <span id="trackOrderNum"></span></h2>
+            <span style="font-size:1.5rem; cursor:pointer; color:#64748b;" onclick="closeTrackingModal()">&times;</span>
+        </div>
+
+        <!-- Order progress steps -->
+        <div class="progress-steps" id="progressSteps">
+            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+            <div class="step" id="step-pending">
+                <div class="step-dot"><i class="fas fa-file-alt"></i></div>
+                <div class="step-label">Placed</div>
+            </div>
+            <div class="step" id="step-processing">
+                <div class="step-dot"><i class="fas fa-cog"></i></div>
+                <div class="step-label">Processing</div>
+            </div>
+            <div class="step" id="step-out_for_delivery">
+                <div class="step-dot"><i class="fas fa-motorcycle"></i></div>
+                <div class="step-label">On the Way</div>
+            </div>
+            <div class="step" id="step-delivered">
+                <div class="step-dot"><i class="fas fa-check"></i></div>
+                <div class="step-label">Delivered</div>
+            </div>
+        </div>
+
+        <!-- Rider info -->
+        <div id="riderInfoBox" class="rider-info-box" style="display:none;">
+            <i class="fas fa-motorcycle"></i>
+            <div>
+                <h3 id="riderNameDisplay">Rider Name</h3>
+                <p id="riderPhoneDisplay"></p>
+                <p id="riderLocationDisplay" style="font-size:.75rem; color:#1a7db7; margin-top:.2rem;"></p>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="trackingMap"></div>
+
+        <div id="noRiderMsg" class="no-rider-msg" style="display:none;">
+            <i class="fas fa-motorcycle"></i>
+            <p style="font-weight:600;">Rider not yet assigned</p>
+            <p style="font-size:.85rem;">Staff will assign a rider shortly. Refresh to check.</p>
+        </div>
+
+        <div style="text-align:center; margin-top:.5rem;">
+            <button class="btn-track" onclick="refreshTracking()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+// Station coordinates
+const STATION_LAT = 14.4515;
+const STATION_LNG = 120.9924;
+const STATION_ADDRESS = "BLK 19 LOT 1 PHASE 1 ST.LOUIE VILLAGE ADMIRAL TALON 3, Las Piñas City, 1747";
+const RECEIPT_LOGO_URL = "{% static 'accounts/images/for login image.png' %}";
+
+let trackingMap = null, deliveryPin = null, riderPin = null, riderRouteLine = null;
+let currentTrackingOrderId = null;
+let currentTrackingDeliveryLat = null, currentTrackingDeliveryLng = null;
+let riderRouteOrderId = null;
+let riderRouteRequestId = 0;
+let trackingRefreshTimer = null;
+let currentPhotoUrl = null;
+
+function openPhotoModal(photoUrl, orderNum) {
+    currentPhotoUrl = photoUrl;
+    document.getElementById('photoImage').src = photoUrl;
+    document.getElementById('photoOrderNum').textContent = '#' + orderNum;
+    document.getElementById('photoModal').style.display = 'flex';
+}
+
+function closePhotoModal() {
+    document.getElementById('photoModal').style.display = 'none';
+    currentPhotoUrl = null;
+}
+
+function downloadPhoto() {
+    if (!currentPhotoUrl) return;
+    const link = document.createElement('a');
+    link.href = currentPhotoUrl;
+    link.download = 'delivery-photo-' + new Date().getTime() + '.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+async function viewReceipt(receiptUrl) {
+    const receiptModal = document.getElementById('receiptModal');
+    const receiptContent = document.getElementById('receiptContent');
+    receiptContent.innerHTML = `<div class="receipt-header"><h2><img class="receipt-logo" src="${RECEIPT_LOGO_URL}" alt="">Loading receipt…</h2></div>`;
+    receiptModal.style.display = 'flex';
+
+    try {
+        const response = await fetch(receiptUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!response.ok) {
+            throw new Error(`Receipt request failed (${response.status})`);
+        }
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+            let itemsHtml = '';
+            if (data.items && data.items.length > 0) {
+                itemsHtml = data.items.map(item => `
+                    <div class="receipt-item">
+                        <div class="receipt-item-left">
+                            <span class="receipt-item-qty">${item.quantity}</span>
+                            <span>${item.product_name}</span>
+                        </div>
+                        <span>₱${item.subtotal}</span>
+                    </div>
+                `).join('');
+            } else {
+                itemsHtml = `
+                    <div class="receipt-item">
+                        <div class="receipt-item-left">
+                            <span class="receipt-item-qty">${data.quantity || 1}</span>
+                            <span>${data.product_name || 'Product'}</span>
+                        </div>
+                        <span>₱${data.total_amount}</span>
+                    </div>
+                `;
+            }
+            const createdAt = data.created_at ? new Date(data.created_at) : null;
+            const receiptDate = createdAt && !Number.isNaN(createdAt.getTime())
+                ? createdAt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                : '—';
+            const receiptTime = createdAt && !Number.isNaN(createdAt.getTime())
+                ? createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })
+                : '—';
+            const receiptHtml = `
+                <div class="receipt-header">
+                    <h2><img class="receipt-logo" src="${RECEIPT_LOGO_URL}" alt="Grateful Water Station logo">Grateful Water Station</h2>
+                    <div class="receipt-station-address">${STATION_ADDRESS}</div>
+                    <div class="receipt-date">${receiptDate}</div>
+                    <div class="receipt-time">${receiptTime}</div>
+                </div>
+                <div class="receipt-summary">
+                    <div>
+                        <span class="receipt-section-label">RECEIPT NUMBER</span>
+                        <strong>${data.order_number}</strong>
+                    </div>
+                    <span class="receipt-status">${data.status_display}</span>
+                </div>
+                <div class="receipt-section-title">ORDER ITEMS</div>
+                <div class="receipt-items">
+                    ${itemsHtml}
+                </div>
+                ${Number(data.discount || 0) > 0 ? `
+                <div class="receipt-promo-discount">
+                    <span>Buy 10, Get 1 Free</span>
+                    <span>-₱${Number(data.discount).toFixed(2)}</span>
+                </div>
+                ` : ''}
+                <div class="receipt-delivery-fee">
+                    <span>Delivery Fee</span>
+                    <span>₱${Number(data.delivery_fee || 0).toFixed(2)}</span>
+                </div>
+                <div class="receipt-total">
+                    <span>TOTAL</span>
+                    <span>₱${data.total_amount}</span>
+                </div>
+                <div class="receipt-section-title">TRANSACTION DETAILS</div>
+                <div class="receipt-info-row">
+                    <span class="receipt-info-label">Customer</span>
+                    <span class="receipt-info-value">${data.customer_name}</span>
+                </div>
+                <div class="receipt-info-row">
+                    <span class="receipt-info-label">Payment Method</span>
+                    <span class="receipt-info-value">${data.payment_method_display}</span>
+                </div>
+                <div class="receipt-info-row">
+                    <span class="receipt-info-label">Rider</span>
+                    <span class="receipt-info-value">${data.rider_name || 'Not assigned'}</span>
+                </div>
+                ${data.delivered_at ? `
+                <div class="receipt-info-row">
+                    <span class="receipt-info-label">Delivered At</span>
+                    <span class="receipt-info-value">${new Date(data.delivered_at).toLocaleString()}</span>
+                </div>
+                ` : ''}
+                <div class="receipt-actions">
+                    <button class="btn-print-receipt" onclick="downloadReceipt()">Download PDF</button>
+                    <button class="btn-close-receipt" onclick="closeReceiptModal()">Close</button>
+                </div>
+            `;
+        receiptContent.innerHTML = receiptHtml;
+    } catch (error) {
+        console.error('Error fetching receipt:', error);
+        const errorHeader = document.createElement('div');
+        errorHeader.className = 'receipt-header';
+        const title = document.createElement('h2');
+        title.textContent = 'Unable to load receipt';
+        const message = document.createElement('p');
+        message.textContent = error.message || 'Please try again.';
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close-receipt';
+        closeButton.textContent = 'Close';
+        closeButton.addEventListener('click', closeReceiptModal);
+        errorHeader.append(title, message, closeButton);
+        receiptContent.replaceChildren(errorHeader);
+    }
+}
+
+function closeReceiptModal() {
+    document.getElementById('receiptModal').style.display = 'none';
+}
+
+async function downloadReceipt() {
+    const receiptContent = document.getElementById('receiptContent');
+    const orderNumber = receiptContent.querySelector('.receipt-summary strong');
+    const orderNum = orderNumber ? orderNumber.textContent : 'receipt';
+    const originalReceiptStyle = receiptContent.getAttribute('style');
+    const receiptActions = receiptContent.querySelector('.receipt-actions');
+    const originalActionsStyle = receiptActions?.getAttribute('style');
+    try {
+        const pageWidthMm = 90;
+        const millimetersPerPixel = 25.4 / 96;
+        const receiptWidthPx = pageWidthMm / millimetersPerPixel;
+        receiptContent.style.width = `${receiptWidthPx}px`;
+        receiptContent.style.boxSizing = 'border-box';
+        receiptContent.style.maxWidth = 'none';
+        receiptContent.style.maxHeight = 'none';
+        receiptContent.style.height = 'auto';
+        receiptContent.style.overflow = 'visible';
+        receiptContent.style.boxShadow = 'none';
+        if (receiptActions) receiptActions.style.display = 'none';
+
+        const contentHeightPx = receiptContent.scrollHeight;
+        const pageHeightMm = Math.ceil(contentHeightPx * millimetersPerPixel);
+        const opt = {
+            margin: 0,
+            filename: `receipt_${orderNum}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                scrollX: 0,
+                scrollY: 0,
+                onclone: clonedDocument => {
+                    const clonedReceipt = clonedDocument.getElementById('receiptContent');
+                    if (!clonedReceipt) {
+                        throw new Error('Could not prepare the receipt for PDF export.');
+                    }
+                    const clonedModal = clonedReceipt.closest('.receipt-modal');
+                    if (clonedModal) {
+                        clonedModal.style.cssText = 'display:block;position:static;inset:auto;width:auto;height:auto;margin:0;padding:0;background:#fff;backdrop-filter:none;direction:ltr;';
+                    }
+                    clonedReceipt.style.width = `${receiptWidthPx}px`;
+                    clonedReceipt.style.boxSizing = 'border-box';
+                    clonedReceipt.style.margin = '0';
+                    clonedReceipt.style.padding = '0';
+                    clonedReceipt.style.border = '0';
+                    clonedReceipt.style.maxWidth = 'none';
+                    clonedReceipt.style.maxHeight = 'none';
+                    clonedReceipt.style.height = 'auto';
+                    clonedReceipt.style.overflow = 'visible';
+                    clonedReceipt.style.position = 'static';
+                    clonedReceipt.style.left = '0';
+                    clonedReceipt.style.right = 'auto';
+                    clonedReceipt.style.transform = 'none';
+                    clonedReceipt.style.direction = 'ltr';
+                    clonedReceipt.style.boxShadow = 'none';
+                    const clonedHeader = clonedReceipt.querySelector('.receipt-header');
+                    if (clonedHeader) {
+                        clonedHeader.style.width = '100%';
+                        clonedHeader.style.margin = '0';
+                        clonedHeader.style.boxSizing = 'border-box';
+                    }
+                },
+            },
+            jsPDF: { unit: 'mm', format: [pageWidthMm, pageHeightMm], orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all'] },
+        };
+        await html2pdf().set(opt).from(receiptContent).save();
+    } catch (error) {
+        console.error('Unable to generate receipt PDF:', error);
+        throw error;
+    } finally {
+        if (originalReceiptStyle === null) receiptContent.removeAttribute('style');
+        else receiptContent.setAttribute('style', originalReceiptStyle);
+        if (receiptActions) {
+            if (originalActionsStyle === null) receiptActions.removeAttribute('style');
+            else receiptActions.setAttribute('style', originalActionsStyle);
+        }
+    }
+}
+
+const STATUS_STEPS = ['pending', 'awaiting_payment', 'processing', 'send-to-rider', 'rider_accepted', 'out_for_delivery', 'delivered'];
+const STEP_PROGRESS = { pending: 8, awaiting_payment: 8, processing: 40, 'send-to-rider': 55, rider_accepted: 64, out_for_delivery: 73, delivered: 100 };
+
+function openTrackingModal(orderId, orderNum, status, delivLat, delivLng) {
+    if (riderRouteOrderId !== String(orderId)) {
+        riderRouteOrderId = String(orderId);
+        riderRouteRequestId += 1;
+        if (riderRouteLine) {
+            riderRouteLine.remove();
+            riderRouteLine = null;
+        }
+    }
+    currentTrackingOrderId = orderId;
+    currentTrackingDeliveryLat = delivLat;
+    currentTrackingDeliveryLng = delivLng;
+    document.getElementById('trackOrderNum').textContent = '#' + orderNum;
+    document.getElementById('trackingModal').style.display = 'flex';
+
+    setProgressSteps(status);
+    if (window.L) {
+        initTrackingMap(delivLat, delivLng);
+    } else {
+        document.getElementById('trackingMap').innerHTML =
+            '<p class="text-muted" style="padding:1rem;">Map is unavailable. Order status and rider details are still shown below.</p>';
+    }
+    fetchRiderLocation(orderId, delivLat, delivLng);
+
+    clearInterval(trackingRefreshTimer);
+    trackingRefreshTimer = setInterval(() => fetchRiderLocation(orderId, delivLat, delivLng), 30000);
+}
+
+function closeTrackingModal() {
+    document.getElementById('trackingModal').style.display = 'none';
+    clearInterval(trackingRefreshTimer);
+    currentTrackingOrderId = null;
+    currentTrackingDeliveryLat = null;
+    currentTrackingDeliveryLng = null;
+}
+
+function refreshTracking() {
+    if (!currentTrackingOrderId) return;
+    const btn = document.querySelector('#trackingModal .btn-track');
+    if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...'; }
+    fetchRiderLocation(
+        currentTrackingOrderId,
+        currentTrackingDeliveryLat,
+        currentTrackingDeliveryLng,
+        () => {
+        if (btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        }
+    );
+}
+
+function setProgressSteps(status) {
+    const steps = ['pending', 'processing', 'send-to-rider', 'rider_accepted', 'out_for_delivery', 'delivered'];
+    const activeIdx = steps.indexOf(status);
+
+    steps.forEach((s, idx) => {
+        const el = document.getElementById('step-' + s);
+        if (!el) return;
+        el.classList.remove('done', 'active');
+        if (idx < activeIdx) el.classList.add('done');
+        else if (idx === activeIdx) el.classList.add('active');
+    });
+
+    const pct = STEP_PROGRESS[status] || 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function initTrackingMap(delivLat, delivLng) {
+    if (!trackingMap) {
+        trackingMap = L.map('trackingMap').setView([STATION_LAT, STATION_LNG], 13);
+        const tileLayerConfig = {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Sources: Esri, HERE, Garmin, <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, and the GIS user community'
+        };
+        const mapTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', tileLayerConfig);
+
+        mapTileLayer.addTo(trackingMap);
+
+        const stationIcon = L.divIcon({
+            html: `<div style="background:#1a7db7;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;"><span style="font-size:8px;">💧</span></div>`,
+            className: '', iconAnchor: [8, 8]
+        });
+        L.marker([STATION_LAT, STATION_LNG], { icon: stationIcon })
+            .addTo(trackingMap)
+            .bindPopup(`<b>💧 Grateful Water Station</b><br><small>${STATION_ADDRESS}</small>`);
+    }
+
+    if (delivLat && delivLng) {
+        const delivIcon = L.divIcon({
+            html: `<div style="background:#e74c3c;width:14px;height:14px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>`,
+            className: '', iconAnchor: [7, 14]
+        });
+        if (deliveryPin) {
+            deliveryPin.setLatLng([delivLat, delivLng]);
+        } else {
+            deliveryPin = L.marker([delivLat, delivLng], { icon: delivIcon })
+                .addTo(trackingMap)
+                .bindPopup('<b>📍 Your Delivery Location</b>');
+        }
+        trackingMap.setView([delivLat, delivLng], 15);
+    }
+
+    setTimeout(() => trackingMap.invalidateSize(), 200);
+}
+
+function updateRiderRoadRoute(orderId, riderLat, riderLng, delivLat, delivLng) {
+    if (!trackingMap || riderRouteOrderId !== String(orderId)) return;
+
+    const routeRequestId = ++riderRouteRequestId;
+    const waypoints = [[riderLat, riderLng]];
+    if (delivLat && delivLng) waypoints.push([delivLat, delivLng]);
+    const coordinates = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(';');
+    const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+
+    fetch(routeUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Road route request failed (${response.status})`);
+            }
+            return response.json();
+        })
+        .then(routeData => {
+            if (
+                routeRequestId !== riderRouteRequestId ||
+                riderRouteOrderId !== String(orderId) ||
+                !routeData.routes ||
+                !routeData.routes.length ||
+                !routeData.routes[0].geometry ||
+                !routeData.routes[0].geometry.coordinates
+            ) {
+                return;
+            }
+
+            const routePoints = routeData.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+            if (riderRouteLine) {
+                riderRouteLine.setLatLngs(routePoints);
+            } else {
+                riderRouteLine = L.polyline(routePoints, {
+                    color: '#536dfe',
+                    weight: 5,
+                    opacity: 0.9,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(trackingMap).bindPopup('<b>Rider road route</b><br><small>Station to your delivery location</small>');
+            }
+        })
+        .catch(error => {
+            console.error('Unable to load the rider road route:', error);
+        });
+}
+
+function fetchRiderLocation(orderId, delivLat, delivLng, callback) {
+    fetch("{% url 'get_rider_location' 0 %}".replace('/0/', `/${orderId}/`), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Tracking request failed (${response.status})`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.order_status) setProgressSteps(data.order_status);
+
+            if (!data.has_rider) {
+                document.getElementById('riderInfoBox').style.display = 'none';
+                document.getElementById('noRiderMsg').style.display = 'block';
+            } else {
+                document.getElementById('noRiderMsg').style.display = 'none';
+                document.getElementById('riderInfoBox').style.display = 'flex';
+                document.getElementById('riderNameDisplay').textContent = data.rider_name;
+                document.getElementById('riderPhoneDisplay').textContent = data.rider_phone || '';
+
+                if (data.lat && data.lng) {
+                    // Reverse geocode to get address name
+                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${data.lat}&lon=${data.lng}&format=json`)
+                        .then(r => r.json())
+                        .then(geoData => {
+                            const address = geoData.display_name || `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
+                            document.getElementById('riderLocationDisplay').textContent = ` ${address} — Live location`;
+                        })
+                        .catch(() => {
+                            document.getElementById('riderLocationDisplay').textContent = ` ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)} — Live location`;
+                        });
+
+                    if (!window.L) {
+                        document.getElementById('riderLocationDisplay').textContent =
+                            'Rider location is available, but the map could not be loaded.';
+                        if (callback) callback();
+                        return;
+                    }
+                    if (!trackingMap) initTrackingMap(delivLat, delivLng);
+                    const riderIcon = L.divIcon({
+                        html: `<div style="background:#10b981;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(16,185,129,.25),0 2px 8px rgba(0,0,0,.3);animation:rPulse 1.5s infinite;"></div>
+                               <style>@keyframes rPulse{0%,100%{box-shadow:0 0 0 4px rgba(16,185,129,.25),0 2px 8px rgba(0,0,0,.3);}50%{box-shadow:0 0 0 8px rgba(16,185,129,.1),0 2px 8px rgba(0,0,0,.3);}}</style>`,
+                        className: '', iconAnchor: [8, 8]
+                    });
+
+                    if (riderPin) {
+                        riderPin.setLatLng([data.lat, data.lng]);
+                    } else {
+                        riderPin = L.marker([data.lat, data.lng], { icon: riderIcon })
+                            .addTo(trackingMap)
+                            .bindPopup(`<b>🏍 ${data.rider_name}</b><br><small>Your delivery rider</small>`);
+                    }
+
+                    updateRiderRoadRoute(orderId, data.lat, data.lng, delivLat, delivLng);
+
+                    const points = [[data.lat, data.lng]];
+                    if (delivLat && delivLng) points.push([delivLat, delivLng]);
+                    try { trackingMap.fitBounds(points, { padding: [40, 40] }); } catch(e) {}
+
+                } else {
+                    document.getElementById('riderLocationDisplay').textContent = 'Rider location not available yet.';
+                }
+            }
+            if (callback) callback();
+        })
+        .catch(error => {
+            console.error('Unable to load order tracking:', error);
+            document.getElementById('noRiderMsg').style.display = 'block';
+            document.getElementById('noRiderMsg').innerHTML =
+                '<i class="fas fa-exclamation-circle"></i><p>Unable to load tracking details. Please refresh and try again.</p>';
+            if (callback) callback();
+        });
+}
+
+function closeReturnModal() {
+    const modal = document.getElementById('returnModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function closeReturnReasonModal() {
+    document.getElementById('returnReasonModal').style.display = 'none';
+}
+
+function showReturnError(message) {
+    const error = document.getElementById('returnRequestError');
+    error.textContent = message;
+    error.style.display = 'block';
+}
+
+let returnSuccessToastTimeout;
+function hideReturnSuccessToast() {
+    const toast = document.getElementById('returnSuccessToast');
+    toast.classList.remove('is-visible');
+    toast.setAttribute('aria-hidden', 'true');
+}
+
+function showReturnSuccessToast() {
+    const toast = document.getElementById('returnSuccessToast');
+    window.clearTimeout(returnSuccessToastTimeout);
+    toast.classList.add('is-visible');
+    toast.setAttribute('aria-hidden', 'false');
+    returnSuccessToastTimeout = window.setTimeout(hideReturnSuccessToast, 5000);
+}
+
+document.querySelector('[data-dismiss-return-toast]').addEventListener('click', () => {
+    window.clearTimeout(returnSuccessToastTimeout);
+    hideReturnSuccessToast();
+});
+
+document.querySelector('[data-close-return]').addEventListener('click', closeReturnModal);
+document.querySelector('[data-close-return-reason]').addEventListener('click', closeReturnReasonModal);
+function populateReturnItems(orderRow) {
+    const container = document.getElementById('returnItemsSelection');
+    container.replaceChildren();
+    const orderItems = orderRow ? Array.from(orderRow.querySelectorAll('.order-return-item')) : [];
+    orderItems.forEach(item => {
+        const itemId = item.dataset.orderItemId;
+        const quantity = Number(item.dataset.quantity);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'return-item-choice';
+
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = itemId;
+        checkbox.className = 'return-item-selected';
+        const name = document.createElement('span');
+        name.textContent = `${item.dataset.productName} (bought ${quantity})`;
+        label.append(checkbox, name);
+
+        const quantityInput = document.createElement('input');
+        quantityInput.type = 'number';
+        quantityInput.className = 'return-item-quantity';
+        quantityInput.min = '1';
+        quantityInput.max = String(quantity);
+        quantityInput.value = '1';
+        quantityInput.disabled = true;
+        quantityInput.setAttribute('aria-label', `Quantity of ${item.dataset.productName} to return`);
+        checkbox.addEventListener('change', () => {
+            quantityInput.disabled = !checkbox.checked;
+        });
+        wrapper.append(label, quantityInput);
+        container.appendChild(wrapper);
+    });
+}
+
+document.getElementById('returnRequestForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const selectedItems = Array.from(document.querySelectorAll('.return-item-choice'))
+        .map(choice => ({
+            order_item_id: Number(choice.querySelector('.return-item-selected').value),
+            quantity: Number(choice.querySelector('.return-item-quantity').value),
+            selected: choice.querySelector('.return-item-selected').checked,
+        }))
+        .filter(item => item.selected)
+        .map(({order_item_id, quantity}) => ({order_item_id, quantity}));
+    if (!selectedItems.length) {
+        showReturnError('Select at least one item to return.');
+        return;
+    }
+
+    const submitButton = form.querySelector('[type="submit"]');
+    submitButton.disabled = true;
+    document.getElementById('returnRequestError').style.display = 'none';
+    try {
+        const formData = new FormData();
+        formData.append('items', JSON.stringify(selectedItems));
+        formData.append('reason', document.getElementById('returnReason').value);
+        formData.append('details', document.getElementById('returnDetails').value);
+        Array.from(document.getElementById('returnEvidence').files).forEach(file => {
+            formData.append('evidence_images', file);
+        });
+        const response = await fetch(document.getElementById('returnRequestUrl').value, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+            },
+            body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to submit the return request.');
+
+        const orderId = document.getElementById('returnOrderId').value;
+        const button = Array.from(document.querySelectorAll('[data-return-order-id]'))
+            .find(candidate => candidate.dataset.returnOrderId === orderId);
+        if (button) {
+            const row = button.closest('.order-row');
+            const statusCell = row && row.querySelector('td:nth-child(4)');
+            if (statusCell) {
+                statusCell.textContent = '';
+                const status = document.createElement('span');
+                status.className = 'return-status pending';
+                status.textContent = 'Return';
+                statusCell.append(status);
+            }
+            button.remove();
+        }
+        closeReturnModal();
+        showReturnSuccessToast();
+    } catch (error) {
+        showReturnError(error.message);
+    } finally {
+        submitButton.disabled = false;
+    }
+});
+
+let refreshingCustomerOrders = false;
+async function refreshCustomerOrdersInPlace() {
+    if (refreshingCustomerOrders) return;
+    refreshingCustomerOrders = true;
+    try {
+        const response = await fetch(window.location.href, {
+            cache: 'no-store',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!response.ok) throw new Error(`Order refresh failed (${response.status})`);
+        const html = await response.text();
+        const updatedDocument = new DOMParser().parseFromString(html, 'text/html');
+        const currentTable = document.getElementById('ordersTable');
+        const updatedTable = updatedDocument.getElementById('ordersTable');
+        if (!currentTable || !updatedTable) {
+            throw new Error('Unable to find the customer orders table in the refreshed page.');
+        }
+        currentTable.innerHTML = updatedTable.innerHTML;
+        filterOrders();
+    } catch (error) {
+        console.error('Unable to update customer return statuses:', error);
+    } finally {
+        refreshingCustomerOrders = false;
+    }
+}
+
+document.addEventListener('gws:live-update', event => {
+    if (event.detail?.customerReturnChanged) refreshCustomerOrdersInPlace();
+});
+
+document.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const receiptButton = target && target.closest('[data-receipt-url]');
+    if (receiptButton) {
+        viewReceipt(receiptButton.dataset.receiptUrl);
+        return;
+    }
+
+    const trackButton = target && target.closest('[data-track-order-id]');
+    if (trackButton) {
+        const lat = trackButton.dataset.deliveryLat;
+        const lng = trackButton.dataset.deliveryLng;
+        openTrackingModal(
+            Number(trackButton.dataset.trackOrderId),
+            trackButton.dataset.orderNumber,
+            trackButton.dataset.orderStatus,
+            lat ? Number(lat) : null,
+            lng ? Number(lng) : null
+        );
+        return;
+    }
+
+    const returnButton = target && target.closest('[data-return-order-id]');
+    if (returnButton) {
+        document.getElementById('returnOrderId').value = returnButton.dataset.returnOrderId;
+        document.getElementById('returnRequestUrl').value = returnButton.dataset.returnUrl;
+        populateReturnItems(returnButton.closest('.order-row'));
+        document.getElementById('returnReason').value = '';
+        document.getElementById('returnDetails').value = '';
+        document.getElementById('returnEvidence').value = '';
+        document.getElementById('returnRequestError').style.display = 'none';
+        document.getElementById('returnModal').style.display = 'flex';
+        return;
+    }
+
+    const reasonButton = target && target.closest('[data-return-reason]');
+    if (reasonButton) {
+        const reasonModal = document.getElementById('returnReasonModal');
+        const reasonContent = document.getElementById('returnReasonContent');
+        reasonContent.textContent = reasonButton.dataset.returnReason || 'No instructions or reason was provided.';
+        reasonModal.style.display = 'flex';
+        return;
+    }
+});
+
+window.addEventListener('click', e => {
+    if (e.target === document.getElementById('trackingModal')) closeTrackingModal();
+    if (e.target === document.getElementById('receiptModal')) closeReceiptModal();
+    if (e.target === document.getElementById('photoModal')) closePhotoModal();
+    if (e.target === document.getElementById('returnModal')) closeReturnModal();
+    if (e.target === document.getElementById('returnReasonModal')) closeReturnReasonModal();
+});
+
+// Mobile sidebar
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+    const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+    document.body.append(btn, ov);
+    const sb = document.querySelector('.sidebar');
+    const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+    const open  = () => { sb.classList.add('active');    ov.classList.add('active');    btn.querySelector('i').className = 'fas fa-times'; };
+    btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+    ov.addEventListener('click', close);
+    document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+        if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+            close();
+        }
+    }));
+    window.addEventListener('resize', () => window.innerWidth > 768 && close());
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTrackingModal(); closeReceiptModal(); closePhotoModal(); closeReturnReasonModal(); close(); } });
+
+    // ── Poll unread count for Messages badge ──
+    const UNREAD_URL = "{% url 'unread_message_count_api' %}";
+    function pollUnreadBadge() {
+        fetch(UNREAD_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            document.querySelectorAll('.sidebar .unread-badge').forEach(badge => {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        })
+        .catch(() => {});
+    }
+    setInterval(pollUnreadBadge, 5000);
+    pollUnreadBadge(); // Run immediately on load
+
+    // ── Poll for order status updates ──
+    function pollOrderStatuses() {
+        fetch(window.location.href, {
+            cache: 'no-store',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Order refresh failed (${response.status})`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const newDoc = parser.parseFromString(html, 'text/html');
+            const newRowsById = new Map(
+                Array.from(newDoc.querySelectorAll('.order-row'))
+                    .map(row => [row.dataset.orderId, row])
+            );
+
+            document.querySelectorAll('.order-row').forEach(currentRow => {
+                const newRow = newRowsById.get(currentRow.dataset.orderId);
+                if (!newRow) return;
+
+                currentRow.dataset.status = newRow.dataset.status;
+                [4, 5, 6, 7].forEach(column => {
+                    const currentCell = currentRow.querySelector(`td:nth-child(${column})`);
+                    const newCell = newRow.querySelector(`td:nth-child(${column})`);
+                    if (currentCell && newCell && currentCell.innerHTML !== newCell.innerHTML) {
+                        currentCell.innerHTML = newCell.innerHTML;
+                    }
+                });
+            });
+            filterOrders();
+        })
+        .catch(error => console.error('Unable to refresh customer orders:', error));
+    }
+    
+    // ── Manual refresh function ──
+    window.refreshOrderList = function() {
+        const btn = event?.target;
+        if (btn) btn.style.opacity = '0.6';
+        pollOrderStatuses();
+        if (btn) {
+            setTimeout(() => { btn.style.opacity = '1'; }, 300);
+        }
+    }
+    
+    pollOrderStatuses();
+    setInterval(pollOrderStatuses, 5000);
+
+    // ── Order Filtering & Sorting ──
+    calculateStats();
+});
+
+// Filter orders by status and date
+function filterOrders() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const rows = document.querySelectorAll('.order-row');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        const orderDate = new Date(row.dataset.date);
+        orderDate.setHours(0, 0, 0, 0);
+
+        let statusMatch = !statusFilter || status === statusFilter;
+        let dateMatch = true;
+
+        if (dateFilter) {
+            const diffTime = today - orderDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            switch(dateFilter) {
+                case 'today':
+                    dateMatch = diffDays === 0;
+                    break;
+                case 'week':
+                    dateMatch = diffDays <= 7;
+                    break;
+                case 'month':
+                    dateMatch = orderDate.getMonth() === today.getMonth() && orderDate.getFullYear() === today.getFullYear();
+                    break;
+                case 'year':
+                    dateMatch = orderDate.getFullYear() === today.getFullYear();
+                    break;
+            }
+        }
+
+        if (statusMatch && dateMatch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    calculateStats();
+}
+
+// Sort orders
+function sortOrders() {
+    const sortBy = document.getElementById('sortBy').value;
+    const tbody = document.querySelector('table tbody');
+    const rows = Array.from(document.querySelectorAll('.order-row'));
+
+    rows.sort((a, b) => {
+        switch(sortBy) {
+            case 'newest':
+                return new Date(b.dataset.timestamp) - new Date(a.dataset.timestamp);
+            case 'oldest':
+                return new Date(a.dataset.timestamp) - new Date(b.dataset.timestamp);
+            case 'highest':
+                return parseFloat(b.dataset.amount) - parseFloat(a.dataset.amount);
+            case 'lowest':
+                return parseFloat(a.dataset.amount) - parseFloat(b.dataset.amount);
+            default:
+                return 0;
+        }
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// Calculate and display stats
+function calculateStats() {
+    const visibleRows = Array.from(document.querySelectorAll('.order-row')).filter(r => r.style.display !== 'none');
+
+    let delivered = 0, pending = 0, totalSpent = 0;
+
+    visibleRows.forEach(row => {
+        const status = row.dataset.status;
+        const amount = parseFloat(row.dataset.amount) || 0;
+
+        if (status === 'delivered') delivered++;
+        if (['pending', 'awaiting_payment', 'choose_rider', 'out_for_delivery'].includes(status)) pending++;
+        totalSpent += amount;
+    });
+
+    document.getElementById('totalOrdersCount').textContent = visibleRows.length;
+    document.getElementById('deliveredCount').textContent = delivered;
+    document.getElementById('pendingCount').textContent = pending;
+    document.getElementById('totalSpent').textContent = '₱' + totalSpent.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+</script>
+</body>
+</html>

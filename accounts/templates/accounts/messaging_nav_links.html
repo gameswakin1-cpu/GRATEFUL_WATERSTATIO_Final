@@ -1,0 +1,32 @@
+{% if user_role == 'admin' %}
+    {% include "accounts/admin_nav_links.html" %}
+{% elif user_role == 'customer' %}
+<ul class="nav-links">
+    <li><a href="{% url 'customer_dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+    <li><a href="{% url 'customer_order' %}"><i class="fas fa-shopping-cart"></i> Place Order</a></li>
+    <li><a href="{% url 'customer_orders' %}"><i class="fas fa-history"></i> My Orders</a></li>
+    <li><a href="{% url 'customer_returns' %}"><i class="fas fa-undo"></i> Return</a></li>
+    <li><a href="{% url 'messaging_inbox' %}" class="active"><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+    <li><a href="{% url 'customer_profile' %}"><i class="fas fa-user"></i> Profile</a></li>
+    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+</ul>
+{% elif user_role == 'rider' %}
+<ul class="nav-links">
+    <li><a href="{% url 'rider_dashboard' %}" {% if request.resolver_match.url_name == 'rider_dashboard' %}class="active" aria-current="page"{% endif %}><i class="fas fa-motorcycle"></i> Dashboard</a></li>
+    <li><a href="{% url 'rider_delivery_history' %}" {% if request.resolver_match.url_name == 'rider_delivery_history' %}class="active" aria-current="page"{% endif %}><i class="fas fa-history"></i> Delivery History</a></li>
+    <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' or request.resolver_match.url_name == 'conversation_detail' or request.resolver_match.url_name == 'compose_message' %}class="active" aria-current="page"{% endif %}><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+    <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active" aria-current="page"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+</ul>
+{% else %}
+<ul class="nav-links">
+    <li><a href="{% url 'staff_dashboard' %}"><i class="fas fa-th-large"></i> Dashboard</a></li>
+    <li><a href="{% url 'pos_dashboard' %}"><i class="fas fa-cash-register"></i> Products</a></li>
+    <li><a href="{% url 'manage_orders' %}"><i class="fas fa-shopping-cart"></i> Orders</a></li>
+    <li><a href="{% url 'inventory_list' %}"><i class="fas fa-boxes"></i> Inventory</a></li>
+    <li><a href="{% url 'sale_list' %}"><i class="fas fa-history"></i> Sales History</a></li>
+    <li><a href="{% url 'messaging_inbox' %}" class="active"><i class="fas fa-envelope"></i> Messaging <span class="unread-badge" style="display:none;">0</span></a></li>
+    <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active" aria-current="page"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+</ul>
+{% endif %}

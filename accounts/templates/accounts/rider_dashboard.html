@@ -1,0 +1,2544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a8ad4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="GWS Rider">
+    <meta name="description" content="Delivery rider app for Grateful Water Station">
+    <title>Rider Dashboard - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'accounts/icons/icon-192x192.png' %}">
+    <link rel="manifest" href="{% static 'accounts/manifest.json' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    <script src="{% static 'accounts/js/dashboard_topbar.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" crossorigin=""/>
+    <style>
+        /* ── LOGISTICS PANEL TABS ── */
+        .logistics-tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 1.5rem;
+            padding: 0.5rem;
+            background: var(--gray-100);
+            border-radius: var(--radius-lg);
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.25rem;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .tab-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: var(--radius-md);
+        }
+        .tab-btn:hover {
+            color: var(--gray-700);
+            transform: translateY(-1px);
+        }
+        .tab-btn.active {
+            color: white;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: var(--shadow-md);
+        }
+        .tab-btn i { position: relative; z-index: 1; }
+        .tab-btn span { position: relative; z-index: 1; }
+        .tab-panel { display: none; animation: fadeIn 0.3s ease; }
+        .tab-panel.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── MAP ── */
+        #riderMap { width: 100%; height: 420px; border-radius: 12px; border: 1.5px solid var(--border); z-index: 1; }
+        .map-controls { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: .75rem; align-items: center; }
+        .map-legend {
+            display: flex; gap: 1.25rem; flex-wrap: wrap; margin-top: .75rem;
+            padding: .75rem 1rem; background: #f8fafc; border-radius: 8px; font-size: .78rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: .4rem; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,.3); flex-shrink: 0; }
+
+        /* Modern Map Controls */
+        .leaflet-control-zoom {
+            border: none !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 18px !important;
+            color: #334155 !important;
+            background: white !important;
+            border: none !important;
+            transition: all 0.2s ease;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--blue-50) !important;
+            color: var(--primary) !important;
+        }
+
+        /* Custom Station Marker */
+        .custom-marker-station {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            width: 40px;
+            height: 40px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(26, 138, 212, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-marker-station i {
+            transform: rotate(45deg);
+            color: white;
+            font-size: 16px;
+        }
+
+        /* Modern Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            padding: 12px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            color: #334155;
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 10px 16px;
+            font-weight: 600;
+            margin: -12px -16px 10px -16px;
+        }
+
+        .leaflet-container a.leaflet-popup-close-button {
+            color: white;
+            font-size: 20px;
+            top: 8px;
+            right: 8px;
+        }
+
+        .leaflet-container a.leaflet-popup-close-button:hover {
+            color: rgba(255,255,255,0.8);
+        }
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 640px) {
+            #riderMap { height: 350px; }
+            .leaflet-control-zoom a {
+                width: 32px !important;
+                height: 32px !important;
+                line-height: 32px !important;
+                font-size: 16px !important;
+            }
+        }
+
+        /* ── DELIVERY CARDS ── */
+        .delivery-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1rem;
+        }
+        .return-pickups-panel {
+            margin: 1.25rem 0;
+            padding: 1.25rem;
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            background: #f8fbff;
+        }
+        .return-pickups-heading {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            margin: 0 0 1rem;
+            color: #19324d;
+            font-size: 1rem;
+        }
+        .return-pickups-heading i { color: #1677d2; }
+        .return-pickup-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: .85rem;
+        }
+        .return-pickup-card {
+            padding: 1rem;
+            border: 1px solid #dbe3ec;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(55, 80, 111, .06);
+        }
+        .return-pickup-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: .5rem;
+            margin-bottom: .75rem;
+        }
+        .return-pickup-order { color: #1769d1; font-weight: 700; }
+        .return-pickup-state {
+            padding: .25rem .55rem;
+            border-radius: 999px;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .return-pickup-card p {
+            display: flex;
+            align-items: flex-start;
+            gap: .5rem;
+            margin: .45rem 0;
+            color: #475569;
+            font-size: .82rem;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+        .return-pickup-card p i { width: 16px; margin-top: 2px; color: #64748b; }
+        .return-pickup-action {
+            width: 100%;
+            min-height: 40px;
+            margin-top: .75rem;
+            border: 0;
+            border-radius: 8px;
+            background: #1677d2;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .return-pickup-action:hover { background: #125fb0; }
+        .return-pickup-action:disabled { opacity: .65; cursor: wait; }
+        .return-pickup-feedback { margin: .55rem 0 0; color: #b91c1c; font-size: .78rem; }
+        .return-pickups-empty { margin: 0; color: #64748b; font-size: .85rem; }
+        .delivery-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .delivery-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--warning), #fbbf24);
+            border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+        }
+        .delivery-card.status-out_for_delivery::before {
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+        }
+        .delivery-card.status-processing::before {
+            background: linear-gradient(180deg, var(--info), #a78bfa);
+        }
+        .delivery-card.status-pending::before {
+            background: linear-gradient(180deg, var(--warning), #fbbf24);
+        }
+        .delivery-card.status-cancelled::before {
+            background: linear-gradient(180deg, var(--danger), #f87171);
+        }
+        .delivery-card.status-delivered::before {
+            background: linear-gradient(180deg, var(--success), #34d399);
+        }
+        .delivery-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg), 0 0 0 1px rgba(14, 165, 233, 0.1);
+            border-color: var(--primary-light);
+        }
+        .delivery-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .delivery-order-num {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: linear-gradient(135deg, var(--primary-light), #dbeafe);
+            padding: 0.4rem 0.875rem;
+            border-radius: 50px;
+            letter-spacing: 0.5px;
+        }
+        .delivery-status {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .delivery-status.hidden { display: none; }
+        .delivery-status.pending { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
+        .delivery-status.processing { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6; }
+        .delivery-status.out_for_delivery { background: linear-gradient(135deg, #fed7aa, #fdba74); color: #9a3412; }
+        .delivery-status.delivered { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; }
+        .delivery-status.cancelled { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #991b1b; }
+        .delivery-card-body p {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            line-height: 1.5;
+        }
+        .delivery-card-body p i {
+            color: var(--gray-400);
+            margin-top: 3px;
+            flex-shrink: 0;
+            width: 16px;
+            font-size: 0.875rem;
+        }
+        .delivery-card-body strong { color: var(--gray-800); font-weight: 600; }
+        .delivery-message-input {
+            flex: 1;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid #d6e0ea;
+            border-radius: 0.65rem;
+            background: #fff;
+            color: var(--gray-700);
+            font: inherit;
+            font-size: 0.82rem;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .delivery-message-input::placeholder { color: #94a3b8; }
+        .delivery-message-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 138, 212, 0.12);
+        }
+        .delivery-message-form {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            width: 100%;
+            margin-top: 0.75rem;
+        }
+        .delivery-message-send {
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            border: 0;
+            border-radius: 0.65rem;
+            background: var(--primary);
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .delivery-message-send:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .delivery-message-send:disabled { opacity: 0.65; cursor: wait; transform: none; }
+        .delivery-card-actions {
+            display: flex;
+            width: 100%;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+            flex-wrap: nowrap;
+        }
+        .delivery-card-actions > .btn-xs {
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+        }
+        .delivery-card-actions > .btn-xs:only-child {
+            flex-basis: 100%;
+        }
+
+        .btn-xs {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-xs::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        .btn-xs:hover::before {
+            left: 100%;
+        }
+        .btn-xs.blue {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
+        }
+        .btn-xs.blue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+        }
+        .btn-xs.green {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+        }
+        .btn-xs.green:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        .btn-xs.orange {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
+        }
+        .btn-xs.orange:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+        }
+        .btn-xs.purple {
+            background: linear-gradient(135deg, var(--info), #7c3aed);
+            color: white;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+        }
+        .btn-xs.purple:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        /* ── QUICK ACTIONS BAR ── */
+        .quick-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .action-chip {
+            padding: 0.6rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+        .action-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+        .action-chip i {
+            font-size: 0.9rem;
+        }
+        .action-chip.emergency {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+        .action-chip.emergency:hover {
+            background: linear-gradient(135deg, #fecaca, #fca5a5);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+        }
+        .action-chip.scan {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+        .action-chip.scan:hover {
+            background: linear-gradient(135deg, #bfdbfe, #93c5fd);
+            box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+        }
+
+        /* ── EARNINGS CARD ── */
+        .earnings-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            color: white;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        .earnings-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .earnings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .earnings-header h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .earnings-amount {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+        .earnings-breakdown {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* ── DELIVERY TIMELINE ── */
+        .delivery-timeline {
+            display: flex;
+            justify-content: space-between;
+            margin: 1rem 0;
+            padding: 0 0.5rem;
+            position: relative;
+        }
+        .delivery-timeline::before {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 12%;
+            right: 12%;
+            height: 3px;
+            background: var(--gray-200);
+            border-radius: 3px;
+        }
+        .timeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            z-index: 1;
+            flex: 1;
+        }
+        .timeline-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--gray-300);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: var(--gray-400);
+            transition: all 0.3s ease;
+        }
+        .timeline-step.done .timeline-dot {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        .timeline-step.active .timeline-dot {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2);
+            animation: pulse-dot 2s infinite;
+        }
+        .timeline-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-align: center;
+            max-width: 60px;
+            line-height: 1.2;
+        }
+        .timeline-step.done .timeline-label,
+        .timeline-step.active .timeline-label {
+            color: var(--gray-800);
+        }
+
+        /* ── CUSTOMER PREVIEW ── */
+        .customer-preview {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gray-50), white);
+            border-radius: var(--radius-lg);
+            margin-bottom: 1rem;
+            border: 1px solid var(--gray-200);
+        }
+        .customer-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .customer-info {
+            flex: 1;
+        }
+        .customer-info h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 0 0 0.25rem 0;
+        }
+        .customer-info p {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .customer-info p i {
+            color: #fbbf24;
+        }
+        .btn-call {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .btn-call:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        /* ── ACTION BUTTONS (ACCEPT/OUT FOR DELIVERY) ── */
+        .btn-action {
+            padding: 0.6rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex: 1;
+            justify-content: center;
+            min-width: 130px;
+        }
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(0.3);
+        }
+        .btn-action.accept {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
+        }
+        .btn-action.accept:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(21, 128, 61, 0.4);
+        }
+        .btn-action.out {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+            box-shadow: 0 4px 12px rgba(180, 83, 9, 0.3);
+        }
+        .btn-action.out:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(180, 83, 9, 0.4);
+        }
+        .btn-action:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        /* ── STAT TREND ── */
+        .stat-trend {
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-top: 0.25rem;
+            color: white;
+            opacity: 0.7;
+        }
+        .stat-trend.up {
+            color: #4ade80;
+        }
+        .stat-trend.down {
+            color: #f87171;
+        }
+
+        /* ── DROPDOWN MENU ── */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            z-index: 100;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .dropdown-content a {
+            color: #374151;
+            padding: 10px 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dropdown-content a:hover { background-color: #f8fafc; }
+        .dropdown-content a i { width: 16px; text-align: center; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .dropdown-btn { position: relative; }
+        .dropdown-btn::after {
+            content: '▼';
+            font-size: 0.6rem;
+            margin-left: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .dropdown-content {
+                min-width: 160px;
+                right: auto;
+                left: 0;
+            }
+            .dropdown-content a {
+                padding: 12px 14px;
+                font-size: 0.85rem;
+            }
+            .dropdown-btn::after {
+                font-size: 0.5rem;
+            }
+        }
+
+        /* ── SCHEDULE TABLE ── */
+        #tab-schedule .schedule-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem 1rem;
+            margin-bottom: 1rem;
+            padding: .9rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fff;
+        }
+        #tab-schedule .schedule-heading {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            margin: 0;
+            color: #1a7db7;
+            line-height: 1.3;
+        }
+        #tab-schedule .schedule-heading i {
+            flex: 0 0 auto;
+        }
+        #tab-schedule .schedule-date {
+            flex: 0 0 auto;
+            margin-left: 0;
+            padding: .4rem .7rem .4rem 0;
+            border-radius: 999px;
+            background: transparent;
+            border: 0;
+            color: #475569;
+            font-size: .8rem;
+            line-height: 1.35;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.875rem;
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .schedule-table th {
+            background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        .schedule-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-600);
+        }
+        .schedule-table tr:hover td {
+            background: var(--gray-50);
+            transition: background 0.2s ease;
+        }
+        .schedule-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ── FEE CONFIG ── */
+        .fee-config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .fee-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; text-align: center; }
+        .fee-card .fee-label { font-size: .78rem; color: #64748b; margin-bottom: .3rem; }
+        .fee-card .fee-value { font-size: 1.5rem; font-weight: 700; color: #1a7db7; }
+        .fee-card .fee-sub { font-size: .72rem; color: #94a3b8; margin-top: .25rem; }
+
+        /* ── STATUS RIBBON ── */
+        .status-ribbon {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 50%, var(--secondary) 100%);
+            border-radius: var(--radius-xl);
+            color: white;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-lg), 0 0 30px rgba(14, 165, 233, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .status-ribbon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        .rider-status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3), 0 0 20px var(--success);
+            flex-shrink: 0;
+            animation: pulse-status 2s infinite;
+        }
+        @keyframes pulse-status {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3), 0 0 20px var(--success); }
+            50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.1), 0 0 30px var(--success); }
+        }
+        .rider-status-indicator.offline {
+            background: var(--gray-400);
+            box-shadow: none;
+            animation: none;
+        }
+        .status-ribbon span { font-size: 0.9rem; font-weight: 500; position: relative; z-index: 1; }
+        .btn-toggle-status {
+            padding: 0.5rem 1.25rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }
+        .btn-toggle-status:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty-deliveries {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--gray-400);
+            background: linear-gradient(135deg, var(--gray-50), white);
+            border-radius: var(--radius-xl);
+            border: 2px dashed var(--gray-200);
+        }
+        .empty-deliveries i {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--gray-300), var(--gray-400));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .empty-deliveries p { font-size: 1rem; }
+
+        /* ── STATS GRID MODERN ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            color: white;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+        .stat-icon.orange {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+        .stat-icon.blue {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+        }
+        .stat-icon.green {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+        }
+        .stat-icon.red {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+        }
+        .stat-info h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: white;
+            margin: 0 0 0.25rem 0;
+            opacity: 0.9;
+        }
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1;
+        }
+
+        /* ── MODERN MAP CONTROLS ── */
+        .map-controls {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        .map-legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            padding: 1rem 1.25rem;
+            background: white;
+            border-radius: var(--radius-lg);
+            font-size: 0.8rem;
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: var(--shadow);
+            flex-shrink: 0;
+        }
+        #riderMap {
+            width: 100%;
+            height: 420px;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow);
+            z-index: 1;
+        }
+
+        /* ── MODERN DROPDOWN ── */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-md);
+            z-index: 100;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            animation: dropdownSlide 0.2s ease;
+        }
+        @keyframes dropdownSlide {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-content a {
+            color: var(--gray-700);
+            padding: 0.75rem 1rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dropdown-content a:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .delivery-cards { grid-template-columns: 1fr; }
+            .map-controls { flex-direction: column; align-items: stretch; }
+            #riderMap { height: 300px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            #tab-schedule .schedule-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            #tab-schedule .schedule-date {
+                margin-left: 0;
+            }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Match the shared minimalist dashboard card system */
+        .stat-card,
+        .earnings-card,
+        .delivery-card {
+            background: #fff !important;
+            color: var(--text) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: var(--shadow) !important;
+        }
+        .stat-card::before,
+        .earnings-card::before,
+        .delivery-card::before {
+            display: none !important;
+        }
+        .stat-card:hover,
+        .earnings-card:hover,
+        .delivery-card:hover {
+            border-color: var(--border-mid) !important;
+            box-shadow: var(--shadow-hover) !important;
+            transform: translateY(-3px);
+        }
+        .stat-info h3,
+        .earnings-header h3 {
+            color: var(--text) !important;
+            opacity: 1 !important;
+        }
+        .stat-number,
+        .earnings-amount {
+            color: var(--text) !important;
+        }
+        .stat-icon {
+            background: var(--blue-50) !important;
+            color: var(--primary) !important;
+        }
+        .earnings-card.stat-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-height: 108px;
+            padding: 1rem 1.05rem;
+            border-radius: 15px !important;
+            background: #fff !important;
+            border-color: #b6d4f5 !important;
+        }
+        .earnings-card .stat-icon {
+            display: flex;
+            flex: 0 0 38px;
+            width: 38px;
+            height: 38px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: .9rem;
+        }
+        .earnings-card .stat-icon.blue { background: #e5f3ff !important; color: #1677d2 !important; }
+        .earnings-card .stat-icon.green { background: #eaf9f0 !important; color: #15803d !important; }
+        .earnings-card .stat-icon.orange { background: #fff7e6 !important; color: #d97706 !important; }
+        .earnings-card .stat-info {
+            min-width: 0;
+        }
+        .earnings-card .stat-info h3 {
+            margin: 0 0 .25rem;
+            color: #91a0af !important;
+            font-size: .62rem;
+            font-weight: 400;
+            line-height: 1.2;
+            letter-spacing: .45px;
+        }
+        .earnings-card .stat-number {
+            color: var(--text) !important;
+            font-size: 1.32rem;
+            line-height: 1.1;
+            overflow-wrap: anywhere;
+        }
+        @media (min-width: 901px) {
+            .earnings-card.stat-card {
+                min-height: 120px;
+                padding: 1.15rem 1.2rem;
+            }
+            .earnings-card .stat-icon {
+                flex-basis: 50px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
+            }
+            .earnings-card .stat-info h3 {
+                font-size: .8rem;
+                letter-spacing: .55px;
+            }
+            .earnings-card .stat-number {
+                font-size: 1.65rem;
+            }
+        }
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: .55rem;
+            }
+            .earnings-card.stat-card {
+                min-width: 0;
+                min-height: 0;
+                gap: .5rem;
+                padding: .7rem;
+                border: 1px solid #dde5ee !important;
+                border-radius: 14px !important;
+                background: rgba(255, 255, 255, .92) !important;
+                box-shadow: 0 8px 24px rgba(55, 80, 111, .055) !important;
+            }
+            .earnings-card .stat-icon {
+                flex-basis: 32px;
+                width: 32px;
+                height: 32px;
+                border-radius: 11px;
+                font-size: .9rem;
+            }
+            .earnings-card .stat-info {
+                display: flex;
+                min-width: 0;
+                flex-direction: column;
+            }
+            .earnings-card .stat-info h3 {
+                color: var(--text-sub) !important;
+                font-size: .66rem;
+                font-weight: 400;
+                letter-spacing: normal;
+            }
+            .earnings-card .stat-number {
+                font-size: 1.05rem;
+                line-height: 1.1;
+            }
+        }
+        .delivery-card-header {
+            border-bottom-color: var(--border) !important;
+        }
+        .delivery-card-body p,
+        .delivery-card-body p i {
+            color: var(--text-sub) !important;
+        }
+
+        /* Delivery confirmation modal */
+        #deliverModal {
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(38, 57, 76, .42);
+            backdrop-filter: blur(5px);
+        }
+        #deliverModal .modal-content {
+            width: min(100%, 708px);
+            max-width: 708px;
+            max-height: calc(100vh - 2rem);
+            margin: 0;
+            padding: 2rem 2.25rem 1.75rem;
+            border: 1px solid rgba(210, 221, 232, .9);
+            border-radius: 20px;
+            background: linear-gradient(145deg, #fff 0%, #fbfcfd 100%);
+            box-shadow: 0 24px 60px rgba(28, 49, 72, .25);
+        }
+        #deliverModal .modal-header {
+            margin: 0 0 1.75rem;
+            padding: 0 0 1.25rem;
+            border-bottom: 1px solid #dbe4ec;
+        }
+        #deliverModal .modal-header h2 {
+            color: #15263d;
+            font-size: 1.35rem;
+            letter-spacing: -.02em;
+        }
+        #deliverModal .modal-header h2 i {
+            color: #185995;
+        }
+        #deliverModal .close {
+            position: static;
+            font-size: 1.55rem;
+            font-weight: 400;
+            color: #1f3044;
+        }
+        #deliverModal .close:hover { color: #126fd0; }
+        .delivery-modal-intro {
+            margin: 0 0 1.35rem;
+            color: #5d6877;
+            font-size: 1rem;
+        }
+        .delivery-photo-label {
+            display: block;
+            margin-bottom: .7rem;
+            color: #18263a;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .delivery-photo-label .required { color: #d94d4d; }
+        .delivery-upload {
+            display: flex;
+            min-height: 184px;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            border: 3px solid transparent;
+            border-radius: 20px;
+            background:
+                linear-gradient(#f8fbff, #fff) padding-box,
+                linear-gradient(110deg, #72a9d8, #aab5c4 52%, #c7a9a6) border-box;
+            color: #263546;
+            cursor: pointer;
+            text-align: center;
+            transition: box-shadow .2s ease, background .2s ease, transform .2s ease;
+        }
+        .delivery-upload:hover,
+        .delivery-upload.is-dragging {
+            background:
+                linear-gradient(#f0f7ff, #fff) padding-box,
+                linear-gradient(110deg, #3b8ed0, #91a7bc 52%, #bd8e8b) border-box;
+            box-shadow: 0 8px 22px rgba(74, 130, 180, .14);
+        }
+        .delivery-upload:focus-within {
+            outline: 3px solid rgba(37, 126, 210, .18);
+            outline-offset: 2px;
+        }
+        .delivery-upload-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .45rem;
+        }
+        .delivery-upload-icon {
+            color: #385979;
+            font-size: 2.55rem;
+            margin-bottom: .15rem;
+        }
+        .delivery-upload-text {
+            font-size: 1rem;
+            line-height: 1.45;
+        }
+        .delivery-upload-name {
+            display: none;
+            max-width: 100%;
+            color: #175a95;
+            font-size: .9rem;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+        .delivery-upload.has-file .delivery-upload-name { display: block; }
+        .delivery-upload.has-file .delivery-upload-prompt { display: none; }
+        .delivery-upload-preview {
+            display: none;
+            width: 86px;
+            height: 62px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #c5d5e4;
+        }
+        .delivery-upload.has-file .delivery-upload-preview { display: block; }
+        .delivery-upload input[type="file"] {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .delivery-photo-help {
+            display: block;
+            margin-top: .75rem;
+            color: #8090a1;
+            font-size: .9rem;
+        }
+        #deliverModal .form-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 2.5rem;
+            margin-top: 14rem;
+            padding-top: 1.4rem;
+            border-top: 1px solid #dbe4ec;
+        }
+        #deliverModal .form-actions .btn-secondary {
+            padding: .7rem 1rem;
+            color: #135995;
+            background: transparent;
+            border: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        #deliverModal .form-actions .btn-success {
+            min-width: 310px;
+            padding: .85rem 1.4rem;
+            border: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1986e5, #0865c6);
+            box-shadow: 0 7px 16px rgba(12, 112, 205, .28);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        #deliverModal .form-actions .btn-success:hover {
+            background: linear-gradient(135deg, #0f76d1, #0758ad);
+            transform: translateY(-1px);
+        }
+        @media (max-width: 640px) {
+            #deliverModal .modal-content { padding: 1.35rem; }
+            #deliverModal .form-actions {
+                gap: .75rem;
+                margin-top: 4rem;
+            }
+            #deliverModal .form-actions .btn-success {
+                min-width: 0;
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .map-controls {
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: .35rem !important;
+                align-items: stretch !important;
+            }
+
+            .map-controls .btn-xs {
+                flex: 1 1 0;
+                min-width: 0;
+                justify-content: center;
+                white-space: nowrap;
+                padding: .45rem .25rem;
+                font-size: .65rem;
+                gap: .25rem;
+            }
+        }
+
+        .delivery-card-body p i {
+            color: var(--primary) !important;
+        }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{% url 'rider_dashboard' %}" {% if request.resolver_match.url_name == 'rider_dashboard' %}class="active" aria-current="page"{% endif %}><i class="fas fa-motorcycle"></i> Dashboard</a></li>
+            <li><a href="{% url 'rider_delivery_history' %}" {% if request.resolver_match.url_name == 'rider_delivery_history' %}class="active" aria-current="page"{% endif %}><i class="fas fa-history"></i> Delivery History</a></li>
+            <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' or request.resolver_match.url_name == 'conversation_detail' or request.resolver_match.url_name == 'compose_message' %}class="active" aria-current="page"{% endif %}><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+            <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active" aria-current="page"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <main class="main-content">
+
+        {% include "accounts/dashboard_topbar.html" %}
+        
+        <div class="welcome-banner">
+            <div class="welcome-text">
+                <h2>Welcome, {{ request.user.first_name|default:request.user.username }}!</h2>
+                <p>Stay hydrated with Grateful Water Station</p>
+            </div>
+        </div>
+        <!-- Quick Actions Bar -->
+      
+
+        <!-- Stats Grid with Earnings -->
+        <div class="stats-grid">
+            <div class="stat-card earnings-card">
+                <div class="stat-icon blue"><i class="fas fa-box"></i></div>
+                <div class="stat-info">
+                    <h3>Out for Delivery</h3>
+                    <div class="stat-number">{{ out_for_delivery_count }}</div>
+                </div>
+            </div>
+            <div class="stat-card earnings-card">
+                <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>Completed Today</h3>
+                    <div class="stat-number">{{ completed_count }}</div>
+                </div>
+            </div>
+            <!-- Earnings Card -->
+            <div class="stat-card earnings-card">
+                <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
+                <div class="stat-info">
+                    <h3>Today's Earnings</h3>
+                    <div class="stat-number" id="todayEarnings">₱{{ today_earnings|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <section class="return-pickups-panel" id="returnPickupsPanel" aria-labelledby="returnPickupsHeading">
+            <h2 class="return-pickups-heading" id="returnPickupsHeading"><i class="fas fa-undo-alt" aria-hidden="true"></i> Return Product Pickups</h2>
+            <div class="return-pickup-cards">
+                {% for return_request in return_pickups %}
+                    <article class="return-pickup-card" data-return-pickup-card="{{ return_request.id }}">
+                        <div class="return-pickup-card-header">
+                            <span class="return-pickup-order">Order #{{ return_request.order.order_number }}</span>
+                            <span class="return-pickup-state">{{ return_request.get_pickup_status_display }}</span>
+                        </div>
+                        <p><i class="fas fa-user" aria-hidden="true"></i><strong>{{ return_request.order.customer.get_full_name|default:return_request.order.customer.username }}</strong></p>
+                        <p><i class="fas fa-phone" aria-hidden="true"></i>{{ return_request.order.customer.profile.phone_number|default:"No phone number" }}</p>
+                        <p><i class="fas fa-map-marker-alt" aria-hidden="true"></i>{{ return_request.order.delivery_address }}</p>
+                        <p><i class="fas fa-comment-alt" aria-hidden="true"></i>{{ return_request.get_reason_display }}{% if return_request.details %}: {{ return_request.details }}{% endif %}</p>
+                        {% if return_request.review_notes %}
+                            <p><i class="fas fa-info-circle" aria-hidden="true"></i>{{ return_request.review_notes }}</p>
+                        {% endif %}
+                        {% if return_request.pickup_status == 'assigned' %}
+                            <button type="button" class="btn-xs orange" style="width:100%;justify-content:center;"
+                                onclick="routeToOrder({{ return_request.order.id }}, '{{ return_request.order.delivery_address|escapejs }}', {% if return_request.order.delivery_lat %}{{ return_request.order.delivery_lat }}{% else %}null{% endif %}, {% if return_request.order.delivery_lng %}{{ return_request.order.delivery_lng }}{% else %}null{% endif %})">
+                                <i class="fas fa-route" aria-hidden="true"></i> Navigate to Customer
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn-xs orange" style="width:100%;justify-content:center;"
+                                onclick="routeToOrder({{ return_request.order.id }}, '{{ station_address|escapejs }}', {{ station_lat|default:'14.5995' }}, {{ station_lng|default:'120.9842' }})">
+                                <i class="fas fa-route" aria-hidden="true"></i> Navigate to Station
+                            </button>
+                        {% endif %}
+                        <button type="button" class="return-pickup-action"
+                            data-return-pickup-id="{{ return_request.id }}"
+                            data-return-pickup-action="{% if return_request.pickup_status == 'assigned' %}picked_up{% elif return_request.pickup_status == 'picked_up' %}payment_returned{% else %}received{% endif %}"
+                            data-return-pickup-url="{% url 'update_return_pickup_status' return_request.id %}">
+                            <i class="fas {% if return_request.pickup_status == 'assigned' %}fa-box{% elif return_request.pickup_status == 'picked_up' %}fa-money-bill-wave{% else %}fa-warehouse{% endif %}" aria-hidden="true"></i>
+                            {% if return_request.pickup_status == 'assigned' %}Picked Up{% elif return_request.pickup_status == 'picked_up' %}Payment Returned{% else %}Returned to Station{% endif %}
+                        </button>
+                        <p class="return-pickup-feedback" hidden></p>
+                    </article>
+                {% empty %}
+                    <p class="return-pickups-empty">No return pickups assigned to you.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- ── LOGISTICS TABS ── -->
+        <div class="data-table">
+            <div class="logistics-tabs">
+                <button class="tab-btn active" onclick="switchTab('deliveries', this)"><i class="fas fa-list"></i> <span>Delivery</span></button>
+                <button class="tab-btn" onclick="switchTab('map', this)"><i class="fas fa-map"></i> <span>Map</span></button>
+                <button class="tab-btn" onclick="switchTab('schedule', this)"><i class="fas fa-calendar-alt"></i> <span>Schedule</span></button>
+            </div>
+
+            <!-- ── TAB: DELIVERIES ── -->
+            <div id="tab-deliveries" class="tab-panel active">
+                {% if orders %}
+                <div class="delivery-cards">
+                    {% for order in orders %}
+                    <div class="delivery-card status-{{ order.status }}" id="card-{{ order.id }}">
+                        <div class="delivery-card-header">
+                            <span class="delivery-order-num">#{{ order.order_number }}</span>
+                            <span class="delivery-status {{ order.status }}">
+                                {% if order.status == 'out_for_delivery' %}On the Way{% else %}{{ order.get_status_display }}{% endif %}
+                            </span>
+                        </div>
+                        <div class="delivery-card-body" {% if order.status == 'send-to-rider' or order.status == 'rider_accepted' or order.status == 'out_for_delivery' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
+                            <p><i class="fas fa-user"></i> <strong>{{ order.customer.first_name }} {{ order.customer.last_name }}</strong></p>
+                            <p><i class="fas fa-phone"></i> {{ order.customer.profile.phone_number }}</p>
+                            <p><i class="fas fa-map-marker-alt"></i> {{ order.delivery_address|truncatechars:70 }}</p>
+                            {% if order.items.exists %}
+                            <p><i class="fas fa-box"></i> 
+                                {% for item in order.items.all %}
+                                    {{ item.quantity }} {{ item.product.name }}<br>
+                                {% endfor %}
+                            </p>
+                            {% endif %}
+                            <p><i class="fas fa-peso-sign"></i> <strong>₱{{ order.total_amount|floatformat:2 }}</strong> — {{ order.get_payment_method_display }}</p>
+                            <form class="delivery-message-form" data-order-id="{{ order.id }}">
+                                {% csrf_token %}
+                                <input type="text" class="delivery-message-input" name="content" placeholder="Type a message..." aria-label="Message for order #{{ order.order_number }}" maxlength="2000" autocomplete="off">
+                                <button type="submit" class="delivery-message-send" aria-label="Send message" title="Send message">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                            {% if order.notes %}
+                            <p><i class="fas fa-sticky-note"></i> {{ order.notes|truncatechars:50 }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="delivery-card-actions">
+                            <button class="btn-xs orange" onclick="routeToOrder({{ order.id }}, '{{ order.delivery_address|escapejs }}', {% if order.delivery_lat %}{{ order.delivery_lat }}{% else %}null{% endif %}, {% if order.delivery_lng %}{{ order.delivery_lng }}{% else %}null{% endif %})">
+                                <i class="fas fa-route"></i> Navigate
+                            </button>
+                            {% if order.status != 'delivered' %}
+                            {% if order.status == 'out_for_delivery' %}
+                            <button class="btn-xs green" id="delivery-action-btn-{{ order.id }}" onclick="openDeliverModal({{ order.id }})">
+                                <i class="fas fa-check-circle"></i> Delivered
+                            </button>
+                            {% else %}
+                            <button class="btn-xs blue" id="delivery-action-btn-{{ order.id }}" onclick="markOrderOnTheWay({{ order.id }}, this)">
+                                <i class="fas fa-motorcycle"></i> On the Way
+                            </button>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-deliveries">
+                    <i class="fas fa-truck"></i>
+                    <p style="font-weight:600; font-size:1rem; margin-bottom:.5rem;">No deliveries assigned yet.</p>
+                    <p style="font-size:.85rem;">Ask staff to assign orders to you.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ── TAB: LIVE MAP ── -->
+            <div id="tab-map" class="tab-panel">
+                <div class="map-controls">
+                    <button class="btn-xs blue" onclick="centerOnMe()"><i class="fas fa-crosshairs"></i> My Location</button>
+                    <button class="btn-xs orange" onclick="showAllDeliveries()"><i class="fas fa-map-pin"></i> All Pins</button>
+                    <button class="btn-xs green" onclick="clearRoutes()"><i class="fas fa-times"></i> Clear Routes</button>
+                </div>
+                <div id="riderMap"></div>
+                <div class="map-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#1a7db7;"></div> Station</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div> Your Location</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Delivery Stop</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#6366f1;"></div> Route</div>
+                </div>
+            </div>
+
+            <!-- ── TAB: SCHEDULE ── -->
+            <div id="tab-schedule" class="tab-panel">
+                <div class="schedule-header">
+                    <h3 class="section-heading schedule-heading"><i class="fas fa-calendar-check"></i> Today's Delivery Schedule</h3>
+                    <span class="schedule-date" id="scheduleDate"></span>
+                </div>
+                {% if orders %}
+                <div style="overflow-x:auto;">
+                    <table class="schedule-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Address</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td><strong>{{ order.order_number }}</strong></td>
+                                <td>{{ order.customer.first_name }} {{ order.customer.last_name }}</td>
+                                <td style="max-width:180px; font-size:.78rem;">{{ order.delivery_address|truncatechars:45 }}</td>
+                                <td>₱{{ order.total_amount|floatformat:2 }}</td>
+                                <td>
+                                    <span class="delivery-status {{ order.status }}">{{ order.get_status_display }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p style="text-align:center; color:#94a3b8; padding:2rem;">No deliveries scheduled.</p>
+                {% endif %}
+            </div>
+
+           
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Deliver Modal (photo upload) -->
+<div id="deliverModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeDeliverModal()">&times;</span>
+        <div class="modal-header">
+            <h2><i class="fas fa-camera"></i> Mark as Delivered</h2>
+        </div>
+        <form id="deliverForm" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="order_id" id="orderIdInput">
+            <p class="delivery-modal-intro">Take or upload a delivery confirmation photo:</p>
+            <div class="form-group">
+                <label class="delivery-photo-label" for="delivery_image">Delivery Photo <span class="required">*</span></label>
+                <label class="delivery-upload" id="deliveryUpload" for="delivery_image" tabindex="0">
+                    <span class="delivery-upload-content">
+                        <i class="fas fa-image delivery-upload-icon"></i>
+                        <span class="delivery-upload-prompt delivery-upload-text">Click to choose or drop photo here...<br>(No file chosen)</span>
+                        <img class="delivery-upload-preview" id="deliveryUploadPreview" alt="Selected delivery photo preview">
+                        <span class="delivery-upload-name" id="deliveryUploadName"></span>
+                    </span>
+                    <input type="file" id="delivery_image" name="delivery_image" accept="image/*" capture="environment" required>
+                </label>
+                <small class="delivery-photo-help">A photo is required as proof of delivery.</small>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeDeliverModal()">Cancel</button>
+                <button type="submit" class="btn-success"><i class="fas fa-check-circle"></i> Confirm Delivery</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Leaflet + Routing Machine JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js" crossorigin=""></script>
+
+<script>
+/* ═══ CONSTANTS ═══ */
+const STATION_LAT = {{ station_lat|default:"14.5995" }};
+const STATION_LNG = {{ station_lng|default:"120.9842" }};
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+let refreshingReturnPickups = false;
+async function refreshReturnPickupsPanel() {
+    if (refreshingReturnPickups) return;
+    refreshingReturnPickups = true;
+    try {
+        const response = await fetch(window.location.href, {
+            cache: 'no-store',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!response.ok) throw new Error(`Return pickup refresh failed (${response.status})`);
+        const html = await response.text();
+        const updatedDocument = new DOMParser().parseFromString(html, 'text/html');
+        const currentPanel = document.getElementById('returnPickupsPanel');
+        const updatedPanel = updatedDocument.getElementById('returnPickupsPanel');
+        if (!currentPanel || !updatedPanel) {
+            throw new Error('Unable to find the return pickup panel.');
+        }
+        currentPanel.innerHTML = updatedPanel.innerHTML;
+    } catch (error) {
+        console.error('Unable to update return pickups:', error);
+    } finally {
+        refreshingReturnPickups = false;
+    }
+}
+
+document.addEventListener('gws:live-update', event => {
+    if (event.detail?.returnPickupChanged) refreshReturnPickupsPanel();
+});
+
+document.addEventListener('click', async event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target && target.closest('[data-return-pickup-action]');
+    if (!button) return;
+
+    const feedback = button.closest('.return-pickup-card')?.querySelector('.return-pickup-feedback');
+    button.disabled = true;
+    if (feedback) {
+        feedback.hidden = true;
+        feedback.textContent = '';
+    }
+    try {
+        const response = await fetch(button.dataset.returnPickupUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN,
+            },
+            body: JSON.stringify({ action: button.dataset.returnPickupAction }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+            throw new Error(data.error || 'Unable to update the return pickup.');
+        }
+        await refreshReturnPickupsPanel();
+    } catch (error) {
+        button.disabled = false;
+        if (feedback) {
+            feedback.textContent = error.message || 'Unable to update the return pickup.';
+            feedback.hidden = false;
+        }
+    }
+});
+
+document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('.delivery-message-form');
+    if (!form) return;
+    event.preventDefault();
+
+    const input = form.querySelector('.delivery-message-input');
+    const button = form.querySelector('.delivery-message-send');
+    const content = input.value.trim();
+    if (!content) {
+        input.focus();
+        return;
+    }
+
+    input.disabled = true;
+    button.disabled = true;
+    try {
+        const response = await fetch(`/accounts/rider/order/${form.dataset.orderId}/message/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ content }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to send message.');
+        }
+        input.value = '';
+        input.placeholder = 'Message sent';
+        setTimeout(() => { input.placeholder = 'Type a message...'; }, 1800);
+    } catch (error) {
+        alert(error.message || 'Failed to send message.');
+    } finally {
+        input.disabled = false;
+        button.disabled = false;
+        input.focus();
+    }
+});
+
+async function markOrderOnTheWay(orderId, button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+    try {
+        const response = await fetch(`/accounts/rider/mark-out-for-delivery/${orderId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF_TOKEN },
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to update order status');
+        }
+
+        const card = document.getElementById(`card-${orderId}`);
+        const status = card && card.querySelector('.delivery-status');
+        if (card) {
+            card.classList.remove('status-pending', 'status-processing', 'status-send-to-rider', 'status-rider_accepted');
+            card.classList.add('status-out_for_delivery');
+        }
+        if (status) {
+            status.className = 'delivery-status out_for_delivery';
+            status.textContent = 'On the Way';
+        }
+        button.classList.remove('blue');
+        button.classList.add('green');
+        button.id = `delivery-action-btn-${orderId}`;
+        button.innerHTML = '<i class="fas fa-check-circle"></i> Delivered';
+        button.onclick = () => openDeliverModal(orderId);
+    } catch (error) {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-motorcycle"></i> On the Way';
+        alert(error.message || 'Failed to update order status');
+    }
+}
+
+/* Build orders array from Django context */
+const ORDERS = [
+    {% for order in orders %}
+    {
+        id: {{ order.id }},
+        orderNum: "{{ order.order_number }}",
+        customer: "{{ order.customer.first_name|escapejs }} {{ order.customer.last_name|escapejs }}",
+        address: "{{ order.delivery_address|escapejs }}",
+        lat: {% if order.delivery_lat %}{{ order.delivery_lat }}{% else %}null{% endif %},
+        lng: {% if order.delivery_lng %}{{ order.delivery_lng }}{% else %}null{% endif %},
+        amount: "₱{{ order.total_amount|floatformat:2 }}",
+        status: "{{ order.status }}"
+    },
+    {% endfor %}
+];
+
+/* ═══ MAP SETUP ═══ */
+let riderMap, riderMarker, currentRoutingControl = null;
+let deliveryMarkers = [];
+let riderLat = null, riderLng = null;
+let isOnline = true;
+let riderWatchId = null;
+let locationPushInterval = null;
+
+function initRiderMap() {
+    riderMap = L.map('riderMap').setView([STATION_LAT, STATION_LNG], 13);
+    
+    const tileLayerConfig = {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Sources: Esri, HERE, Garmin, <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, and the GIS user community'
+    };
+    const mapTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', tileLayerConfig);
+
+    mapTileLayer.addTo(riderMap);
+
+    // Custom Station Marker with CSS class
+    const stationIcon = L.divIcon({
+        html: '<div class="custom-marker-station"><i class="fas fa-tint"></i></div>',
+        className: '',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
+    });
+    
+    L.marker([STATION_LAT, STATION_LNG], { icon: stationIcon })
+        .addTo(riderMap)
+        .bindPopup('<div class="popup-header">💧 Grateful Water Station</div><div style="padding: 8px 0;">Station Location</div>');
+
+    placeDeliveryPins();
+    startRiderTracking();
+}
+
+function placeDeliveryPins() {
+    deliveryMarkers.forEach(m => riderMap.removeLayer(m));
+    deliveryMarkers = [];
+
+    const stopIcon = L.divIcon({
+        html: `<div style="background:#f59e0b;width:14px;height:14px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);"></div>`,
+        className: '', iconAnchor: [7, 14]
+    });
+
+    let bounds = [[STATION_LAT, STATION_LNG]];
+
+    ORDERS.forEach((order, idx) => {
+        if (order.lat && order.lng) {
+            const m = L.marker([order.lat, order.lng], { icon: stopIcon })
+                .addTo(riderMap)
+                .bindPopup(`<b>Stop ${idx+1}: ${order.orderNum}</b><br>${order.customer}<br>${order.address}<br><strong>${order.amount}</strong><br><small>${order.status}</small>`);
+            deliveryMarkers.push(m);
+            bounds.push([order.lat, order.lng]);
+        }
+    });
+
+    if (bounds.length > 1) {
+        try { riderMap.fitBounds(bounds, { padding: [40, 40] }); } catch(e) {}
+    }
+}
+
+function startRiderTracking() {
+    if (!navigator.geolocation) return;
+    if (riderWatchId !== null) return;
+
+    const riderIcon = L.divIcon({
+        html: `<div style="background:#10b981;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(16,185,129,.25),0 2px 8px rgba(0,0,0,.3);animation:riderPulse 1.5s infinite;"></div>
+               <style>@keyframes riderPulse{0%,100%{box-shadow:0 0 0 4px rgba(16,185,129,.25),0 2px 8px rgba(0,0,0,.3);}50%{box-shadow:0 0 0 8px rgba(16,185,129,.1),0 2px 8px rgba(0,0,0,.3);}}</style>`,
+        className: '', iconAnchor: [8, 8]
+    });
+
+    riderWatchId = navigator.geolocation.watchPosition(pos => {
+        riderLat = pos.coords.latitude;
+        riderLng = pos.coords.longitude;
+
+        // Reverse geocode to get address name
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${riderLat}&lon=${riderLng}&format=json`)
+            .then(r => r.json())
+            .then(data => {
+                const address = data.display_name ? data.display_name.split(',').slice(0, 3).join(',') : `${riderLat.toFixed(4)}, ${riderLng.toFixed(4)}`;
+                document.getElementById('riderCoordText').textContent = address;
+            })
+            .catch(() => {
+                document.getElementById('riderCoordText').textContent = `${riderLat.toFixed(4)}, ${riderLng.toFixed(4)}`;
+            });
+
+        if (!riderMarker) {
+            riderMarker = L.marker([riderLat, riderLng], { icon: riderIcon })
+                .addTo(riderMap)
+                .bindPopup('<b>📍 Your Location</b>');
+        } else {
+            riderMarker.setLatLng([riderLat, riderLng]);
+        }
+
+        // Push location to server so customers can track you
+        if (isOnline) pushLocationToServer(riderLat, riderLng);
+
+    }, () => {
+        document.getElementById('riderCoordText').textContent = 'Location unavailable';
+    }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 });
+}
+
+/* Push rider GPS to Django so customers can see live location */
+function pushLocationToServer(lat, lng) {
+    fetch('/accounts/rider/update-location/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ lat, lng })
+    }).catch(() => {}); // Silent fail - don't interrupt UI
+}
+
+function centerOnMe() {
+    if (riderLat && riderLng) {
+        riderMap.setView([riderLat, riderLng], 16);
+        if (riderMarker) riderMarker.openPopup();
+    } else {
+        alert('Location not yet available. Please allow location access.');
+    }
+}
+
+function showAllDeliveries() { placeDeliveryPins(); }
+
+function showOnMap(orderId, address, lat, lng) {
+    switchTab('map', document.querySelectorAll('.tab-btn')[1]);
+    setTimeout(() => {
+        riderMap.invalidateSize();
+        if (lat && lng) {
+            riderMap.setView([lat, lng], 16);
+            deliveryMarkers.forEach(m => {
+                if (Math.abs(m.getLatLng().lat - lat) < 0.0001) m.openPopup();
+            });
+        } else {
+            geocodeAndCenter(address);
+        }
+    }, 200);
+}
+
+function routeToOrder(orderId, address, lat, lng) {
+    switchTab('map', document.querySelectorAll('.tab-btn')[1]);
+    const fromLat = riderLat || STATION_LAT;
+    const fromLng = riderLng || STATION_LNG;
+
+    setTimeout(() => {
+        riderMap.invalidateSize();
+        if (lat && lng) {
+            drawRoute(fromLat, fromLng, lat, lng);
+        } else {
+            fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + ' Philippines')}&format=json&limit=1`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length) {
+                        drawRoute(fromLat, fromLng, parseFloat(data[0].lat), parseFloat(data[0].lon));
+                    } else {
+                        alert('Could not find this address on the map. Try navigating manually.');
+                    }
+                });
+        }
+        document.getElementById('activeRouteCount').textContent = '1';
+    }, 200);
+}
+
+function drawRoute(fromLat, fromLng, toLat, toLng) {
+    if (currentRoutingControl) { riderMap.removeControl(currentRoutingControl); currentRoutingControl = null; }
+    currentRoutingControl = L.Routing.control({
+        waypoints: [L.latLng(fromLat, fromLng), L.latLng(toLat, toLng)],
+        routeWhileDragging: false,
+        showAlternatives: false,
+        lineOptions: { styles: [{ color: '#6366f1', weight: 5, opacity: 0.8 }] },
+        createMarker: () => null,
+        collapsible: true,
+        fitSelectedRoutes: true
+    }).addTo(riderMap);
+}
+
+function clearRoutes() {
+    if (currentRoutingControl) {
+        riderMap.removeControl(currentRoutingControl);
+        currentRoutingControl = null;
+        document.getElementById('activeRouteCount').textContent = '0';
+    }
+}
+
+function geocodeAndCenter(address) {
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + ' Philippines')}&format=json&limit=1`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.length) riderMap.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 16);
+        });
+}
+
+/* ═══ ONLINE/OFFLINE ═══ */
+function toggleRiderStatus() {
+    isOnline = !isOnline;
+    const dot = document.getElementById('riderStatusDot');
+    const txt = document.getElementById('riderStatusText');
+    const btn = document.querySelector('.btn-toggle-status');
+    if (isOnline) {
+        dot.classList.remove('offline');
+        txt.textContent = 'Online — Tracking active';
+        btn.textContent = 'Go Offline';
+        startRiderTracking();
+    } else {
+        dot.classList.add('offline');
+        txt.textContent = 'Offline';
+        btn.textContent = 'Go Online';
+        if (riderWatchId !== null && navigator.geolocation) {
+            navigator.geolocation.clearWatch(riderWatchId);
+            riderWatchId = null;
+        }
+    }
+}
+
+/* ═══ TABS ═══ */
+function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    if (btn) btn.classList.add('active');
+    if (tabId === 'map') {
+        setTimeout(() => {
+            if (!riderMap) initRiderMap();
+            else riderMap.invalidateSize();
+        }, 100);
+    }
+}
+
+/* ═══ DELIVER MODAL ═══ */
+function openDeliverModal(orderId) {
+    const modal = document.getElementById('deliverModal');
+    const form = document.getElementById('deliverForm');
+    const orderIdInput = document.getElementById('orderIdInput');
+    form.action = `/accounts/rider/mark-delivered/${orderId}/`;
+    orderIdInput.value = orderId;
+    resetDeliveryUpload();
+    modal.style.display = 'flex';
+}
+function closeDeliverModal() {
+    document.getElementById('deliverModal').style.display = 'none';
+    resetDeliveryUpload();
+}
+function resetDeliveryUpload() {
+    const input = document.getElementById('delivery_image');
+    const upload = document.getElementById('deliveryUpload');
+    const name = document.getElementById('deliveryUploadName');
+    const preview = document.getElementById('deliveryUploadPreview');
+    if (!input || !upload || !name || !preview) return;
+    input.value = '';
+    upload.classList.remove('has-file', 'is-dragging');
+    name.textContent = '';
+    preview.removeAttribute('src');
+}
+function updateDeliveryUpload(file) {
+    const upload = document.getElementById('deliveryUpload');
+    const name = document.getElementById('deliveryUploadName');
+    const preview = document.getElementById('deliveryUploadPreview');
+    if (!file || !file.type.startsWith('image/')) return;
+    name.textContent = file.name;
+    upload.classList.add('has-file');
+    const reader = new FileReader();
+    reader.onload = event => { preview.src = event.target.result; };
+    reader.readAsDataURL(file);
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('delivery_image');
+    const upload = document.getElementById('deliveryUpload');
+    if (!input || !upload) return;
+    input.addEventListener('change', () => updateDeliveryUpload(input.files[0]));
+    upload.addEventListener('dragover', event => {
+        event.preventDefault();
+        upload.classList.add('is-dragging');
+    });
+    upload.addEventListener('dragleave', () => upload.classList.remove('is-dragging'));
+    upload.addEventListener('drop', event => {
+        event.preventDefault();
+        upload.classList.remove('is-dragging');
+        const file = event.dataTransfer.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        input.files = transfer.files;
+        updateDeliveryUpload(file);
+    });
+});
+window.addEventListener('click', e => {
+    const modal = document.getElementById('deliverModal');
+    if (e.target === modal) modal.style.display = 'none';
+});
+
+/* ═══ MARK OUT FOR DELIVERY ═══ */
+function markOutForDelivery(orderId) {
+    if (!confirm('Mark this order as Out for Delivery?')) return;
+
+    const select = document.getElementById(`status-select-${orderId}`);
+    const statusSpan = document.querySelector(`#card-${orderId} .delivery-status`);
+    const card = document.getElementById(`card-${orderId}`);
+
+    fetch(`/accounts/rider/mark-out-for-delivery/${orderId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI to reflect out_for_delivery status
+            if (select) {
+                select.value = 'out_for_delivery';
+                // Remove "-Status-" option
+                const statusOption = select.querySelector('option[value=""]');
+                if (statusOption) statusOption.remove();
+                // Hide Accept Order option
+                const riderAcceptedOption = select.querySelector('option[value="rider_accepted"]');
+                if (riderAcceptedOption) riderAcceptedOption.style.display = 'none';
+            }
+            if (statusSpan) {
+                statusSpan.classList.remove('rider_accepted');
+                statusSpan.classList.add('out_for_delivery');
+                statusSpan.textContent = 'Out for Delivery';
+            }
+            if (card) {
+                card.classList.remove('status-rider_accepted');
+                card.classList.add('status-out_for_delivery');
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Failed to update order status'));
+        }
+    })
+    .catch(error => {
+        alert('Error: Failed to update order status');
+    });
+}
+
+/* ═══ UPDATE STATUS FROM SELECT ═══ */
+function updateStatusFromSelect(orderId) {
+    const select = document.getElementById(`status-select-${orderId}`);
+    const newStatus = select.value;
+    const statusSpan = document.querySelector(`#card-${orderId} .delivery-status`);
+    const card = document.getElementById(`card-${orderId}`);
+    
+    // If "-Status-" is selected, just update the badge display
+    if (!newStatus) {
+        statusSpan.textContent = '';
+        statusSpan.classList.remove('pending', 'processing', 'out_for_delivery', 'delivered', 'cancelled');
+        // Disable "Out for Delivery" option
+        const outForDeliveryOption = select.querySelector('option[value="out_for_delivery"]');
+        if (outForDeliveryOption) {
+            outForDeliveryOption.disabled = true;
+        }
+        return;
+    }
+    
+    // Update badge locally without server request
+    statusSpan.classList.remove('pending', 'processing', 'out_for_delivery', 'delivered', 'cancelled', 'rider_accepted');
+    statusSpan.classList.add(newStatus);
+    
+    // Update status text
+    if (newStatus === 'out_for_delivery') {
+        statusSpan.textContent = 'Out for Delivery';
+    } else if (newStatus === 'rider_accepted') {
+        statusSpan.textContent = 'Accept Order';
+    }
+    
+    // Update card border color
+    card.classList.remove('status-pending', 'status-processing', 'status-out_for_delivery', 'status-delivered', 'status-cancelled', 'status-rider_accepted');
+    card.classList.add(`status-${newStatus}`);
+    
+    // Remove the "-Status-" option from dropdown
+    const statusOption = select.querySelector('option[value=""]');
+    if (statusOption) {
+        statusOption.remove();
+    }
+    
+    // Status is saved to server via fetch requests, no localStorage needed
+
+    // Send server request to update order status when "Accept Order" is selected
+    if (newStatus === 'rider_accepted') {
+        fetch(`/accounts/rider/accept-order/${orderId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error: ' + (data.error || 'Failed to accept order'));
+                // Revert UI on error
+                select.value = '';
+                statusSpan.textContent = '';
+                statusSpan.classList.remove('rider_accepted');
+                card.classList.remove('status-rider_accepted');
+            }
+        })
+        .catch(() => {
+            alert('Error: Failed to accept order');
+            // Revert UI on error
+            select.value = '';
+            statusSpan.textContent = '';
+            statusSpan.classList.remove('rider_accepted');
+            card.classList.remove('status-rider_accepted');
+        });
+    } else if (newStatus === 'out_for_delivery') {
+        fetch(`/accounts/rider/mark-out-for-delivery/${orderId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error: ' + (data.error || 'Failed to mark as out for delivery'));
+                // Revert UI on error
+                select.value = 'rider_accepted';
+                statusSpan.textContent = 'Accept Order';
+                statusSpan.classList.remove('out_for_delivery');
+                statusSpan.classList.add('rider_accepted');
+                card.classList.remove('status-out_for_delivery');
+                card.classList.add('status-rider_accepted');
+                // Re-enable Accept Order option
+                const riderAcceptedOption = select.querySelector('option[value="rider_accepted"]');
+                if (riderAcceptedOption) riderAcceptedOption.style.display = 'block';
+                // Disable Out for Delivery option
+                const outForDeliveryOption = select.querySelector('option[value="out_for_delivery"]');
+                if (outForDeliveryOption) outForDeliveryOption.disabled = true;
+            }
+        })
+        .catch(() => {
+            alert('Error: Failed to mark as out for delivery');
+            // Revert UI on error
+            select.value = 'rider_accepted';
+            statusSpan.textContent = 'Accept Order';
+            statusSpan.classList.remove('out_for_delivery');
+            statusSpan.classList.add('rider_accepted');
+            card.classList.remove('status-out_for_delivery');
+            card.classList.add('status-rider_accepted');
+            // Re-enable Accept Order option
+            const riderAcceptedOption = select.querySelector('option[value="rider_accepted"]');
+            if (riderAcceptedOption) riderAcceptedOption.style.display = 'block';
+            // Disable Out for Delivery option
+            const outForDeliveryOption = select.querySelector('option[value="out_for_delivery"]');
+            if (outForDeliveryOption) outForDeliveryOption.disabled = true;
+        });
+    }
+
+    // Show/hide delivery card body based on status
+    const cardBody = card.querySelector('.delivery-card-body');
+    if ((newStatus === 'out_for_delivery' || newStatus === 'rider_accepted') && cardBody) {
+        cardBody.style.display = 'block';
+    } else if (cardBody) {
+        cardBody.style.display = 'none';
+    }
+
+    // Enable "Out for Delivery" when "Accept Order" is selected
+    const outForDeliveryOption = select.querySelector('option[value="out_for_delivery"]');
+    if (newStatus === 'rider_accepted' && outForDeliveryOption) {
+        outForDeliveryOption.disabled = false;
+    }
+
+    // Hide 'Accept Order' option when 'Out for Delivery' is selected
+    const riderAcceptedOption = select.querySelector('option[value="rider_accepted"]');
+    if (newStatus === 'out_for_delivery' && riderAcceptedOption) {
+        riderAcceptedOption.style.display = 'none';
+    } else if (riderAcceptedOption) {
+        riderAcceptedOption.style.display = 'block';
+    }
+}
+
+/* ═══ RECEIVE ORDER ═══ */
+function receiveOrder(orderId) {
+    if (!confirm('Confirm you have received this order?')) return;
+
+    const select = document.getElementById(`status-select-${orderId}`);
+    const statusSpan = document.querySelector(`#card-${orderId} .delivery-status`);
+    const card = document.getElementById(`card-${orderId}`);
+
+    fetch(`/accounts/rider/receive-order/${orderId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI to reflect rider_accepted status
+            if (select) {
+                select.value = 'rider_accepted';
+                // Remove "-Status-" option
+                const statusOption = select.querySelector('option[value=""]');
+                if (statusOption) statusOption.remove();
+                // Enable Out for Delivery option
+                const outForDeliveryOption = select.querySelector('option[value="out_for_delivery"]');
+                if (outForDeliveryOption) outForDeliveryOption.disabled = false;
+            }
+            if (statusSpan) {
+                statusSpan.classList.add('rider_accepted');
+                statusSpan.textContent = 'Accept Order';
+            }
+            if (card) {
+                card.classList.add('status-rider_accepted');
+            }
+            // Show card body
+            const cardBody = card.querySelector('.delivery-card-body');
+            if (cardBody) cardBody.style.display = 'block';
+        } else {
+            alert('Error: ' + (data.error || 'Failed to receive order'));
+        }
+    })
+    .catch(error => {
+        alert('Error: Failed to receive order');
+    });
+}
+
+/* ═══ INIT ═══ */
+document.addEventListener('DOMContentLoaded', () => {
+    const sd = document.getElementById('scheduleDate');
+    if (sd) sd.textContent = new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    // Initialize status from server-side data (ORDERS array from database)
+    ORDERS.forEach(order => {
+        const select = document.getElementById(`status-select-${order.id}`);
+        const statusSpan = document.querySelector(`#card-${order.id} .delivery-status`);
+        const card = document.getElementById(`card-${order.id}`);
+        
+        if (select && statusSpan && card && order.status) {
+            // Only update UI if status is 'rider_accepted' or 'out_for_delivery'
+            if (order.status === 'rider_accepted' || order.status === 'out_for_delivery') {
+                // Update dropdown to server status
+                select.value = order.status;
+                
+                // Remove "-Status-" option
+                const statusOption = select.querySelector('option[value=""]');
+                if (statusOption) {
+                    statusOption.remove();
+                }
+                
+                // Update badge
+                statusSpan.classList.remove('pending', 'processing', 'out_for_delivery', 'delivered', 'cancelled', 'rider_accepted');
+                statusSpan.classList.add(order.status);
+                
+                if (order.status === 'out_for_delivery') {
+                    statusSpan.textContent = 'Out for Delivery';
+                } else if (order.status === 'rider_accepted') {
+                    statusSpan.textContent = 'Accept Order';
+                }
+                
+                // Update card border
+                card.classList.remove('status-pending', 'status-processing', 'status-out_for_delivery', 'status-delivered', 'status-cancelled', 'status-rider_accepted');
+                card.classList.add(`status-${order.status}`);
+                
+                // Show/hide card body
+                const cardBody = card.querySelector('.delivery-card-body');
+                if ((order.status === 'out_for_delivery' || order.status === 'rider_accepted') && cardBody) {
+                    cardBody.style.display = 'block';
+                } else if (cardBody) {
+                    cardBody.style.display = 'none';
+                }
+
+                // Hide 'Accept Order' option when 'Out for Delivery' is selected
+                const riderAcceptedOption = select.querySelector('option[value="rider_accepted"]');
+                if (order.status === 'out_for_delivery' && riderAcceptedOption) {
+                    riderAcceptedOption.style.display = 'none';
+                } else if (riderAcceptedOption) {
+                    riderAcceptedOption.style.display = 'block';
+                }
+
+                // Enable "Out for Delivery" if "Accept Order" is selected
+                const outForDeliveryOption = select.querySelector('option[value="out_for_delivery"]');
+                if (order.status === 'rider_accepted' && outForDeliveryOption) {
+                    outForDeliveryOption.disabled = false;
+                } else if (outForDeliveryOption) {
+                    outForDeliveryOption.disabled = true;
+                }
+            }
+        }
+    });
+
+    // Mobile sidebar
+    const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+    const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+    document.body.append(btn, ov);
+    const sb = document.querySelector('.sidebar');
+    const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+    const open  = () => { sb.classList.add('active');    ov.classList.add('active');    btn.querySelector('i').className = 'fas fa-times'; };
+    btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+    ov.addEventListener('click', close);
+    document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+        if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+            close();
+        }
+    }));
+    window.addEventListener('resize', () => window.innerWidth > 768 && close());
+    document.addEventListener('keydown', e => e.key === 'Escape' && close());
+
+    // ── Poll unread count for Messages badge ──
+    const UNREAD_URL = "{% url 'unread_message_count_api' %}";
+    function pollUnreadBadge() {
+        fetch(UNREAD_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            document.querySelectorAll('.sidebar .unread-badge').forEach(badge => {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        })
+        .catch(() => {});
+    }
+    setInterval(pollUnreadBadge, 5000);
+    pollUnreadBadge(); // Run immediately on load
+
+    // Refresh the dashboard when staff assigns or updates an active delivery.
+    const RIDER_ORDER_UPDATES_URL = "{% url 'rider_order_updates_api' %}";
+    let riderOrderBaselineEstablished = false;
+    let riderOrderChangeToken = null;
+    function pollRiderOrderUpdates() {
+        fetch(RIDER_ORDER_UPDATES_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(response => {
+                if (!response.ok) throw new Error(`Rider order update request failed (${response.status})`);
+                return response.json();
+            })
+            .then(data => {
+                const changeToken = `${data.count}:${data.latest_updated_at || ''}:${data.latest_order_id || ''}`;
+                if (!riderOrderBaselineEstablished) {
+                    riderOrderChangeToken = changeToken;
+                    riderOrderBaselineEstablished = true;
+                } else if (changeToken !== riderOrderChangeToken) {
+                    riderOrderChangeToken = changeToken;
+                    window.location.reload();
+                }
+            })
+            .catch(error => console.error('Unable to refresh rider orders:', error));
+    }
+    setInterval(pollRiderOrderUpdates, 5000);
+    pollRiderOrderUpdates();
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register("{% static 'accounts/js/rider-sw.js' %}")
+                .then((registration) => {
+                    console.log('[SW] Registered:', registration.scope);
+                })
+                .catch((error) => {
+                    console.log('[SW] Registration failed:', error);
+                });
+        });
+    }
+
+    // Request notification permission for push notifications
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+                console.log('[PWA] Notification permission granted');
+            }
+        });
+    }
+});
+</script>
+</body>
+</html>

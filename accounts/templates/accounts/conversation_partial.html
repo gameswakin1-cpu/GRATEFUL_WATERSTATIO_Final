@@ -1,0 +1,387 @@
+<!-- Chat Area (loaded via AJAX) -->
+<div class="chat-area">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <div class="chat-header-left">
+            <div class="conv-avatar {{ other_user.profile.role }}">{{ other_user.first_name|first|default:"?" }}</div>
+            <div class="chat-header-info">
+                <h3>{{ other_user.get_full_name|default:other_user.username }} <span class="role-tag {{ other_user.profile.role }}">{{ other_user.profile.role }}</span></h3>
+                <p>{{ other_user.profile.phone_number|default:"No phone" }}</p>
+            </div>
+        </div>
+        <button class="btn-back" onclick="closeConversation()" title="Close conversation"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Messages (Scrollable Container) -->
+    <div class="chat-messages-wrapper">
+        <div class="chat-messages-container" id="chatMessagesContainer">
+            <div class="chat-messages">
+                {% if messages %}
+                    {% for msg in messages %}
+                    <div class="msg-bubble {% if msg.sender == request.user %}sent{% else %}received{% endif %}" data-message-id="{{ msg.id }}">
+                        {% if msg.sender != request.user %}
+                        <div class="msg-sender">{{ msg.sender.get_full_name|default:msg.sender.username }}</div>
+                        {% endif %}
+                        {% if msg.order %}
+                        <div class="message-order-context">
+                            <strong>Order#{{ msg.order.order_number }}</strong>
+                            {% for item in msg.order.items.all %}
+                            <span>{{ item.quantity }} {{ item.product.name }}</span>
+                            {% endfor %}
+                            <span>₱{{ msg.order.total_amount|floatformat:2 }}</span>
+                            <span>{{ msg.order.get_payment_method_display }}</span>
+                        </div>
+                        {% endif %}
+                        {{ msg.content }}
+                        <div class="msg-time">{{ msg.created_at|date:"h:i A" }} · {{ msg.created_at|date:"M d" }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-messages">
+                        <i class="fas fa-comment-dots"></i>
+                        <p>No messages yet. Say hello!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Scroll to bottom button -->
+        <button class="scroll-to-bottom" id="scrollToBottomBtn" onclick="scrollToBottom()" title="Scroll to latest">
+            <i class="fas fa-chevron-down"></i>
+        </button>
+    </div>
+
+    <!-- Input Area -->
+    <form method="post" action="{% url 'conversation_detail' conversation.id %}" class="chat-input-area" onsubmit="submitMessage(event, this)">
+        {% csrf_token %}
+        <textarea name="content" rows="1" placeholder="Type a message..." id="msgInput" required></textarea>
+        <button type="submit" class="btn-send"><i class="fas fa-paper-plane"></i> Send</button>
+    </form>
+</div>
+
+<style>
+    .message-order-context {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        margin-bottom: 0.45rem;
+        padding: 0.45rem 0.6rem;
+        border-left: 3px solid var(--primary);
+        border-radius: 0.35rem;
+        background: rgba(26, 138, 212, 0.08);
+        font-size: 0.76rem;
+    }
+    .message-order-context strong { color: var(--primary-dark); }
+    .message-order-context span { color: var(--gray-500); }
+    .chat-area {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .chat-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 2px solid var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: var(--glass-bg);
+        flex-shrink: 0;
+    }
+
+    .chat-header-left { display: flex; align-items: center; gap: 1rem; }
+
+    .btn-back {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+    }
+
+    .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+    }
+
+    .conv-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        box-shadow: var(--shadow-md);
+        flex-shrink: 0;
+    }
+
+    .conv-avatar.admin { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+    .conv-avatar.staff { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+    .conv-avatar.rider { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    .conv-avatar.customer { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); }
+
+    .chat-header-info h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--gray-800);
+        margin-bottom: 2px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chat-header-info p { font-size: 0.875rem; color: var(--gray-500); }
+
+    .role-tag {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .role-tag.admin { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .role-tag.staff { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+    .role-tag.rider { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .role-tag.customer { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+    /* Wrapper holds the scrollable area + the floating button */
+    .chat-messages-wrapper {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .chat-messages-container {
+        height: 100%;
+        overflow-y: auto;
+        background: var(--gray-50);
+        scrollbar-width: thin;
+        scrollbar-color: var(--gray-400) var(--gray-200);
+    }
+
+    .chat-messages-container::-webkit-scrollbar { width: 8px; }
+    .chat-messages-container::-webkit-scrollbar-track { background: var(--gray-200); border-radius: 4px; }
+    .chat-messages-container::-webkit-scrollbar-thumb { background: var(--gray-400); border-radius: 4px; }
+    .chat-messages-container::-webkit-scrollbar-thumb:hover { background: var(--gray-500); }
+
+    .chat-messages {
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Scroll to bottom floating button */
+    .scroll-to-bottom {
+        position: absolute;
+        bottom: 12px;
+        right: 18px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        font-size: 0.85rem;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        z-index: 10;
+    }
+
+    .scroll-to-bottom.visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+
+    .scroll-to-bottom:hover {
+        box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .msg-bubble {
+        max-width: 75%;
+        padding: 0.75rem 1rem;
+        border-radius: 16px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        position: relative;
+        word-wrap: break-word;
+        animation: fadeIn 0.3s ease-out;
+        box-shadow: var(--shadow-sm);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-bubble.sent {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+
+    .msg-bubble.received {
+        background: white;
+        color: var(--gray-800);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--gray-200);
+    }
+
+    .msg-time {
+        font-size: 0.7rem;
+        margin-top: 0.375rem;
+        font-weight: 500;
+    }
+
+    .msg-bubble.sent .msg-time { color: rgba(255,255,255,0.8); }
+    .msg-bubble.received .msg-time { color: var(--gray-400); }
+
+    .msg-sender {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #0ea5e9;
+        margin-bottom: 0.25rem;
+    }
+
+    .chat-input-area {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid var(--gray-200);
+        background: white;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .chat-input-area textarea {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        font-size: 0.9rem;
+        resize: none;
+        min-height: 44px;
+        max-height: 100px;
+        font-family: inherit;
+        transition: all 0.3s ease;
+        background: var(--gray-50);
+    }
+
+    .chat-input-area textarea:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+        background: white;
+    }
+
+    .btn-send {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        flex-shrink: 0;
+        height: 44px;
+    }
+
+    .btn-send:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+    }
+
+    .btn-send i { transition: transform 0.2s ease; }
+    .btn-send:hover i { transform: translateX(3px); }
+
+    .no-messages {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray-400);
+    }
+
+    .no-messages i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: var(--gray-300);
+        display: block;
+    }
+
+    .no-messages p { font-size: 0.95rem; color: var(--gray-500); }
+</style>
+
+<script>
+    const chatContainer = document.getElementById('chatMessagesContainer');
+    const scrollBtn = document.getElementById('scrollToBottomBtn');
+
+    // Scroll to bottom on load
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Show/hide the scroll-to-bottom button
+        chatContainer.addEventListener('scroll', function() {
+            const distanceFromBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
+            if (distanceFromBottom > 80) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
+        });
+    }
+
+    function scrollToBottom() {
+        if (chatContainer) {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+    }
+
+    // Auto-resize textarea
+    const msgInput = document.getElementById('msgInput');
+    if (msgInput) {
+        msgInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+        // Enter to send (Shift+Enter for newline)
+        msgInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.form.dispatchEvent(new Event('submit'));
+            }
+        });
+        msgInput.focus();
+    }
+</script>

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Return Order - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+    <style>
+        .return-page-heading { margin: 0 0 1.25rem; }
+        .return-page-heading h1 { margin: 0; color: #172b55; font-size: 1.55rem; }
+        .return-page-heading p { margin: .35rem 0 0; color: #64748b; }
+        #returnOrdersContent { display: grid; gap: 1rem; }
+        .return-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; }
+        .return-summary-card {
+            padding: 1rem 1.1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+        }
+        .return-summary-label { color: #64748b; font-size: .82rem; font-weight: 600; }
+        .return-summary-number { margin-top: .25rem; color: #172b55; font-size: 1.45rem; font-weight: 750; }
+        .return-filters { display: flex; gap: .5rem; overflow-x: auto; padding: .2rem 0; }
+        .return-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .55rem .85rem;
+            border: 1px solid #dbe3ed;
+            border-radius: 999px;
+            background: #fff;
+            color: #475569;
+            font-size: .82rem;
+            font-weight: 650;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .return-filter.active { border-color: #1762c4; background: #eaf2ff; color: #1754a4; }
+        .return-filter-count { color: #64748b; font-size: .74rem; }
+        .return-list { display: grid; gap: .9rem; }
+        .return-card {
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+        }
+        .return-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.15rem;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .return-order-title { color: #172b55; font-size: 1rem; font-weight: 750; }
+        .return-order-meta { margin-top: .3rem; color: #64748b; font-size: .82rem; }
+        .return-status {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .36rem .65rem;
+            border-radius: 999px;
+            font-size: .76rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .return-status::before { width: 7px; height: 7px; border-radius: 50%; background: currentColor; content: ""; }
+        .return-status-pending { background: #fff7db; color: #9a6700; }
+        .return-status-approved { background: #e6f7ed; color: #16834a; }
+        .return-status-rejected { background: #feecec; color: #c53030; }
+        .return-card-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 1rem; padding: 1rem 1.15rem; }
+        .return-info-block { min-width: 0; padding: .85rem; border: 1px solid #e5edf7; border-radius: 10px; background: #f8fbff; }
+        .return-info-block h3 { margin: 0 0 .55rem; color: #263b5f; font-size: .86rem; }
+        .return-info-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .55rem; }
+        .return-info-heading h3 { margin: 0; }
+        .return-info-block p { margin: .25rem 0; color: #475569; font-size: .82rem; line-height: 1.5; overflow-wrap: anywhere; }
+        .return-items { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+        .return-items li { display: flex; justify-content: space-between; gap: .8rem; color: #475569; font-size: .82rem; }
+        .return-item-amount { color: #172b55; white-space: nowrap; }
+        .return-total { display: flex; justify-content: space-between; gap: .75rem; margin-top: .7rem; padding-top: .65rem; border-top: 1px solid #dbe5f1; color: #263b5f; font-size: .85rem; font-weight: 700; }
+        .return-reason-content { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: .75rem; }
+        .return-reason-text { min-width: 0; }
+        .return-evidence-stack { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-end; }
+        .return-evidence-stack a { position: relative; display: block; flex: 0 0 76px; width: 76px; height: 76px; margin-left: -57px; overflow: hidden; border: 2px solid #fff; border-radius: 9px; background: #fff; box-shadow: 0 2px 8px rgba(15, 23, 42, .16); }
+        .return-evidence-stack a:first-child { margin-left: 0; }
+        .return-evidence-stack a img { display: block; width: 100%; height: 100%; object-fit: cover; }
+        .return-evidence-viewer[hidden] { display: none; }
+        .return-evidence-viewer { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; padding: 1rem; background: rgba(15, 23, 42, .84); }
+        .return-evidence-dialog { position: relative; display: grid; width: min(100%, 1100px); height: min(90vh, 850px); grid-template-columns: 3rem minmax(0, 1fr) 3rem; align-items: center; justify-items: center; gap: .75rem; padding: 3.5rem 1rem 2.5rem; border: 1px solid rgba(255, 255, 255, .18); border-radius: 14px; background: rgba(15, 23, 42, .96); box-shadow: 0 24px 70px rgba(0, 0, 0, .4); }
+        .return-evidence-dialog figure { display: grid; width: 100%; height: 100%; grid-column: 2; grid-row: 1; align-content: center; justify-items: center; gap: .75rem; margin: 0; }
+        .return-evidence-dialog img { display: block; max-width: 100%; max-height: calc(90vh - 7rem); object-fit: contain; }
+        .return-evidence-dialog figcaption { color: #e2e8f0; font-size: .85rem; }
+        .return-evidence-viewer button { display: inline-grid; place-items: center; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; background: rgba(255, 255, 255, .12); color: #fff; cursor: pointer; }
+        .return-evidence-viewer button:hover { background: rgba(255, 255, 255, .24); }
+        .return-evidence-viewer button[hidden] { display: none; }
+        .return-evidence-close { position: absolute; top: .8rem; right: .8rem; width: 2.5rem; height: 2.5rem; font-size: 1rem; }
+        .return-evidence-previous, .return-evidence-next { width: 2.75rem; height: 2.75rem; font-size: 1rem; }
+        .return-evidence-previous { grid-column: 1; grid-row: 1; }
+        .return-evidence-next { grid-column: 3; grid-row: 1; }
+        .return-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .8rem;
+            flex-wrap: wrap;
+            padding: .85rem 1.15rem;
+            border-top: 1px solid #edf2f7;
+        }
+        .return-pickup-info { color: #475569; font-size: .82rem; }
+        .return-inspection {
+            width: 100%;
+            padding: .9rem;
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            background: #f8fbff;
+        }
+        .return-inspection h3 { margin: 0 0 .35rem; color: #263b5f; font-size: .9rem; }
+        .return-inspection > p { margin: 0 0 .75rem; color: #64748b; font-size: .8rem; }
+        .return-inspection-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px; align-items: center; gap: .75rem; padding: .55rem 0; border-top: 1px solid #e5edf7; color: #475569; font-size: .82rem; }
+        .return-inspection-product { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: .35rem; }
+        .return-product-type { display: inline-flex; align-items: center; gap: .2rem; padding: .16rem .42rem; border-radius: 999px; font-size: .58rem; font-weight: 800; letter-spacing: .04em; line-height: 1.2; white-space: nowrap; }
+        .return-product-type-refill { background: #e5f8fa; color: #147d87; }
+        .return-product-type-gallon { background: #e9f1ff; color: #2b61c8; }
+        .return-inspection-row input { width: 100%; box-sizing: border-box; padding: .45rem; border: 1px solid #cbd5e1; border-radius: 7px; }
+        .return-inspection-submit { margin-top: .75rem; padding: .58rem .85rem; border: 0; border-radius: 8px; background: #1762c4; color: #fff; font-weight: 700; cursor: pointer; }
+        .return-inspection-result { color: #475569; font-size: .82rem; }
+        .return-inspection-toast[hidden] { display: none; }
+        .return-inspection-toast { position: fixed; top: 1rem; right: 1rem; z-index: 7000; display: flex; width: min(440px, calc(100vw - 2rem)); align-items: flex-start; gap: .65rem; padding: .85rem 1rem; border: 1px solid #bbf7d0; border-radius: 12px; background: #f0fdf4; color: #166534; box-shadow: 0 12px 32px rgba(15, 23, 42, .2); animation: return-toast-enter .2s ease-out; }
+        .return-inspection-toast i { margin-top: .1rem; color: #16a34a; }
+        @keyframes return-toast-enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .return-review-actions { display: flex; gap: .5rem; }
+        .return-review-actions button {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .55rem .8rem;
+            border: 0;
+            border-radius: 8px;
+            font-size: .8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .return-approve { background: #1762c4; color: #fff; }
+        .return-reject { border: 1px solid #cbd5e1 !important; background: #fff; color: #475569; }
+        .return-empty { padding: 2rem 1rem; border: 1px dashed #cbd5e1; border-radius: 12px; background: #fff; color: #64748b; text-align: center; }
+        .return-empty i { display: block; margin-bottom: .6rem; color: #94a3b8; font-size: 1.6rem; }
+        .return-pagination { display: flex; align-items: center; justify-content: space-between; gap: .75rem; color: #64748b; font-size: .82rem; }
+        .return-pagination a { padding: .45rem .7rem; border: 1px solid #dbe3ed; border-radius: 7px; background: #fff; color: #334155; text-decoration: none; }
+        #returnDecisionModal {
+            position: fixed;
+            inset: 0;
+            z-index: 4500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, .62);
+        }
+        #returnDecisionModal.is-open { display: flex; }
+        .return-decision-dialog { width: min(440px, 94vw); padding: 1.25rem; border: 1px solid #dbeafe; border-radius: 16px; background: #fff; box-shadow: 0 20px 55px rgba(15, 35, 65, .28); }
+        .return-decision-dialog h2 { margin: 0 0 .45rem; color: #172b55; font-size: 1.05rem; }
+        .return-decision-dialog p { margin: 0 0 .9rem; color: #536782; font-size: .86rem; line-height: 1.5; }
+        .return-decision-dialog label { display: block; margin: .75rem 0 .35rem; color: #334155; font-size: .82rem; font-weight: 650; }
+        .return-decision-dialog select, .return-decision-dialog textarea { width: 100%; box-sizing: border-box; padding: .65rem; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #334155; font: inherit; }
+        .return-decision-dialog textarea { min-height: 84px; resize: vertical; }
+        .return-decision-error { margin-top: .55rem !important; color: #b91c1c !important; }
+        .return-decision-actions { display: flex; justify-content: flex-end; gap: .55rem; margin-top: 1rem; }
+        .return-decision-actions button { padding: .6rem .9rem; border: 0; border-radius: 8px; font-weight: 650; cursor: pointer; }
+        .return-decision-cancel { background: #e2e8f0; color: #334155; }
+        .return-decision-submit { background: #1762c4; color: #fff; }
+        @media (max-width: 760px) {
+            .return-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .return-card-body { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .return-page-heading h1 { font-size: 1.3rem; }
+            .return-card-header, .return-card-footer { padding-right: .85rem; padding-left: .85rem; }
+            .return-card-body { padding: .8rem .85rem; }
+            .return-evidence-stack a { flex-basis: 60px; width: 60px; height: 60px; margin-left: -45px; }
+            .return-reason-content { gap: .5rem; }
+            .return-evidence-dialog { height: 90vh; grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem; gap: .35rem; padding: 3.25rem .4rem 2rem; }
+            .return-evidence-dialog img { max-width: 100%; max-height: calc(90vh - 6rem); }
+            .return-evidence-previous, .return-evidence-next { width: 2rem; height: 2rem; }
+            .return-summary-card { padding: .8rem; }
+            .return-summary-number { font-size: 1.25rem; }
+            .return-review-actions { width: 100%; }
+            .return-review-actions button { flex: 1; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% if request.user.profile.role == 'admin' %}
+            {% include "accounts/admin_nav_links.html" %}
+        {% else %}
+            <ul class="nav-links">
+                <li><a href="{% url 'staff_dashboard' %}"><i class="fas fa-th-large"></i> Dashboard</a></li>
+                <li><a href="{% url 'pos_dashboard' %}"><i class="fas fa-cash-register"></i> Products</a></li>
+                <li><a href="{% url 'manage_orders' %}"><i class="fas fa-shopping-cart"></i> Orders</a></li>
+                <li><a href="{% url 'return_orders' %}" class="active" aria-current="page"><i class="fas fa-undo"></i> Return Order</a></li>
+                <li><a href="{% url 'inventory_list' %}"><i class="fas fa-boxes"></i> Inventory</a></li>
+                <li><a href="{% url 'sale_list' %}"><i class="fas fa-history"></i> Sales History</a></li>
+                <li><a href="{% url 'messaging_inbox' %}"><i class="fas fa-envelope"></i> Messages</a></li>
+                <li><a href="{% url 'account_profile' %}" data-standalone-profile><i class="fas fa-user"></i> Profile</a></li>
+                <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        {% endif %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="return-page-heading">
+            <h1><i class="fas fa-undo" aria-hidden="true"></i> Return Order</h1>
+            <p>Customer return requests and pickup progress.</p>
+        </header>
+
+        <div id="returnOrdersContent">
+            <section class="return-summary-grid" aria-label="Return request totals">
+                <div class="return-summary-card"><div class="return-summary-label">All Returns</div><div class="return-summary-number">{{ return_counts.all }}</div></div>
+                <div class="return-summary-card"><div class="return-summary-label">Pending Review</div><div class="return-summary-number">{{ return_counts.pending }}</div></div>
+                <div class="return-summary-card"><div class="return-summary-label">Approved</div><div class="return-summary-number">{{ return_counts.approved }}</div></div>
+                <div class="return-summary-card"><div class="return-summary-label">Rejected</div><div class="return-summary-number">{{ return_counts.rejected }}</div></div>
+            </section>
+
+            <nav class="return-filters" aria-label="Filter return requests">
+                <a class="return-filter {% if return_status_filter == 'all' %}active{% endif %}" href="{% url 'return_orders' %}">All <span class="return-filter-count">{{ return_counts.all }}</span></a>
+                <a class="return-filter {% if return_status_filter == 'pending' %}active{% endif %}" href="{% url 'return_orders' %}?status=pending">Pending <span class="return-filter-count">{{ return_counts.pending }}</span></a>
+                <a class="return-filter {% if return_status_filter == 'approved' %}active{% endif %}" href="{% url 'return_orders' %}?status=approved">Approved <span class="return-filter-count">{{ return_counts.approved }}</span></a>
+                <a class="return-filter {% if return_status_filter == 'rejected' %}active{% endif %}" href="{% url 'return_orders' %}?status=rejected">Rejected <span class="return-filter-count">{{ return_counts.rejected }}</span></a>
+            </nav>
+
+            <section class="return-list" id="returnOrdersList" aria-live="polite">
+                {% for return_request in return_requests %}
+                    <article class="return-card">
+                        <header class="return-card-header">
+                            <div>
+                                <div class="return-order-title">Order {{ return_request.order.order_number }}</div>
+                                <div class="return-order-meta">
+                                    {{ return_request.order.customer.get_full_name|default:return_request.order.customer.username }}
+                                    &middot; Requested {{ return_request.created_at|date:"M d, Y - h:i A" }}
+                                </div>
+                            </div>
+                            <span class="return-status return-status-{{ return_request.status }}">
+                                {{ return_request.get_status_display }}
+                            </span>
+                        </header>
+
+                        <div class="return-card-body">
+                            <section class="return-info-block">
+                                <div class="return-info-heading">
+                                    <h3>Returned items</h3>
+                                    {% if return_request.status == 'approved' and return_request.payment_returned_at %}
+                                        <span class="return-status return-status-approved">Payment Returned</span>
+                                    {% endif %}
+                                </div>
+                                <ul class="return-items">
+                                    {% for item in return_request.items.all %}
+                                        <li>
+                                            <span>{{ item.quantity }} &times; {{ item.order_item.product.name }} (of {{ item.order_item.quantity }} purchased)</span>
+                                            <strong class="return-item-amount">₱{{ item.display_return_amount|floatformat:2 }}</strong>
+                                        </li>
+                                    {% empty %}
+                                        <li>No returned item details.</li>
+                                    {% endfor %}
+                                </ul>
+                                {% if return_request.items.all %}
+                                    <div class="return-total">
+                                        <span>Estimated total return cash</span>
+                                        <strong>₱{{ return_request.return_cash_total|floatformat:2 }}</strong>
+                                    </div>
+                                {% endif %}
+                            </section>
+                            <section class="return-info-block">
+                                <h3><i class="fas fa-comment-alt" aria-hidden="true"></i> Customer's return reason &amp; details</h3>
+                                <div class="return-reason-content">
+                                    <div class="return-reason-text">
+                                        <p><strong>Reason:</strong> {{ return_request.get_reason_display }}</p>
+                                        <p><strong>Details:</strong> {{ return_request.details|default:"No additional details provided."|linebreaksbr }}</p>
+                                        {% if return_request.review_notes %}
+                                            <p><strong>Reviewer note:</strong> {{ return_request.review_notes|linebreaksbr }}</p>
+                                        {% endif %}
+                                    </div>
+                                    {% if return_request.evidence_image or return_request.evidence_images.all %}
+                                        <div class="return-evidence-stack" aria-label="Return evidence images">
+                                            {% if return_request.evidence_image %}
+                                                <a href="{{ return_request.evidence_image.url }}" target="_blank" rel="noopener" data-evidence-gallery="{{ return_request.id }}" data-evidence-index="0" aria-label="Open customer return evidence image 1">
+                                                    <img src="{{ return_request.evidence_image.url }}" alt="Customer return evidence">
+                                                </a>
+                                            {% endif %}
+                                            {% for evidence in return_request.evidence_images.all %}
+                                                <a href="{{ evidence.image.url }}" target="_blank" rel="noopener" data-evidence-gallery="{{ return_request.id }}" data-evidence-index="{% if return_request.evidence_image %}{{ forloop.counter }}{% else %}{{ forloop.counter0 }}{% endif %}" aria-label="Open customer return evidence image {% if return_request.evidence_image %}{{ forloop.counter|add:1 }}{% else %}{{ forloop.counter }}{% endif %}">
+                                                    <img src="{{ evidence.image.url }}" alt="Customer return evidence">
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </section>
+                        </div>
+
+                        <footer class="return-card-footer">
+                            {% if return_request.status == 'approved' %}
+                                <div class="return-pickup-info">
+                                    <strong>Pickup:</strong> {{ return_request.get_pickup_status_display }}
+                                    {% if return_request.pickup_rider %}&middot; Rider: {{ return_request.pickup_rider.get_full_name|default:return_request.pickup_rider.username }}{% endif %}
+                                </div>
+                                {% if return_request.pickup_status == 'received' and not return_request.inspected_at %}
+                                        <form class="return-inspection" data-inspect-url="{% url 'inspect_return_request' return_request.id %}">
+                                            {% csrf_token %}
+                                            <h3>Inspect returned items</h3>
+                                            <p>Set restockable quantities for Water Gallon items only. Water Refill stock is not tracked.</p>
+                                            {% for item in return_request.items.all %}
+                                                <div class="return-inspection-row">
+                                                    <span class="return-inspection-product">
+                                                        <span>{{ item.quantity }} &times; {{ item.order_item.product.name }} (of {{ item.order_item.quantity }} purchased)</span>
+                                                        {% if item.order_item.product.product_type == 'refill' %}
+                                                            <span class="return-product-type return-product-type-refill"><i class="fas fa-tint" aria-hidden="true"></i> REFILL</span>
+                                                        {% else %}
+                                                            <span class="return-product-type return-product-type-gallon">GALLON</span>
+                                                        {% endif %}
+                                                    </span>
+                                                    {% if item.order_item.product.product_type == 'gallon' %}
+                                                        <input type="number" min="0" max="{{ item.quantity }}" required
+                                                            data-return-item-id="{{ item.id }}"
+                                                            aria-label="Restockable quantity for {{ item.order_item.product.name }}">
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                            <button type="submit" class="return-inspection-submit">Complete inspection</button>
+                                            <p class="return-decision-error" hidden></p>
+                                        </form>
+                                {% endif %}
+                            {% elif return_request.status == 'rejected' %}
+                                <div class="return-pickup-info">This return request was rejected.</div>
+                            {% else %}
+                                <div class="return-pickup-info">Review this request and choose an active rider if approving.</div>
+                                <div class="return-review-actions">
+                                    <button type="button" class="return-approve" data-review-url="{% url 'review_return_request' return_request.id %}" data-review-action="approve"><i class="fas fa-check-circle" aria-hidden="true"></i> Approve</button>
+                                    <button type="button" class="return-reject" data-review-url="{% url 'review_return_request' return_request.id %}" data-review-action="reject"><i class="fas fa-times-circle" aria-hidden="true"></i> Reject</button>
+                                </div>
+                            {% endif %}
+                        </footer>
+                    </article>
+                {% empty %}
+                    <div class="return-empty"><i class="fas fa-undo" aria-hidden="true"></i>No customer return requests found.</div>
+                {% endfor %}
+            </section>
+
+            {% if return_page.paginator.num_pages > 1 %}
+                <nav class="return-pagination" aria-label="Return request pages">
+                    <span>Page {{ return_page.number }} of {{ return_page.paginator.num_pages }}</span>
+                    <div>
+                        {% if return_page.has_previous %}<a href="?status={{ return_status_filter }}&page={{ return_page.previous_page_number }}">Previous</a>{% endif %}
+                        {% if return_page.has_next %}<a href="?status={{ return_status_filter }}&page={{ return_page.next_page_number }}">Next</a>{% endif %}
+                    </div>
+                </nav>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<div id="returnInspectionToast" class="return-inspection-toast" role="status" aria-live="polite" hidden>
+    <i class="fas fa-check-circle" aria-hidden="true"></i>
+    <span id="returnInspectionToastMessage"></span>
+</div>
+
+<div id="returnEvidenceViewer" class="return-evidence-viewer" role="dialog" aria-modal="true" aria-label="Return evidence image viewer" hidden>
+    <div class="return-evidence-dialog">
+        <button type="button" class="return-evidence-close" id="closeReturnEvidence" aria-label="Close image viewer">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="return-evidence-previous" id="previousReturnEvidence" aria-label="Previous image">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <figure>
+            <img id="returnEvidenceImage" alt="">
+            <figcaption id="returnEvidencePosition" aria-live="polite"></figcaption>
+        </figure>
+        <button type="button" class="return-evidence-next" id="nextReturnEvidence" aria-label="Next image">
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </button>
+    </div>
+</div>
+
+<div id="returnDecisionModal" role="dialog" aria-modal="true" aria-labelledby="returnDecisionTitle">
+    <div class="return-decision-dialog">
+        <h2 id="returnDecisionTitle">Review return request</h2>
+        <p id="returnDecisionDescription"></p>
+        <form id="returnDecisionForm">
+            {% csrf_token %}
+            <div id="returnPickupRiderField">
+                <label for="returnPickupRider">Assign Pickup rider</label>
+                <select id="returnPickupRider">
+                    <option value="">Select an active rider</option>
+                    {% for rider in riders %}
+                        <option value="{{ rider.id }}">{{ rider.get_full_name|default:rider.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <label id="returnDecisionNoteLabel" for="returnDecisionNotes"></label>
+            <textarea id="returnDecisionNotes" maxlength="2000"></textarea>
+            <p id="returnDecisionError" class="return-decision-error" hidden></p>
+            <div class="return-decision-actions">
+                <button type="button" class="return-decision-cancel" id="cancelReturnDecision">Cancel</button>
+                <button type="submit" class="return-decision-submit" id="confirmReturnDecision">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let activeReturnReview = null;
+    const returnDecisionModal = document.getElementById('returnDecisionModal');
+    const returnDecisionForm = document.getElementById('returnDecisionForm');
+    const returnDecisionNotes = document.getElementById('returnDecisionNotes');
+    const returnDecisionError = document.getElementById('returnDecisionError');
+    const returnPickupRiderField = document.getElementById('returnPickupRiderField');
+    const returnPickupRider = document.getElementById('returnPickupRider');
+    const returnEvidenceViewer = document.getElementById('returnEvidenceViewer');
+    const returnEvidenceImage = document.getElementById('returnEvidenceImage');
+    const returnEvidencePosition = document.getElementById('returnEvidencePosition');
+    const previousReturnEvidence = document.getElementById('previousReturnEvidence');
+    const nextReturnEvidence = document.getElementById('nextReturnEvidence');
+    const returnInspectionToast = document.getElementById('returnInspectionToast');
+    const returnInspectionToastMessage = document.getElementById('returnInspectionToastMessage');
+    let activeEvidenceLinks = [];
+    let activeEvidenceIndex = 0;
+    let returnEvidenceOpener = null;
+    let returnInspectionToastTimeout = null;
+
+    function showReturnInspectionToast(restockedQuantity) {
+        const quantity = Number(restockedQuantity) || 0;
+        returnInspectionToastMessage.textContent = quantity > 0
+            ? `Inspection complete. ${quantity} returned unit${quantity === 1 ? ' was' : 's were'} added to stock. Sales adjustment recorded.`
+            : 'Inspection complete. No returned units were added to stock. Sales adjustment recorded.';
+        returnInspectionToast.hidden = false;
+        clearTimeout(returnInspectionToastTimeout);
+        returnInspectionToastTimeout = setTimeout(() => {
+            returnInspectionToast.hidden = true;
+        }, 5000);
+    }
+
+    function showReturnEvidence(index) {
+        if (!activeEvidenceLinks.length) return;
+        activeEvidenceIndex = (index + activeEvidenceLinks.length) % activeEvidenceLinks.length;
+        const link = activeEvidenceLinks[activeEvidenceIndex];
+        const thumbnail = link.querySelector('img');
+        returnEvidenceImage.src = link.href;
+        returnEvidenceImage.alt = thumbnail ? thumbnail.alt : 'Customer return evidence';
+        returnEvidencePosition.textContent = `${activeEvidenceIndex + 1} of ${activeEvidenceLinks.length}`;
+        previousReturnEvidence.hidden = activeEvidenceLinks.length < 2;
+        nextReturnEvidence.hidden = activeEvidenceLinks.length < 2;
+    }
+
+    function openReturnEvidence(link) {
+        const galleryId = link.dataset.evidenceGallery;
+        activeEvidenceLinks = Array.from(
+            document.querySelectorAll(`[data-evidence-gallery="${galleryId}"]`)
+        );
+        activeEvidenceIndex = Number(link.dataset.evidenceIndex) || 0;
+        returnEvidenceOpener = link;
+        showReturnEvidence(activeEvidenceIndex);
+        returnEvidenceViewer.hidden = false;
+        document.body.style.overflow = 'hidden';
+        document.getElementById('closeReturnEvidence').focus();
+    }
+
+    function closeReturnEvidence() {
+        returnEvidenceViewer.hidden = true;
+        returnEvidenceImage.removeAttribute('src');
+        activeEvidenceLinks = [];
+        document.body.style.overflow = '';
+        if (returnEvidenceOpener && returnEvidenceOpener.isConnected) {
+            returnEvidenceOpener.focus();
+        }
+        returnEvidenceOpener = null;
+    }
+
+    document.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const evidenceLink = target.closest('[data-evidence-gallery]');
+        if (evidenceLink) {
+            event.preventDefault();
+            openReturnEvidence(evidenceLink);
+        }
+    });
+    document.getElementById('closeReturnEvidence').addEventListener('click', closeReturnEvidence);
+    previousReturnEvidence.addEventListener('click', () => showReturnEvidence(activeEvidenceIndex - 1));
+    nextReturnEvidence.addEventListener('click', () => showReturnEvidence(activeEvidenceIndex + 1));
+    returnEvidenceViewer.addEventListener('click', event => {
+        if (event.target === returnEvidenceViewer) closeReturnEvidence();
+    });
+    document.addEventListener('keydown', event => {
+        if (returnEvidenceViewer.hidden) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeReturnEvidence();
+        }
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            showReturnEvidence(activeEvidenceIndex - 1);
+        }
+        if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            showReturnEvidence(activeEvidenceIndex + 1);
+        }
+    });
+
+    async function readReturnResponse(response, fallbackMessage) {
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.toLowerCase().includes('application/json')) {
+            if (response.redirected) {
+                throw new Error('Your session may have expired. Refresh the page and sign in again.');
+            }
+            if (response.status === 403) {
+                throw new Error('The security token expired. Refresh the page and try again.');
+            }
+            throw new Error(`Unexpected server response (HTTP ${response.status}). Refresh the page and try again.`);
+        }
+
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            throw new Error('The server returned an invalid response. Refresh the page and try again.');
+        }
+        if (!response.ok) {
+            throw new Error(data.error || fallbackMessage);
+        }
+        return data;
+    }
+
+    function closeReturnDecision() {
+        returnDecisionModal.classList.remove('is-open');
+        activeReturnReview = null;
+    }
+
+    document.getElementById('cancelReturnDecision').addEventListener('click', closeReturnDecision);
+    returnPickupRider.addEventListener('change', () => returnPickupRider.setCustomValidity(''));
+    returnDecisionNotes.addEventListener('input', () => returnDecisionNotes.setCustomValidity(''));
+
+    document.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const reviewButton = target.closest('[data-review-url]');
+        if (!reviewButton) return;
+
+        activeReturnReview = {
+            url: reviewButton.dataset.reviewUrl,
+            action: reviewButton.dataset.reviewAction,
+        };
+        const approving = activeReturnReview.action === 'approve';
+        document.getElementById('returnDecisionTitle').textContent =
+            approving ? 'Approve Return Request' : 'Reject Return Request';
+        document.getElementById('returnDecisionDescription').textContent = approving
+            ? 'Choose an active rider to pick up the returned product. Add optional instructions for the customer. This will not automatically issue a refund.'
+            : 'Rejecting declines this return request. Enter a clear reason so the customer understands the decision.';
+        returnPickupRiderField.hidden = !approving;
+        returnPickupRider.required = approving;
+        returnPickupRider.value = '';
+        document.getElementById('returnDecisionNoteLabel').textContent =
+            approving ? 'Pickup instructions or note (optional)' : 'Reason for rejection (required)';
+        returnDecisionNotes.placeholder = approving
+            ? 'For example, pickup availability or handling instructions'
+            : 'Explain why the return request cannot be approved';
+        returnDecisionNotes.required = !approving;
+        returnDecisionNotes.value = '';
+        returnDecisionError.hidden = true;
+        returnDecisionModal.classList.add('is-open');
+        document.getElementById('confirmReturnDecision').focus();
+    });
+
+    returnDecisionForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!activeReturnReview) return;
+
+        const notes = returnDecisionNotes.value.trim();
+        if (activeReturnReview.action === 'reject' && !notes) {
+            returnDecisionNotes.setCustomValidity('A rejection reason is required.');
+            returnDecisionNotes.reportValidity();
+            return;
+        }
+        returnDecisionNotes.setCustomValidity('');
+
+        const payload = { action: activeReturnReview.action, notes };
+        if (activeReturnReview.action === 'approve') {
+            if (!returnPickupRider.value) {
+                returnPickupRider.setCustomValidity('Select an active rider.');
+                returnPickupRider.reportValidity();
+                return;
+            }
+            returnPickupRider.setCustomValidity('');
+            payload.rider_id = Number(returnPickupRider.value);
+        }
+
+        const submitButton = document.getElementById('confirmReturnDecision');
+        submitButton.disabled = true;
+        returnDecisionError.hidden = true;
+        try {
+            const csrfToken = returnDecisionForm.querySelector('[name="csrfmiddlewaretoken"]').value;
+            const response = await fetch(activeReturnReview.url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify(payload),
+            });
+            await readReturnResponse(response, 'Unable to review return request.');
+            closeReturnDecision();
+            await refreshReturnOrdersInPlace();
+        } catch (error) {
+            returnDecisionError.textContent = error.message || 'Unable to review return request.';
+            returnDecisionError.hidden = false;
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+
+    document.addEventListener('submit', async event => {
+        const form = event.target instanceof HTMLFormElement
+            ? event.target.closest('.return-inspection')
+            : null;
+        if (!form) return;
+        event.preventDefault();
+        const submitButton = form.querySelector('[type="submit"]');
+        const errorMessage = form.querySelector('.return-decision-error');
+        const items = Array.from(form.querySelectorAll('[data-return-item-id]')).map(input => ({
+            id: Number(input.dataset.returnItemId),
+            restockable_quantity: input.value,
+        }));
+        submitButton.disabled = true;
+        errorMessage.hidden = true;
+        try {
+            const response = await fetch(form.dataset.inspectUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                },
+                body: JSON.stringify({ items }),
+            });
+            const result = await readReturnResponse(response, 'Unable to save the return inspection.');
+            showReturnInspectionToast(result.restocked_quantity);
+            await refreshReturnOrdersInPlace();
+        } catch (error) {
+            errorMessage.textContent = error.message || 'Unable to save the return inspection.';
+            errorMessage.hidden = false;
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+
+    let refreshingReturnOrders = false;
+    async function refreshReturnOrdersInPlace() {
+        if (refreshingReturnOrders) return;
+        refreshingReturnOrders = true;
+        try {
+            const response = await fetch(window.location.href, {
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) throw new Error(`Return list refresh failed (${response.status})`);
+            const html = await response.text();
+            const updatedDocument = new DOMParser().parseFromString(html, 'text/html');
+            const updatedContent = updatedDocument.getElementById('returnOrdersContent');
+            const currentContent = document.getElementById('returnOrdersContent');
+            if (!updatedContent || !currentContent) {
+                throw new Error('Unable to find the return request list in the refreshed page.');
+            }
+            currentContent.replaceWith(updatedContent);
+        } catch (error) {
+            console.error('Unable to update return requests:', error);
+        } finally {
+            refreshingReturnOrders = false;
+        }
+    }
+
+    document.addEventListener('gws:live-update', event => {
+        if (event.detail?.returnRequestChanged || event.detail?.returnPickupChanged) {
+            refreshReturnOrdersInPlace();
+        }
+    });
+
+    const menuButton = document.createElement('button');
+    menuButton.type = 'button';
+    menuButton.className = 'menu-toggle';
+    menuButton.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
+    menuButton.setAttribute('aria-label', 'Toggle navigation');
+    const sidebarOverlay = document.createElement('div');
+    sidebarOverlay.className = 'sidebar-overlay';
+    document.body.append(menuButton, sidebarOverlay);
+    const sidebar = document.querySelector('.sidebar');
+    const closeSidebar = () => {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+    };
+    menuButton.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
+    });
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) closeSidebar();
+        });
+    });
+</script>
+</body>
+</html>

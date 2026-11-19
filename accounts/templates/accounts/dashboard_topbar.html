@@ -1,0 +1,51 @@
+<header class="dashboard-header dashboard-topbar">
+    <div class="dashboard-topbar-title">
+        {% if request.user.profile.role == 'admin' %}<h1>Admin Dashboard</h1>
+        {% elif request.user.profile.role == 'staff' %}<h1>Staff Dashboard</h1>
+        {% elif request.user.profile.role == 'rider' %}<h1>Rider Dashboard</h1>
+        {% else %}<h1>Customer Dashboard</h1>{% endif %}
+    </div>
+    <div class="dashboard-topbar-actions">
+        <div class="dashboard-notification-wrap">
+            <button class="dashboard-icon-button" type="button" data-dashboard-notification-bell data-notifications-api="{% url 'notifications_api' %}" data-user-key="{{ request.user.pk }}" aria-label="Notifications" aria-expanded="false" aria-controls="dashboardNotificationPanel">
+                <i class="fas fa-bell" aria-hidden="true"></i>
+                <span class="dashboard-notification-count" data-dashboard-notification-count hidden></span>
+            </button>
+            <section class="dashboard-notification-panel" id="dashboardNotificationPanel" data-dashboard-notification-panel data-notification-detail-url="{% url 'notifications_api' %}" hidden>
+                <div class="dashboard-notification-panel-header">
+                    <strong>Notifications</strong>
+                    <div class="dashboard-notification-panel-actions">
+                        <button type="button" data-dashboard-mark-all-read data-mark-all-url="{% url 'notifications_mark_all' %}">Mark all as read</button>
+                        <a href="{% url 'notifications' %}">View all</a>
+                    </div>
+                </div>
+                <div class="dashboard-notification-list" data-dashboard-notification-list>
+                    <p class="dashboard-notification-empty">Loading notifications…</p>
+                </div>
+            </section>
+        </div>
+        {% if request.user.profile.role == 'admin' %}
+        <div class="dashboard-settings-wrap">
+            <button class="dashboard-icon-button" type="button" data-dashboard-settings-toggle aria-label="Settings" aria-expanded="false" aria-controls="dashboardSettingsMenu">
+                <i class="fas fa-cog" aria-hidden="true"></i>
+            </button>
+            <div class="dashboard-settings-menu" id="dashboardSettingsMenu" data-dashboard-settings-menu hidden>
+                <strong>Settings</strong>
+                <a href="{% url 'wifi_configuration' %}">
+                    <i class="fas fa-wifi" aria-hidden="true"></i>
+                    Wi-Fi Configuration
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        <a class="dashboard-profile-link" data-standalone-profile href="{% if request.user.profile.role == 'customer' %}{% url 'customer_profile' %}{% else %}{% url 'account_profile' %}{% endif %}">
+            <span class="dashboard-profile-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
+            <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+        </a>
+    </div>
+</header>
+<div hidden data-dashboard-flash-messages>
+    {% for message in messages %}
+    <span data-flash-message="{{ message }}" data-flash-tags="{{ message.tags }}"></span>
+    {% endfor %}
+</div>

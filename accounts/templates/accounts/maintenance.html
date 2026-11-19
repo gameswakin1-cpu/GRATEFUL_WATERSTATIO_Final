@@ -1,0 +1,2334 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance - Grateful Water Station</title>
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% include "accounts/admin_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN ─────────────────────────────────── -->
+    <main class="main-content">
+
+        <!-- ── MAINTENANCE SECTION ─── -->
+        <div id="maintenanceSection" class="maintenance-section">
+            <header class="dashboard-header">
+                <h1><i class="fas fa-screwdriver-wrench"></i> Maintenance</h1>
+            
+            <div class='header-actions dashboard-topbar-actions'>
+                {% include 'accounts/dashboard_header_actions.html' %}
+            </div>
+        </header>
+
+            <section class="maintenance-stats" aria-label="Maintenance summary">
+                <article class="maintenance-stat"><span class="maintenance-stat-icon blue"><i class="fas fa-list-check"></i></span><div><strong id="totalMaintenanceCount">0</strong><span>Total active tasks</span></div></article>
+                <article class="maintenance-stat"><span class="maintenance-stat-icon red"><i class="fas fa-calendar-day"></i></span><div><strong id="dueTodayCount">0</strong><span>Due today</span></div></article>
+                <article class="maintenance-stat"><span class="maintenance-stat-icon amber"><i class="fas fa-triangle-exclamation"></i></span><div><strong id="priorityMaintenanceCount">0</strong><span>Needs attention</span></div></article>
+                <article class="maintenance-stat"><span class="maintenance-stat-icon green"><i class="fas fa-circle-check"></i></span><div><strong id="completedMaintenanceCount">0</strong><span>Completed</span></div></article>
+            </section>
+
+            <div id="scheduling-tab">
+                <div class="scheduling-container">
+                    <!-- Calendar Section -->
+                    <div class="calendar-wrapper">
+                        <div class="calendar-header">
+                            <button class="calendar-nav-btn" id="prevMonth" onclick="previousMonth()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <h3 id="calendarMonth">September 2024</h3>
+                            <button class="calendar-nav-btn" id="nextMonth" onclick="nextMonth()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="calendar-weekdays">
+                            <div class="weekday">Sun</div>
+                            <div class="weekday">Mon</div>
+                            <div class="weekday">Tue</div>
+                            <div class="weekday">Wed</div>
+                            <div class="weekday">Thu</div>
+                            <div class="weekday">Fri</div>
+                            <div class="weekday">Sat</div>
+                        </div>
+
+                        <div class="calendar-days" id="calendarDays">
+                            <!-- Days will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Tasks -->
+                    <div class="scheduled-tasks-panel">
+                        <div class="tasks-panel-header">
+                            <div class="task-list-switcher" role="tablist" aria-label="Equipment task lists">
+                                <button type="button" id="cleaningTasksTab" class="task-list-tab active" role="tab" aria-selected="true" aria-controls="cleaningTasksPanel" onclick="showScheduledTaskList('cleaning')">
+                                    <i class="fas fa-broom"></i> Equipment Cleaning Tasks
+                                </button>
+                                <button type="button" id="equipmentMaintenanceTasksTab" class="task-list-tab" role="tab" aria-selected="false" aria-controls="equipmentMaintenanceTasksPanel" onclick="showScheduledTaskList('maintenance')">
+                                    <i class="fas fa-tools"></i> Equipment Maintenance Tasks
+                                </button>
+                            </div>
+                            <div class="task-list-panel-heading">
+                                <p id="cleaningTasksDescription">Keep upcoming station work organized and on schedule.</p>
+                                <span class="task-count" id="taskCount">0 tasks</span>
+                                <span class="task-count" id="maintenanceTaskCount" hidden>0 tasks</span>
+                            </div>
+                        </div>
+                        <div class="tasks-list task-list-content" id="cleaningTasksPanel" role="tabpanel" aria-labelledby="cleaningTasksTab">
+                            <p class="empty-message">Loading tasks...</p>
+                        </div>
+                        <div class="maintenance-task-list task-list-content" id="equipmentMaintenanceTasksPanel" role="tabpanel" aria-labelledby="equipmentMaintenanceTasksTab" hidden>
+                            <p class="maintenance-task-empty">
+                                <i class="fas fa-clipboard-check"></i>
+                                <span>Loading equipment maintenance tasks...</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /maintenanceSection -->
+    </main>
+</div>
+
+<!-- ── SCHEDULING MODAL ── -->
+<div id="schedulingModal" class="modal">
+    <div class="modal-content modal-schedule">
+        <div class="modal-header">
+            <h2 id="creationModalTitle"><i class="fas fa-calendar-plus"></i> Create Equipment Task</h2>
+            <span class="close-btn" onclick="closeSchedulingModal()">&times;</span>
+        </div>
+        <div class="modal-body creation-modal-body">
+            <div id="creationTypeChooser" class="creation-type-chooser">
+                <p>Choose what you want to add for <strong id="creationSelectedDate"></strong>.</p>
+                <button type="button" class="creation-type-button" onclick="showCreationForm('cleaning')">
+                    <i class="fas fa-broom"></i>
+                    <span><strong>Equipment Cleaning</strong><small>Schedule cleaning work</small></span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button type="button" class="creation-type-button" onclick="showCreationForm('maintenance')">
+                    <i class="fas fa-tools"></i>
+                    <span><strong>Equipment Maintenance</strong><small>Log an equipment issue</small></span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="modal-footer">
+                    <button type="button" class="maint-btn" onclick="closeSchedulingModal()">Cancel</button>
+                </div>
+            </div>
+
+            <div id="cleaningTaskForm" class="creation-form" hidden>
+                <div class="form-row">
+                    <label>Maintenance Option <span class="required">*</span></label>
+                    <select id="sched-task" class="maint-input" onchange="toggleCustomTask(); updateTaskSelectColor(this)">
+                        <option value="">-- Select maintenance option --</option>
+                        <option value="Clean and sanitize filter system" data-task-color="filter-system">Clean and sanitize filter system</option>
+                        <option value="Replace filter cartridges" data-task-color="filter-system">Replace filter cartridges</option>
+                        <option value="Inspect and service water pump" data-task-color="water-pump">Inspect and service water pump</option>
+                        <option value="Inspect pipes and fittings" data-task-color="pipes">Inspect pipes and fittings</option>
+                        <option value="Sanitize water storage tank" data-task-color="storage-tank">Sanitize water storage tank</option>
+                        <option value="Inspect electrical system" data-task-color="electrical">Inspect electrical system</option>
+                        <option value="Clean and inspect dispenser unit" data-task-color="dispenser">Clean and inspect dispenser unit</option>
+                        <option value="Deep clean station" data-task-color="deep-clean">Deep clean station</option>
+                        <option value="Other" data-task-color="other">Other</option>
+                    </select>
+                    <input type="text" id="sched-custom-task" class="maint-input" placeholder="Enter a maintenance task" style="display:none; margin-top:.5rem;">
+                </div>
+                <div class="form-row">
+                    <label>Description <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
+                    <textarea id="sched-description" class="maint-input" rows="3" placeholder="Additional details..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="maint-btn" onclick="showCreationChooser()">Back</button>
+                    <button type="button" class="maint-btn" onclick="closeSchedulingModal()">Cancel</button>
+                    <button type="button" class="maint-btn primary" onclick="scheduleMaintenanceTask()">
+                        <i class="fas fa-calendar-check"></i> Schedule Task
+                    </button>
+                </div>
+            </div>
+
+            <div id="equipmentMaintenanceForm" class="creation-form" hidden>
+                <div class="creation-form-row">
+                    <div class="form-row">
+                        <label for="maint-category">Category <span class="required">*</span></label>
+                        <select id="maint-category" class="maint-input" onchange="updateTaskSelectColor(this)">
+                            <option value="">-- Select Category --</option>
+                            <option value="Filter System" data-task-color="filter-system">Filter System</option>
+                            <option value="Water Pump" data-task-color="water-pump">Water Pump</option>
+                            <option value="Pipes & Fittings" data-task-color="pipes">Pipes &amp; Fittings</option>
+                            <option value="Electrical" data-task-color="electrical">Electrical</option>
+                            <option value="Dispenser Unit" data-task-color="dispenser">Dispenser Unit</option>
+                            <option value="Other" data-task-color="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="maint-priority">Priority</label>
+                        <select id="maint-priority" class="maint-input">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="maint-description">Description <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
+                    <textarea id="maint-description" class="maint-input" rows="3" placeholder="Add details if needed..."></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="maint-due-date">Due Date <span class="required">*</span></label>
+                    <input id="maint-due-date" class="maint-input" type="date" required>
+                </div>
+                <div class="form-row">
+                    <label for="maint-photo">Photos <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
+                    <input id="maint-photo" class="maint-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+                    <small>Upload any number of photos showing the issue (maximum 5 MB per photo).</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="maint-btn" onclick="showCreationChooser()">Back</button>
+                    <button type="button" class="maint-btn" onclick="closeSchedulingModal()">Cancel</button>
+                    <button type="button" class="maint-btn primary" onclick="logMaintenanceReport(this)">
+                        <i class="fas fa-paper-plane"></i> Submit Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="deleteConfirmationModal" class="delete-confirmation-overlay" role="alertdialog" aria-modal="true" aria-labelledby="deleteConfirmationTitle" aria-describedby="deleteConfirmationMessage" hidden>
+    <div class="delete-confirmation-dialog">
+        <div class="delete-confirmation-icon"><i class="fas fa-trash-alt" aria-hidden="true"></i></div>
+        <h2 id="deleteConfirmationTitle">Delete task?</h2>
+        <p id="deleteConfirmationMessage">Are you sure you want to delete this task? This action cannot be undone.</p>
+        <div class="delete-confirmation-actions">
+            <button type="button" class="delete-confirmation-cancel" onclick="closeDeleteConfirmation()">Cancel</button>
+            <button type="button" class="delete-confirmation-submit" id="confirmDeleteButton" onclick="confirmDeleteAction()">
+                <i class="fas fa-trash" aria-hidden="true"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentMonth = new Date();
+    let scheduledTasks = [];
+    let reportsData = [];
+    let completedTasksData = [];
+    let selectedScheduleDate = getTodayDateString();
+    let taskCounter = 0;
+    let reportCounter = 0;
+    let pendingDeleteAction = null;
+    let deleteConfirmationTrigger = null;
+    const maintenanceTaskColors = {
+        'Clean and sanitize filter system': 'filter-system',
+        'Replace filter cartridges': 'filter-system',
+        'Inspect and service water pump': 'water-pump',
+        'Inspect pipes and fittings': 'pipes',
+        'Sanitize water storage tank': 'storage-tank',
+        'Inspect electrical system': 'electrical',
+        'Clean and inspect dispenser unit': 'dispenser',
+        'Deep clean station': 'deep-clean',
+        'Filter System': 'filter-system',
+        'Water Pump': 'water-pump',
+        'Pipes & Fittings': 'pipes',
+        'Electrical': 'electrical',
+        'Dispenser Unit': 'dispenser',
+        'Other': 'other'
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('maint-due-date').min = getTodayDateString();
+        document.querySelectorAll('#sched-task, #maint-category').forEach(updateTaskSelectColor);
+        document.querySelectorAll('#sched-task, #maint-category').forEach(initializeColorSelect);
+        renderCalendar();
+        loadTasks();
+        loadReports();
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') closeDeleteConfirmation();
+        });
+    });
+
+    // ── LOAD DATA FROM BACKEND ──
+    async function loadTasks() {
+        try {
+            const response = await fetch("{% url 'get_maintenance_tasks' %}");
+            const data = await response.json();
+            if (data.success) {
+                scheduledTasks = data.tasks;
+                updateTasksList();
+                updateMaintenanceOverview();
+                renderCalendar();
+            } else {
+                document.getElementById('cleaningTasksPanel').innerHTML = '<p class="empty-message">Failed to load tasks. Please refresh.</p>';
+            }
+        } catch (error) {
+            console.error('Error loading tasks:', error);
+            document.getElementById('cleaningTasksPanel').innerHTML = '<p class="empty-message">Error loading tasks. Please refresh the page.</p>';
+        }
+    }
+
+    async function loadReports() {
+        try {
+            const response = await fetch("{% url 'get_maintenance_reports' %}");
+            const data = await response.json();
+            if (data.success) {
+                reportsData = data.reports;
+                completedTasksData = data.completed_tasks || [];
+                updateMaintenanceTasksPanel();
+                updateMaintenanceOverview();
+                renderCalendar();
+            } else {
+            }
+
+        } catch (error) {
+            console.error('Error loading reports:', error);
+        }
+    }
+
+    function updateMaintenanceOverview() {
+        const today = getTodayDateString();
+        const activeReports = reportsData.filter(report =>
+            ['Open', 'Pending', 'In Progress'].includes(report.status)
+        );
+        const activeItems = [
+            ...scheduledTasks.map(task => ({date: task.date, priority: '', title: task.task})),
+            ...activeReports.map(report => ({
+                date: report.due_date,
+                priority: report.priority,
+                title: report.category,
+            })),
+        ];
+        const priorityItems = activeItems.filter(item =>
+            ['High', 'Urgent'].includes(item.priority)
+        );
+        document.getElementById('totalMaintenanceCount').textContent = activeItems.length;
+        document.getElementById('dueTodayCount').textContent = activeItems.filter(item => item.date === today).length;
+        document.getElementById('priorityMaintenanceCount').textContent = priorityItems.length;
+        document.getElementById('completedMaintenanceCount').textContent = completedTasksData.length
+            + reportsData.filter(report => ['Resolved', 'Closed'].includes(report.status)).length;
+    }
+
+    document.addEventListener('gws:live-update', function(event) {
+        if (!event.detail.maintenanceChanged) return;
+        loadTasks();
+        loadReports();
+    });
+
+    function showScheduledTaskList(type) {
+        const showCleaning = type === 'cleaning';
+        document.getElementById('cleaningTasksPanel').hidden = !showCleaning;
+        document.getElementById('equipmentMaintenanceTasksPanel').hidden = showCleaning;
+        document.getElementById('taskCount').hidden = !showCleaning;
+        document.getElementById('maintenanceTaskCount').hidden = showCleaning;
+        document.getElementById('cleaningTasksDescription').textContent = showCleaning
+            ? 'Keep upcoming station work organized and on schedule.'
+            : 'View and track station maintenance work.';
+
+        document.getElementById('cleaningTasksTab').classList.toggle('active', showCleaning);
+        document.getElementById('cleaningTasksTab').setAttribute('aria-selected', String(showCleaning));
+        document.getElementById('equipmentMaintenanceTasksTab').classList.toggle('active', !showCleaning);
+        document.getElementById('equipmentMaintenanceTasksTab').setAttribute('aria-selected', String(!showCleaning));
+    }
+
+    function updateMaintenanceTasksPanel() {
+        const panel = document.getElementById('equipmentMaintenanceTasksPanel');
+        if (!panel) return;
+
+        const activeReports = reportsData.filter(report =>
+            ['Open', 'Pending', 'In Progress'].includes(report.status)
+        );
+        const count = document.getElementById('maintenanceTaskCount');
+        if (count) {
+            count.textContent = `${activeReports.length} ${activeReports.length === 1 ? 'task' : 'tasks'}`;
+        }
+
+        if (activeReports.length === 0) {
+            const emptyState = `
+                <p class="maintenance-task-empty">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>No pending or in-progress maintenance tasks.</span>
+                </p>`;
+            panel.innerHTML = emptyState;
+            return;
+        }
+
+        const tasksMarkup = activeReports.map(report => {
+            const displayStatus = report.status === 'Open' ? 'Pending' : report.status;
+            return `
+            <div class="maintenance-task-entry task-item status-${displayStatus.toLowerCase().replace(/\s+/g, '-')} ${getTaskColorClass(report.category, 'maintenance')}">
+                <div class="task-content">
+                    <div class="task-header">
+                        <h4>${escapeHtml(report.category)}</h4>
+                        <span class="task-status status-badge ${displayStatus.toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(displayStatus)}</span>
+                    </div>
+                    <div class="task-details">
+                        ${report.description ? `<span class="task-description">${escapeHtml(report.description)}</span>` : ''}
+                        <span class="task-detail-meta task-date-badge"><i class="fas fa-calendar-day"></i> ${report.due_date ? `Due ${escapeHtml(new Date(`${report.due_date}T12:00:00`).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}))}` : 'No due date'}</span>
+                        <span class="task-detail-meta task-priority-badge"><i class="fas fa-flag"></i> ${escapeHtml(report.priority)} priority</span>
+                    </div>
+                    ${report.photo_urls && report.photo_urls.length ? `<div class="maintenance-task-photos">${report.photo_urls.map(photoUrl => `<a class="maintenance-task-photo-link" href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener noreferrer"><img class="maintenance-task-photo" src="${escapeHtml(photoUrl)}" alt="Photo of ${escapeHtml(report.category)} maintenance issue"></a>`).join('')}</div>` : ''}
+                    <div class="task-card-footer">
+                        <button class="action-btn delete" type="button" onclick="deleteReport(${report.id})" title="Delete task">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+        panel.innerHTML = tasksMarkup;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getMaintenanceTaskColor(taskTitle) {
+        return maintenanceTaskColors[taskTitle] || 'other';
+    }
+
+    function getTaskColorClass(taskTitle, taskType) {
+        return `task-color-${taskType}-${getMaintenanceTaskColor(taskTitle)}`;
+    }
+
+    function getCalendarTasksForDate(dateStr) {
+        const scheduledTasksForDate = scheduledTasks
+            .filter(task => task.date === dateStr)
+            .map(task => ({ ...task, taskType: 'cleaning' }));
+        const maintenanceReportsForDate = reportsData
+            .filter(report =>
+                report.due_date === dateStr &&
+                ['Open', 'Pending', 'In Progress'].includes(report.status)
+            )
+            .map(report => ({ task: report.category, taskType: 'maintenance' }));
+
+        return [...scheduledTasksForDate, ...maintenanceReportsForDate];
+    }
+
+    function updateTaskSelectColor(select) {
+        const color = select.selectedOptions[0]?.dataset.taskColor;
+        if (color) {
+            select.dataset.taskColor = color;
+        } else {
+            delete select.dataset.taskColor;
+        }
+    }
+
+    function initializeColorSelect(select) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'color-select-wrapper';
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
+        select.classList.add('native-color-select');
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'color-select-trigger';
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        trigger.setAttribute('aria-expanded', 'false');
+        wrapper.appendChild(trigger);
+
+        const menu = document.createElement('div');
+        menu.className = 'color-select-menu';
+        menu.setAttribute('role', 'listbox');
+        menu.hidden = true;
+        wrapper.appendChild(menu);
+
+        Array.from(select.options).forEach(option => {
+            if (!option.value) return;
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'color-select-option';
+            item.dataset.taskColor = option.dataset.taskColor || '';
+            item.textContent = option.textContent;
+            item.setAttribute('role', 'option');
+            item.addEventListener('mouseenter', () => {
+                item.classList.add('is-hovered');
+            });
+            item.addEventListener('mouseleave', () => {
+                item.classList.remove('is-hovered');
+            });
+            item.addEventListener('click', () => {
+                select.value = option.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                updateColorSelectDisplay(select, trigger, menu);
+                menu.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
+            });
+            menu.appendChild(item);
+        });
+
+        trigger.addEventListener('click', () => {
+            const isOpen = !menu.hidden;
+            document.querySelectorAll('.color-select-menu').forEach(openMenu => {
+                openMenu.hidden = true;
+            });
+            document.querySelectorAll('.color-select-trigger').forEach(openTrigger => {
+                openTrigger.setAttribute('aria-expanded', 'false');
+            });
+            menu.hidden = isOpen;
+            trigger.setAttribute('aria-expanded', String(!isOpen));
+        });
+
+        document.addEventListener('click', event => {
+            if (!wrapper.contains(event.target)) {
+                menu.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        updateColorSelectDisplay(select, trigger, menu);
+    }
+
+    function refreshColorSelect(select) {
+        const wrapper = select.parentElement;
+        if (!wrapper) return;
+        const trigger = wrapper.querySelector('.color-select-trigger');
+        const menu = wrapper.querySelector('.color-select-menu');
+        if (trigger && menu) updateColorSelectDisplay(select, trigger, menu);
+    }
+
+    function updateColorSelectDisplay(select, trigger, menu) {
+        const selectedOption = select.selectedOptions[0];
+        trigger.textContent = selectedOption ? selectedOption.textContent : '';
+        trigger.dataset.taskColor = selectedOption?.dataset.taskColor || '';
+        menu.querySelectorAll('.color-select-option').forEach(option => {
+            const isSelected = option.textContent === selectedOption?.textContent;
+            option.classList.toggle('is-selected', isSelected);
+            option.setAttribute('aria-selected', String(isSelected));
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // ── CALENDAR FUNCTIONALITY ──
+    function renderCalendar() {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        
+        const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        document.getElementById('calendarMonth').textContent = monthName;
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        const calendarDays = document.getElementById('calendarDays');
+        calendarDays.innerHTML = '';
+        
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'calendar-day empty';
+            calendarDays.appendChild(emptyCell);
+        }
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement('div');
+            dayCell.className = 'calendar-day';
+            dayCell.innerHTML = `<span class="calendar-day-number">${day}</span>`;
+            
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            dayCell.setAttribute('data-date', dateStr);
+            const dayTasks = getCalendarTasksForDate(dateStr);
+            if (dayTasks.length) {
+                dayCell.classList.add('has-task');
+                dayCell.title = dayTasks.map(task => task.task).join(', ');
+                dayCell.setAttribute('aria-label', `${dateStr}: ${dayTasks.map(task => task.task).join(', ')}`);
+                ['cleaning', 'maintenance'].forEach(taskType => {
+                    const tasksForType = dayTasks
+                        .filter(task => task.taskType === taskType)
+                        .slice(0, 4);
+                    if (!tasksForType.length) return;
+
+                    const markers = document.createElement('span');
+                    markers.className = `calendar-task-markers ${taskType}`;
+                    markers.setAttribute('aria-hidden', 'true');
+                    tasksForType.forEach(task => {
+                        const marker = document.createElement('span');
+                        marker.className = `calendar-task-marker color-${taskType}-${getMaintenanceTaskColor(task.task)}`;
+                        markers.appendChild(marker);
+                    });
+                    dayCell.appendChild(markers);
+                });
+            } else {
+                dayCell.setAttribute('aria-label', dateStr);
+            }
+            
+            const today = new Date();
+            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const cellDate = new Date(year, month, day);
+            if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                dayCell.classList.add('today');
+            }
+            if (cellDate < todayDate) {
+                dayCell.classList.add('past');
+            }
+            
+            dayCell.addEventListener('click', function() {
+                if (!dayCell.classList.contains('past')) {
+                    openSchedulingModal(dateStr);
+                }
+            });
+            
+            calendarDays.appendChild(dayCell);
+        }
+    }
+
+    function previousMonth() {
+        currentMonth.setMonth(currentMonth.getMonth() - 1);
+        renderCalendar();
+    }
+
+    function nextMonth() {
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+        renderCalendar();
+    }
+
+    // ── SCHEDULING MODAL ──
+    function openSchedulingModal(dateStr) {
+        if (dateStr < getTodayDateString()) {
+            showNotification('Tasks cannot be scheduled for a past date.', 'error');
+            return;
+        }
+        const modal = document.getElementById('schedulingModal');
+        selectedScheduleDate = dateStr;
+        
+        document.getElementById('creationSelectedDate').textContent =
+            new Date(`${dateStr}T12:00:00`).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        const maintenanceOption = document.getElementById('sched-task');
+        maintenanceOption.value = '';
+        updateTaskSelectColor(maintenanceOption);
+        refreshColorSelect(maintenanceOption);
+        document.getElementById('sched-custom-task').value = '';
+        toggleCustomTask();
+        document.getElementById('sched-description').value = '';
+        const maintenanceCategory = document.getElementById('maint-category');
+        maintenanceCategory.value = '';
+        updateTaskSelectColor(maintenanceCategory);
+        refreshColorSelect(maintenanceCategory);
+        document.getElementById('maint-priority').value = 'Medium';
+        document.getElementById('maint-description').value = '';
+        document.getElementById('maint-due-date').value = dateStr;
+        document.getElementById('maint-due-date').min = getTodayDateString();
+        document.getElementById('maint-photo').value = '';
+        showCreationChooser();
+        
+        modal.style.display = 'flex';
+    }
+
+    function showCreationChooser() {
+        document.getElementById('creationTypeChooser').hidden = false;
+        document.getElementById('cleaningTaskForm').hidden = true;
+        document.getElementById('equipmentMaintenanceForm').hidden = true;
+        document.getElementById('creationModalTitle').innerHTML =
+            '<i class="fas fa-calendar-plus"></i> Create Equipment Task';
+    }
+
+    function showCreationForm(type) {
+        const isCleaning = type === 'cleaning';
+        document.getElementById('creationTypeChooser').hidden = true;
+        document.getElementById('cleaningTaskForm').hidden = !isCleaning;
+        document.getElementById('equipmentMaintenanceForm').hidden = isCleaning;
+        document.getElementById('creationModalTitle').innerHTML = isCleaning
+            ? '<i class="fas fa-broom"></i> Equipment Cleaning'
+            : '<i class="fas fa-tools"></i> Equipment Maintenance';
+    }
+
+    function getTodayDateString() {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    }
+
+    function toggleCustomTask() {
+        const taskSelect = document.getElementById('sched-task');
+        const customTask = document.getElementById('sched-custom-task');
+        const isCustom = taskSelect.value === 'Other';
+        customTask.style.display = isCustom ? 'block' : 'none';
+        customTask.required = isCustom;
+    }
+
+    function closeSchedulingModal() {
+        document.getElementById('schedulingModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('schedulingModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // ── SCHEDULE MAINTENANCE TASK ──
+    async function scheduleMaintenanceTask() {
+        const selectedTask = document.getElementById('sched-task').value;
+        const task = selectedTask === 'Other'
+            ? document.getElementById('sched-custom-task').value.trim()
+            : selectedTask;
+        const date = selectedScheduleDate;
+        const description = document.getElementById('sched-description').value.trim();
+        
+        if (!task || !date) {
+            showNotification('Please fill in all required fields', 'error');
+            return;
+        }
+        
+        const submitBtn = document.querySelector('#schedulingModal .modal-footer .primary');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scheduling...';
+        
+        try {
+            const response = await fetch("{% url 'create_maintenance_task' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ 
+                    title: task, 
+                    date, 
+                    description
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                closeSchedulingModal();
+                await loadTasks();
+                showNotification('Task scheduled successfully!', 'success');
+            } else {
+                showNotification(data.message || 'Error scheduling task', 'error');
+            }
+        } catch (error) {
+            showNotification('Error scheduling task', 'error');
+            console.error(error);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
+    function updateTasksList() {
+        const tasksList = document.getElementById('cleaningTasksPanel');
+        
+        if (scheduledTasks.length === 0) {
+            document.getElementById('taskCount').textContent = '0 tasks';
+            tasksList.innerHTML = '<p class="empty-message">No scheduled tasks. Click on a calendar date or + Add Task to schedule one.</p>';
+            return;
+        }
+        document.getElementById('taskCount').textContent = `${scheduledTasks.length} ${scheduledTasks.length === 1 ? 'task' : 'tasks'}`;
+
+        const sorted = [...scheduledTasks].sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        tasksList.innerHTML = sorted.map(task => `
+            <div class="task-item status-${task.status.toLowerCase().replace(/\s+/g, '-')} ${getTaskColorClass(task.task, 'cleaning')}">
+                <div class="task-content">
+                    <div class="task-header">
+                        <h4>${escapeHtml(task.task)}</h4>
+                        <span class="task-status status-badge ${task.status.toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(task.status)}</span>
+                    </div>
+                    <div class="task-details">
+                        ${task.description ? `<span class="task-description">${escapeHtml(task.description)}</span>` : ''}
+                        <span class="task-detail-meta task-date-badge"><i class="fas fa-calendar-day"></i> Due ${new Date(`${task.date}T12:00:00`).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</span>
+                    </div>
+                    <div class="task-card-footer">
+                        <button class="action-btn delete" onclick="deleteTask(${task.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function deleteTask(id) {
+        requestDeleteConfirmation('Cleaning task', async function() {
+            try {
+                const response = await fetch(`{% url 'delete_maintenance_task' 0 %}`.replace('0', id), {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    await loadTasks();
+                    showNotification('Task deleted successfully!', 'success');
+                } else {
+                    showNotification(data.message || 'Error deleting task', 'error');
+                }
+            } catch (error) {
+                showNotification('Error deleting task', 'error');
+                console.error(error);
+            }
+        });
+    }
+
+    // ── MAINTENANCE REPORT ──
+    async function logMaintenanceReport(submitBtn) {
+        const category = document.getElementById('maint-category').value;
+        const priority = document.getElementById('maint-priority').value;
+        const description = document.getElementById('maint-description').value.trim();
+        const dueDate = document.getElementById('maint-due-date').value;
+        const photoInput = document.getElementById('maint-photo');
+        const photos = Array.from(photoInput.files);
+        
+        if (!category || !dueDate) {
+            showNotification('Please select a category and due date.', 'error');
+            return;
+        }
+        if (dueDate < getTodayDateString()) {
+            showNotification('Due date cannot be in the past.', 'error');
+            return;
+        }
+        if (photos.some(photo => photo.size > 5 * 1024 * 1024)) {
+            showNotification('Each photo must be 5 MB or smaller.', 'error');
+            return;
+        }
+        
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('category', category);
+            formData.append('priority', priority);
+            formData.append('description', description);
+            formData.append('due_date', dueDate);
+            photos.forEach(photo => formData.append('photos', photo));
+
+            const response = await fetch("{% url 'create_maintenance_report' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            });
+            const data = await response.json();
+            if (data.success) {
+                closeSchedulingModal();
+                const categorySelect = document.getElementById('maint-category');
+                categorySelect.value = '';
+                updateTaskSelectColor(categorySelect);
+                refreshColorSelect(categorySelect);
+                document.getElementById('maint-priority').value = 'Medium';
+                document.getElementById('maint-description').value = '';
+                document.getElementById('maint-due-date').value = '';
+                photoInput.value = '';
+                await loadReports();
+                showNotification('Maintenance report logged successfully!', 'success');
+            } else {
+                showNotification(data.message || 'Error logging report', 'error');
+            }
+        } catch (error) {
+            showNotification('Error logging report', 'error');
+            console.error(error);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
+    function deleteReport(id) {
+        requestDeleteConfirmation('Equipment maintenance task', async function() {
+            try {
+                const response = await fetch(`{% url 'delete_maintenance_report' 0 %}`.replace('0', id), {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    await loadReports();
+                    showNotification('Report deleted successfully!', 'success');
+                } else {
+                    showNotification(data.message || 'Error deleting report', 'error');
+                }
+            } catch (error) {
+                showNotification('Error deleting report', 'error');
+                console.error(error);
+            }
+        });
+    }
+
+    function requestDeleteConfirmation(itemType, action) {
+        pendingDeleteAction = action;
+        deleteConfirmationTrigger = document.activeElement;
+        document.getElementById('deleteConfirmationTitle').textContent = `Delete ${itemType}?`;
+        document.getElementById('deleteConfirmationMessage').textContent =
+            `Are you sure you want to delete this ${itemType.toLowerCase()}? This action cannot be undone.`;
+        const modal = document.getElementById('deleteConfirmationModal');
+        modal.hidden = false;
+        modal.querySelector('.delete-confirmation-cancel').focus();
+    }
+
+    function closeDeleteConfirmation() {
+        const modal = document.getElementById('deleteConfirmationModal');
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        pendingDeleteAction = null;
+        if (deleteConfirmationTrigger && deleteConfirmationTrigger.isConnected) {
+            deleteConfirmationTrigger.focus();
+        }
+        deleteConfirmationTrigger = null;
+    }
+
+    async function confirmDeleteAction() {
+        const action = pendingDeleteAction;
+        if (!action) return;
+        closeDeleteConfirmation();
+        await action();
+    }
+
+    // ── UTILITIES ──
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1rem;">&times;</button>
+        `;
+        
+        const container = document.querySelector('.main-content');
+        container.insertBefore(notification, container.firstChild);
+        
+        setTimeout(() => {
+            if (notification.parentElement) notification.remove();
+        }, 5000);
+    }
+
+    // Mobile sidebar toggle
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.createElement('button'); 
+        btn.className = 'menu-toggle'; 
+        btn.innerHTML = '<i class="fas fa-bars"></i>';
+        const ov = document.createElement('div'); 
+        ov.className = 'sidebar-overlay';
+        document.body.append(btn, ov);
+        const sb = document.querySelector('.sidebar');
+        const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+        const open = () => { sb.classList.add('active'); ov.classList.add('active'); btn.querySelector('i').className = 'fas fa-times'; };
+        btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+        ov.addEventListener('click', close);
+        
+        // Reports dropdown toggle handler
+        document.addEventListener('click', (event) => {
+            const reportsToggle = event.target.closest('.nav-dropdown-toggle');
+            if (!reportsToggle) return;
+            const dropdown = reportsToggle.closest('.nav-dropdown');
+            if (!dropdown) return;
+            event.preventDefault();
+            event.stopPropagation();
+            dropdown.classList.toggle('active');
+        }, true);
+    });
+</script>
+
+<style>
+    /* ── PAGE HEADER ── */
+    .maintenance-section { animation: fadeIn .3s ease; }
+
+    .maintenance-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+
+    .maintenance-header h2 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+    }
+
+    .maintenance-header h2 i { color: var(--primary); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── SCHEDULING TAB ── */
+    .scheduling-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        align-items: stretch;
+    }
+
+    /* ── SHARED CARD ── */
+    .maint-card, .calendar-wrapper, .scheduled-tasks-panel {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .maint-card.full-width { grid-column: 1 / -1; }
+
+    .maint-card h3, .scheduled-tasks-panel h3 {
+        margin: 0 0 1.25rem 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+    }
+
+    .maint-card h3 i, .scheduled-tasks-panel h3 i { color: var(--primary); }
+
+    /* ── CALENDAR ── */
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .calendar-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .calendar-nav-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-sub);
+        font-size: .8rem;
+        transition: var(--trans);
+    }
+
+    .calendar-nav-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: .3rem;
+        margin-bottom: .4rem;
+    }
+
+    .weekday {
+        text-align: center;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: .75rem;
+        padding: .3rem;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .calendar-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: .3rem;
+    }
+
+    .calendar-day {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: .82rem;
+        font-weight: 500;
+        color: var(--text);
+        background: var(--card-bg);
+        transition: var(--trans);
+        position: relative;
+    }
+
+    .calendar-day:hover:not(.empty) {
+        background: var(--blue-50);
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .calendar-day.empty {
+        cursor: default;
+        background: var(--surface);
+        border-color: transparent;
+        color: var(--text-muted);
+    }
+
+    .calendar-day.past {
+        cursor: not-allowed;
+        background: #f8fafc;
+        color: #94a3b8;
+        border-color: #e2e8f0;
+    }
+
+    .calendar-day.today {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(26,138,212,.3);
+    }
+
+    .calendar-day-number {
+        position: relative;
+        z-index: 1;
+    }
+
+    .calendar-task-markers {
+        position: absolute;
+        bottom: 7px;
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        max-width: calc(100% - 8px);
+    }
+
+    .calendar-task-markers.cleaning {
+        top: 7px;
+        bottom: auto;
+    }
+
+    .calendar-task-markers.maintenance {
+        bottom: 7px;
+    }
+
+    .calendar-task-marker {
+        width: 18px;
+        height: 8px;
+        border-radius: 999px;
+    }
+
+    .color-cleaning-filter-system { background-color: #9a3412; }
+    .color-cleaning-water-pump { background-color: #9d174d; }
+    .color-cleaning-pipes { background-color: #3730a3; }
+    .color-cleaning-storage-tank { background-color: #3f6212; }
+    .color-cleaning-electrical { background-color: #155e75; }
+    .color-cleaning-dispenser { background-color: #115e59; }
+    .color-cleaning-deep-clean { background-color: #86198f; }
+    .color-cleaning-other { background-color: #44403c; }
+
+    .color-maintenance-filter-system { background-color: #1d4ed8; }
+    .color-maintenance-water-pump { background-color: #b45309; }
+    .color-maintenance-pipes { background-color: #047857; }
+    .color-maintenance-electrical { background-color: #b91c1c; }
+    .color-maintenance-dispenser { background-color: #6d28d9; }
+    .color-maintenance-other { background-color: #475569; }
+
+    /* ── TASKS PANEL ── */
+    .scheduled-tasks-panel {
+        max-height: 560px;
+        overflow: hidden;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .scheduled-tasks-panel::-webkit-scrollbar { width: 3px; }
+    .scheduled-tasks-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .tasks-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .task-list-switcher {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .task-list-tab {
+        display: inline-flex;
+        flex: 1 1 0;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        min-height: 38px;
+        padding: .5rem .75rem;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: #fff;
+        color: var(--text-sub);
+        font: 600 .76rem Arial, Helvetica, sans-serif;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.25;
+        cursor: pointer;
+        transition: var(--trans);
+    }
+
+    .task-list-tab:hover {
+        border-color: #93c5fd;
+        background: #f8fbff;
+        color: var(--primary);
+    }
+
+    .task-list-tab.active {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+        box-shadow: 0 3px 8px rgba(26,138,212,.2);
+    }
+
+    .task-list-tab:focus-visible {
+        outline: 3px solid rgba(26,138,212,.25);
+        outline-offset: 2px;
+    }
+
+    .task-list-panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        flex: 1 0 100%;
+    }
+
+    .task-list-panel-heading p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: .78rem;
+    }
+
+    .task-count {
+        background: var(--blue-50);
+        border: 1px solid #bfdbfe;
+        color: var(--primary);
+        border-radius: 999px;
+        padding: .35rem .65rem;
+        font-size: .72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .tasks-list { display: flex; flex-direction: column; gap: .8rem; }
+    .task-list-content[hidden] { display: none !important; }
+
+    .empty-message {
+        color: var(--text-muted);
+        text-align: center;
+        padding: 2.5rem 1rem;
+        font-size: .875rem;
+    }
+
+    .task-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1rem;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, .04);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .task-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, .09);
+        border-color: #bfdbfe;
+    }
+
+    .task-item[class*="task-color-"] {
+        border-left-width: 4px;
+    }
+
+    .task-color-cleaning-filter-system { border-left-color: #9a3412; background: #fff7ed; }
+    .task-color-cleaning-water-pump { border-left-color: #9d174d; background: #fdf2f8; }
+    .task-color-cleaning-pipes { border-left-color: #3730a3; background: #eef2ff; }
+    .task-color-cleaning-storage-tank { border-left-color: #3f6212; background: #f7fee7; }
+    .task-color-cleaning-electrical { border-left-color: #155e75; background: #ecfeff; }
+    .task-color-cleaning-dispenser { border-left-color: #115e59; background: #f0fdfa; }
+    .task-color-cleaning-deep-clean { border-left-color: #86198f; background: #fdf4ff; }
+    .task-color-cleaning-other { border-left-color: #44403c; background: #fafaf9; }
+
+    .task-color-maintenance-filter-system { border-left-color: #1d4ed8; background: #eff6ff; }
+    .task-color-maintenance-water-pump { border-left-color: #b45309; background: #fffbeb; }
+    .task-color-maintenance-pipes { border-left-color: #047857; background: #ecfdf5; }
+    .task-color-maintenance-electrical { border-left-color: #b91c1c; background: #fef2f2; }
+    .task-color-maintenance-dispenser { border-left-color: #6d28d9; background: #f5f3ff; }
+    .task-color-maintenance-other { border-left-color: #475569; background: #f8fafc; }
+
+    .task-color-cleaning-filter-system .task-header h4 { color: #9a3412; }
+    .task-color-cleaning-water-pump .task-header h4 { color: #9d174d; }
+    .task-color-cleaning-pipes .task-header h4 { color: #3730a3; }
+    .task-color-cleaning-storage-tank .task-header h4 { color: #3f6212; }
+    .task-color-cleaning-electrical .task-header h4 { color: #155e75; }
+    .task-color-cleaning-dispenser .task-header h4 { color: #115e59; }
+    .task-color-cleaning-deep-clean .task-header h4 { color: #86198f; }
+    .task-color-cleaning-other .task-header h4 { color: #44403c; }
+
+    .task-color-maintenance-filter-system .task-header h4 { color: #1d4ed8; }
+    .task-color-maintenance-water-pump .task-header h4 { color: #b45309; }
+    .task-color-maintenance-pipes .task-header h4 { color: #047857; }
+    .task-color-maintenance-electrical .task-header h4 { color: #b91c1c; }
+    .task-color-maintenance-dispenser .task-header h4 { color: #6d28d9; }
+    .task-color-maintenance-other .task-header h4 { color: #475569; }
+
+    .task-content { min-width: 0; }
+
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: .4rem;
+        gap: .75rem;
+    }
+
+    .task-header h4 {
+        margin: 0;
+        font-size: calc(.9rem + 2px);
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1.35;
+    }
+
+    .task-status {
+        font-size: calc(.7rem + 2px);
+        padding: .4rem .7rem;
+        border-radius: 999px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: #eaf4ff;
+        color: #1474bd;
+    }
+
+    .task-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem .75rem;
+        font-size: calc(.77rem + 2px);
+        color: var(--text-sub);
+        margin-bottom: .25rem;
+    }
+    .task-details span { display: inline-flex; align-items: center; gap: .35rem; }
+    .task-details i { color: var(--primary); }
+    .task-details .task-detail-meta { font-size: calc(.77rem - 1px); }
+    .task-details .task-description {
+        flex-basis: 100%;
+        color: #000;
+        line-height: 1.4;
+    }
+
+    .task-detail-meta {
+        padding: .32rem .55rem;
+        border: 1px solid rgba(148, 163, 184, .35);
+        border-radius: 9px;
+        background: rgba(255, 255, 255, .72);
+    }
+
+    .task-date-badge i { color: #64748b; }
+    .task-priority-badge i { color: #d97706; }
+
+    .task-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .45rem;
+        padding-top: .7rem;
+        margin-top: .55rem;
+        border-top: 1px solid rgba(148, 163, 184, .28);
+        flex-wrap: wrap;
+    }
+
+    .task-card-footer .action-btn.delete {
+        padding: .42rem .7rem;
+        border: 0;
+        background: transparent;
+        color: #64748b;
+    }
+
+    .task-card-footer .action-btn.delete:hover {
+        background: rgba(255, 255, 255, .7);
+        color: #b91c1c;
+    }
+
+    .task-actions {
+        display: flex;
+        gap: .45rem;
+        padding-top: .35rem;
+        margin-top: .25rem;
+        flex-wrap: wrap;
+    }
+
+    /* ── MAINTENANCE FORM ── */
+    .maintenance-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+
+    .maintenance-task-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+    }
+
+    .maintenance-task-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .maintenance-task-heading h3 { margin-bottom: .35rem; }
+    .maintenance-task-heading p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: .78rem;
+        line-height: 1.45;
+    }
+
+    .maintenance-task-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: var(--blue-50);
+        color: var(--primary);
+    }
+
+    .maintenance-task-empty {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 150px;
+        padding: 1rem;
+        color: var(--text-muted);
+        text-align: center;
+    }
+
+    .maintenance-task-empty i {
+        margin-bottom: .75rem;
+        color: #93c5fd;
+        font-size: 2rem;
+    }
+
+    .maintenance-task-empty p {
+        max-width: 260px;
+        margin: 0;
+        font-size: .82rem;
+        line-height: 1.5;
+    }
+
+    .maintenance-task-list {
+        display: flex;
+        flex-direction: column;
+        gap: .8rem;
+        flex: 1;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        margin: .75rem 0 1rem;
+    }
+
+    .maintenance-task-entry {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        padding: 1rem;
+        margin: 0;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, .04);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+    .maintenance-task-entry:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, .09);
+        border-color: #bfdbfe;
+    }
+
+    .maintenance-task-entry .task-status.pending {
+        background: #fffbeb;
+        color: #b45309;
+    }
+
+    .maintenance-task-entry .task-status.in-progress {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .task-status {
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent !important;
+    }
+
+    .task-status.pending { color: #b45309; }
+    .task-status.in-progress { color: #b45309; }
+    .task-status.completed,
+    .task-status.resolved { color: #15803d; }
+    .task-status.closed { color: #64748b; }
+
+    /* Keep the full task card in the selected option/category color. */
+    .task-item.task-color-cleaning-filter-system,
+    .maintenance-task-entry.task-color-cleaning-filter-system { background-color: #fff7ed !important; border-left-color: #9a3412 !important; }
+    .task-item.task-color-cleaning-water-pump,
+    .maintenance-task-entry.task-color-cleaning-water-pump { background-color: #fdf2f8 !important; border-left-color: #9d174d !important; }
+    .task-item.task-color-cleaning-pipes,
+    .maintenance-task-entry.task-color-cleaning-pipes { background-color: #eef2ff !important; border-left-color: #3730a3 !important; }
+    .task-item.task-color-cleaning-storage-tank,
+    .maintenance-task-entry.task-color-cleaning-storage-tank { background-color: #f7fee7 !important; border-left-color: #3f6212 !important; }
+    .task-item.task-color-cleaning-electrical,
+    .maintenance-task-entry.task-color-cleaning-electrical { background-color: #ecfeff !important; border-left-color: #155e75 !important; }
+    .task-item.task-color-cleaning-dispenser,
+    .maintenance-task-entry.task-color-cleaning-dispenser { background-color: #f0fdfa !important; border-left-color: #115e59 !important; }
+    .task-item.task-color-cleaning-deep-clean,
+    .maintenance-task-entry.task-color-cleaning-deep-clean { background-color: #fdf4ff !important; border-left-color: #86198f !important; }
+    .task-item.task-color-cleaning-other,
+    .maintenance-task-entry.task-color-cleaning-other { background-color: #fafaf9 !important; border-left-color: #44403c !important; }
+
+    .task-item.task-color-maintenance-filter-system,
+    .maintenance-task-entry.task-color-maintenance-filter-system { background-color: #eff6ff !important; border-left-color: #1d4ed8 !important; }
+    .task-item.task-color-maintenance-water-pump,
+    .maintenance-task-entry.task-color-maintenance-water-pump { background-color: #fffbeb !important; border-left-color: #b45309 !important; }
+    .task-item.task-color-maintenance-pipes,
+    .maintenance-task-entry.task-color-maintenance-pipes { background-color: #ecfdf5 !important; border-left-color: #047857 !important; }
+    .task-item.task-color-maintenance-electrical,
+    .maintenance-task-entry.task-color-maintenance-electrical { background-color: #fef2f2 !important; border-left-color: #b91c1c !important; }
+    .task-item.task-color-maintenance-dispenser,
+    .maintenance-task-entry.task-color-maintenance-dispenser { background-color: #f5f3ff !important; border-left-color: #6d28d9 !important; }
+    .task-item.task-color-maintenance-other,
+    .maintenance-task-entry.task-color-maintenance-other { background-color: #f8fafc !important; border-left-color: #475569 !important; }
+
+    .maintenance-task-photo-link {
+        display: inline-block;
+        margin-top: .25rem;
+    }
+    .maintenance-task-photo {
+        display: block;
+        width: min(100%, 220px);
+        max-height: 150px;
+        object-fit: cover;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .maintenance-grid { grid-template-columns: 1fr; }
+    }
+
+    .maint-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.1rem;
+    }
+
+    .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: .4rem;
+    }
+
+    .form-row label {
+        font-size: .8rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .time-help {
+        color: var(--text-muted);
+        font-size: .75rem;
+        margin-top: -.1rem;
+    }
+
+    .required { color: var(--danger); }
+
+    .maint-input {
+        padding: .65rem .9rem;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        font-size: .9rem;
+        color: var(--text);
+        background: var(--surface);
+        transition: var(--trans);
+        width: 100%;
+        font-family: inherit;
+    }
+
+    .maint-input:hover { border-color: var(--border-mid); background: var(--card-bg); }
+
+    .maint-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: var(--card-bg);
+        box-shadow: 0 0 0 3px rgba(26,138,212,.1);
+    }
+
+    /* Cleaning options use a separate palette from maintenance categories. */
+    #sched-task[data-task-color="filter-system"] { background-color: #fff7ed; border-color: #fdba74; color: #9a3412; }
+    #sched-task[data-task-color="water-pump"] { background-color: #fdf2f8; border-color: #f9a8d4; color: #9d174d; }
+    #sched-task[data-task-color="pipes"] { background-color: #eef2ff; border-color: #a5b4fc; color: #3730a3; }
+    #sched-task[data-task-color="storage-tank"] { background-color: #f7fee7; border-color: #bef264; color: #3f6212; }
+    #sched-task[data-task-color="electrical"] { background-color: #ecfeff; border-color: #67e8f9; color: #155e75; }
+    #sched-task[data-task-color="dispenser"] { background-color: #f0fdfa; border-color: #5eead4; color: #115e59; }
+    #sched-task[data-task-color="deep-clean"] { background-color: #fdf4ff; border-color: #e879f9; color: #86198f; }
+    #sched-task[data-task-color="other"] { background-color: #fafaf9; border-color: #a8a29e; color: #44403c; }
+
+    #sched-task option[data-task-color="filter-system"] { background-color: #fff7ed; color: #9a3412; }
+    #sched-task option[data-task-color="water-pump"] { background-color: #fdf2f8; color: #9d174d; }
+    #sched-task option[data-task-color="pipes"] { background-color: #eef2ff; color: #3730a3; }
+    #sched-task option[data-task-color="storage-tank"] { background-color: #f7fee7; color: #3f6212; }
+    #sched-task option[data-task-color="electrical"] { background-color: #ecfeff; color: #155e75; }
+    #sched-task option[data-task-color="dispenser"] { background-color: #f0fdfa; color: #115e59; }
+    #sched-task option[data-task-color="deep-clean"] { background-color: #fdf4ff; color: #86198f; }
+    #sched-task option[data-task-color="other"] { background-color: #fafaf9; color: #44403c; }
+
+    #sched-task option[data-task-color="filter-system"]:hover { background-color: #ea580c; color: #fff; }
+    #sched-task option[data-task-color="water-pump"]:hover { background-color: #db2777; color: #fff; }
+    #sched-task option[data-task-color="pipes"]:hover { background-color: #4f46e5; color: #fff; }
+    #sched-task option[data-task-color="storage-tank"]:hover { background-color: #65a30d; color: #fff; }
+    #sched-task option[data-task-color="electrical"]:hover { background-color: #0891b2; color: #fff; }
+    #sched-task option[data-task-color="dispenser"]:hover { background-color: #0d9488; color: #fff; }
+    #sched-task option[data-task-color="deep-clean"]:hover { background-color: #c026d3; color: #fff; }
+    #sched-task option[data-task-color="other"]:hover { background-color: #57534e; color: #fff; }
+
+    #maint-category[data-task-color="filter-system"] { background-color: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    #maint-category[data-task-color="water-pump"] { background-color: #fffbeb; border-color: #fde68a; color: #b45309; }
+    #maint-category[data-task-color="pipes"] { background-color: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+    #maint-category[data-task-color="electrical"] { background-color: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    #maint-category[data-task-color="dispenser"] { background-color: #f5f3ff; border-color: #ddd6fe; color: #6d28d9; }
+    #maint-category[data-task-color="other"] { background-color: #f8fafc; border-color: #cbd5e1; color: #475569; }
+
+    #maint-category option[data-task-color="filter-system"] { background-color: #eff6ff; color: #1d4ed8; }
+    #maint-category option[data-task-color="water-pump"] { background-color: #fffbeb; color: #b45309; }
+    #maint-category option[data-task-color="pipes"] { background-color: #ecfdf5; color: #047857; }
+    #maint-category option[data-task-color="electrical"] { background-color: #fef2f2; color: #b91c1c; }
+    #maint-category option[data-task-color="dispenser"] { background-color: #f5f3ff; color: #6d28d9; }
+    #maint-category option[data-task-color="other"] { background-color: #f8fafc; color: #475569; }
+
+    #maint-category option[data-task-color="filter-system"]:hover { background-color: #2563eb; color: #fff; }
+    #maint-category option[data-task-color="water-pump"]:hover { background-color: #d97706; color: #fff; }
+    #maint-category option[data-task-color="pipes"]:hover { background-color: #059669; color: #fff; }
+    #maint-category option[data-task-color="electrical"]:hover { background-color: #dc2626; color: #fff; }
+    #maint-category option[data-task-color="dispenser"]:hover { background-color: #7c3aed; color: #fff; }
+    #maint-category option[data-task-color="other"]:hover { background-color: #475569; color: #fff; }
+
+    .color-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .native-color-select {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .color-select-trigger {
+        position: relative;
+        width: 100%;
+        padding: .65rem 2.25rem .65rem .9rem;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        font: inherit;
+        font-size: .9rem;
+        text-align: left;
+        color: var(--text);
+        background: var(--surface);
+        cursor: pointer;
+    }
+
+    .color-select-trigger::after {
+        content: "\f078";
+        position: absolute;
+        right: .85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: "Font Awesome 6 Free";
+        font-size: .7rem;
+        font-weight: 900;
+        color: var(--text-sub);
+    }
+
+    .color-select-trigger[data-task-color="filter-system"] { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+    .color-select-trigger[data-task-color="water-pump"] { background: #fdf2f8; border-color: #f9a8d4; color: #9d174d; }
+    .color-select-trigger[data-task-color="pipes"] { background: #eef2ff; border-color: #a5b4fc; color: #3730a3; }
+    .color-select-trigger[data-task-color="storage-tank"] { background: #f7fee7; border-color: #bef264; color: #3f6212; }
+    .color-select-trigger[data-task-color="electrical"] { background: #ecfeff; border-color: #67e8f9; color: #155e75; }
+    .color-select-trigger[data-task-color="dispenser"] { background: #f0fdfa; border-color: #5eead4; color: #115e59; }
+    .color-select-trigger[data-task-color="deep-clean"] { background: #fdf4ff; border-color: #e879f9; color: #86198f; }
+    .color-select-trigger[data-task-color="other"] { background: #fafaf9; border-color: #a8a29e; color: #44403c; }
+
+    #maint-category + .color-select-trigger[data-task-color="filter-system"] { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    #maint-category + .color-select-trigger[data-task-color="water-pump"] { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+    #maint-category + .color-select-trigger[data-task-color="pipes"] { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+    #maint-category + .color-select-trigger[data-task-color="electrical"] { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    #maint-category + .color-select-trigger[data-task-color="dispenser"] { background: #f5f3ff; border-color: #ddd6fe; color: #6d28d9; }
+    #maint-category + .color-select-trigger[data-task-color="other"] { background: #f8fafc; border-color: #cbd5e1; color: #475569; }
+
+    .color-select-menu {
+        position: absolute;
+        z-index: 20;
+        top: calc(100% + .25rem);
+        left: 0;
+        width: 100%;
+        padding: .25rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, .16);
+    }
+
+    .color-select-menu[hidden] { display: none; }
+
+    .color-select-option {
+        display: block;
+        width: 100%;
+        padding: .55rem .75rem;
+        border: 0;
+        border-radius: .35rem;
+        font: inherit;
+        font-size: .9rem;
+        text-align: left;
+        color: var(--text);
+        background: #fff;
+        cursor: pointer;
+    }
+
+    .color-select-option:hover,
+    .color-select-option.is-hovered {
+        color: #fff;
+    }
+
+    .color-select-option[data-task-color="filter-system"]:hover,
+    .color-select-option[data-task-color="filter-system"].is-hovered { background: #ea580c; }
+    .color-select-option[data-task-color="water-pump"]:hover,
+    .color-select-option[data-task-color="water-pump"].is-hovered { background: #db2777; }
+    .color-select-option[data-task-color="pipes"]:hover,
+    .color-select-option[data-task-color="pipes"].is-hovered { background: #4f46e5; }
+    .color-select-option[data-task-color="storage-tank"]:hover,
+    .color-select-option[data-task-color="storage-tank"].is-hovered { background: #65a30d; }
+    .color-select-option[data-task-color="electrical"]:hover,
+    .color-select-option[data-task-color="electrical"].is-hovered { background: #0891b2; }
+    .color-select-option[data-task-color="dispenser"]:hover,
+    .color-select-option[data-task-color="dispenser"].is-hovered { background: #0d9488; }
+    .color-select-option[data-task-color="deep-clean"]:hover,
+    .color-select-option[data-task-color="deep-clean"].is-hovered { background: #c026d3; }
+    .color-select-option[data-task-color="other"]:hover,
+    .color-select-option[data-task-color="other"].is-hovered { background: #57534e; }
+
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="filter-system"] { color: #9a3412; }
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="water-pump"] { color: #9d174d; }
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="pipes"] { color: #3730a3; }
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="storage-tank"] { color: #3f6212; }
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="electrical"] { color: #155e75; }
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="dispenser"] { color: #115e59; }
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="deep-clean"] { color: #86198f; }
+    #sched-task ~ .color-select-menu .color-select-option[data-task-color="other"] { color: #44403c; }
+
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="filter-system"]:hover,
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="filter-system"].is-hovered { background: #2563eb; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="water-pump"]:hover,
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="water-pump"].is-hovered { background: #d97706; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="pipes"]:hover,
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="pipes"].is-hovered { background: #059669; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="electrical"]:hover,
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="electrical"].is-hovered { background: #dc2626; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="dispenser"]:hover,
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="dispenser"].is-hovered { background: #7c3aed; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="other"]:hover,
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="other"].is-hovered { background: #475569; }
+
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="filter-system"] { color: #1d4ed8; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="water-pump"] { color: #b45309; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="pipes"] { color: #047857; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="electrical"] { color: #b91c1c; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="dispenser"] { color: #6d28d9; }
+    #maint-category ~ .color-select-menu .color-select-option[data-task-color="other"] { color: #475569; }
+
+    #sched-task ~ .color-select-menu .color-select-option:hover,
+    #sched-task ~ .color-select-menu .color-select-option.is-hovered,
+    #maint-category ~ .color-select-menu .color-select-option:hover,
+    #maint-category ~ .color-select-menu .color-select-option.is-hovered { color: #fff; }
+
+    .color-select-option.is-selected {
+        outline: 1px solid rgba(59, 130, 246, .25);
+    }
+
+    textarea.maint-input { resize: vertical; min-height: 90px; line-height: 1.55; }
+
+    /* Priority select — colour hint via JS-added class not needed; clean default */
+
+    .maint-btn {
+        padding: .65rem 1.5rem;
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        transition: var(--trans);
+        font-size: .875rem;
+        font-family: inherit;
+    }
+
+    .maint-btn.primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 2px 8px rgba(26,138,212,.25);
+        width: 100%;
+    }
+
+    .maint-btn.primary:hover:not(:disabled) {
+        background: var(--secondary);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(26,138,212,.35);
+    }
+    .creation-form .modal-footer .maint-btn:not(.primary):hover {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .maint-btn:not(.primary) {
+        background: var(--surface);
+        color: var(--text-sub);
+        border: 1.5px solid var(--border);
+    }
+
+    .maint-btn:not(.primary):hover:not(:disabled) {
+        border-color: var(--border-mid);
+        color: var(--text);
+        background: var(--card-bg);
+    }
+
+    .maint-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* ── REPORTS TABLE ── */
+    .maint-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .maint-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .maint-table thead { border-bottom: 2px solid var(--border); }
+
+    .maint-table th {
+        padding: .75rem 1rem;
+        text-align: left;
+        font-size: .75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .maint-table td {
+        padding: .85rem 1rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        font-size: .875rem;
+        vertical-align: middle;
+    }
+
+    .maint-table tbody tr:hover { background: var(--surface); }
+
+    /* ── BADGES ── */
+    .status-badge, .priority-badge, .category-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: .22rem .65rem;
+        border-radius: 20px;
+        font-size: .72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .status-badge.open         { background: #fee2e2; color: var(--danger); }
+    .status-badge.in-progress  { background: #fef3c7; color: var(--warning); }
+    .status-badge.resolved     { background: #dcfce7; color: var(--success); }
+    .status-badge.closed       { background: var(--border); color: var(--text-sub); }
+
+    .priority-badge.low      { background: #dcfce7; color: var(--success); }
+    .priority-badge.medium   { background: #fef3c7; color: var(--warning); }
+    .priority-badge.high     { background: #fee2e2; color: var(--danger); }
+    .priority-badge.critical { background: #fecaca; color: #7f1d1d; }
+
+    .category-badge { background: var(--blue-50); color: var(--primary); border: 1px solid var(--blue-100); }
+
+    /* ── ACTION BUTTON ── */
+    .action-btn {
+        padding: .38rem .8rem;
+        border: 1.5px solid var(--border);
+        background: var(--surface);
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: .8rem;
+        transition: var(--trans);
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        color: var(--text-sub);
+        font-family: inherit;
+    }
+
+    .action-btn:hover { background: var(--card-bg); border-color: var(--border-mid); color: var(--text); }
+
+    .tasks-list .action-btn,
+    .maintenance-task-list .action-btn { font-size: calc(.8rem + 1px); }
+
+    .action-btn.delete { color: var(--danger); }
+    .action-btn.delete:hover { background: #fee2e2; border-color: #fca5a5; }
+
+    .delete-confirmation-overlay {
+        position: fixed;
+        z-index: 3000;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(15, 23, 42, .52);
+        backdrop-filter: blur(3px);
+    }
+
+    .delete-confirmation-overlay[hidden] { display: none; }
+
+    .delete-confirmation-dialog {
+        width: min(100%, 390px);
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 22px 60px rgba(15, 23, 42, .24);
+        text-align: center;
+        animation: slideIn .2s ease;
+    }
+
+    .delete-confirmation-icon {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        margin: 0 auto .85rem;
+        place-items: center;
+        border-radius: 50%;
+        background: #fee2e2;
+        color: #dc2626;
+        font-size: 1.1rem;
+    }
+
+    .delete-confirmation-dialog h2 {
+        margin: 0 0 .45rem;
+        color: #172033;
+        font-size: 1.05rem;
+    }
+
+    .delete-confirmation-dialog p {
+        margin: 0;
+        color: #64748b;
+        font-size: .875rem;
+        line-height: 1.5;
+    }
+
+    .delete-confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: .65rem;
+        margin-top: 1.25rem;
+    }
+
+    .delete-confirmation-actions button {
+        min-width: 100px;
+        padding: .6rem .9rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        background: #fff;
+        color: #334155;
+        font: 600 .85rem Arial, Helvetica, sans-serif;
+        cursor: pointer;
+        transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+
+    .delete-confirmation-actions button:hover { transform: translateY(-1px); }
+    .delete-confirmation-cancel:hover { background: #f8fafc; border-color: #94a3b8 !important; }
+    .delete-confirmation-actions .delete-confirmation-submit {
+        border-color: #dc2626;
+        background: #dc2626;
+        color: #fff;
+    }
+    .delete-confirmation-actions .delete-confirmation-submit:hover {
+        border-color: #b91c1c;
+        background: #b91c1c;
+    }
+
+    /* ── ALERTS ── */
+    .alert {
+        padding: .85rem 1.1rem;
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        font-size: .875rem;
+        animation: slideIn .3s ease;
+        border: 1px solid;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateY(-8px); opacity: 0; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .alert-success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+    .alert-error   { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
+    /* ── MODAL ── */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        inset: 0;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        box-sizing: border-box;
+        overflow-y: auto;
+        background: rgba(12,28,42,.45);
+        backdrop-filter: blur(3px);
+        animation: fadeIn .25s ease;
+    }
+
+    .modal-content {
+        background: var(--card-bg);
+        margin: 0;
+        padding: 0;
+        border-radius: 20px;
+        box-shadow: 0 24px 70px rgba(15,23,42,.22);
+        width: 90%;
+        max-width: 520px;
+        max-height: calc(100vh - 2rem);
+        max-height: calc(100dvh - 2rem);
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        animation: slideIn .25s ease;
+    }
+
+    .modal-header {
+        padding: 1.35rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(135deg, #f8fbff, #eef7ff);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+    }
+
+    .modal-header h2 i { color: var(--primary); }
+
+    .close-btn {
+        font-size: 1.35rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: var(--trans);
+        line-height: 1;
+        background: white;
+        border: none;
+        padding: .35rem .55rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(15,23,42,.08);
+    }
+
+    .close-btn:hover { color: var(--danger); background: #fff1f2; }
+
+    .modal-body {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .modal-body .form-row { margin: 0; }
+
+    .creation-modal-body { display: block; }
+    .creation-type-chooser p {
+        margin: 0 0 1rem;
+        color: var(--text-sub);
+        font-size: .9rem;
+    }
+    .creation-type-button {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: .85rem;
+        margin-bottom: .75rem;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #f8fbff;
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+        transition: var(--trans);
+    }
+    .creation-type-button:hover {
+        border-color: #93c5fd;
+        background: #eff6ff;
+        transform: translateY(-1px);
+    }
+    .creation-type-button:focus-visible {
+        outline: 3px solid rgba(26,138,212,.25);
+        outline-offset: 2px;
+    }
+    .creation-type-button > i:first-child {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: #dbeafe;
+        color: var(--primary);
+    }
+    .creation-type-button > i:last-child {
+        margin-left: auto;
+        color: var(--text-muted);
+    }
+    .creation-type-button span { display: grid; gap: .2rem; }
+    .creation-type-button strong { font-size: .9rem; }
+    .creation-type-button small { color: var(--text-muted); font-size: .75rem; }
+    .creation-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .creation-form[hidden], .creation-type-chooser[hidden] { display: none !important; }
+    .creation-form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    .creation-form .modal-footer,
+    .creation-type-chooser .modal-footer {
+        margin: .25rem -1.5rem -1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1.1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: .65rem;
+        background: #fbfdff;
+        border-radius: 0 0 20px 20px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+        .scheduling-container { grid-template-columns: 1fr; }
+    }
+
+    .maintenance-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: .8rem;
+        padding: .9rem 1.2rem;
+        border: 1px solid rgba(200,223,240,.9);
+        border-radius: 18px;
+        background: linear-gradient(135deg, #eaf6ff 0%, #fff 58%, #f3efff 100%);
+        box-shadow: 0 10px 28px rgba(15,60,110,.07);
+    }
+    .maintenance-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        margin-bottom: .25rem;
+        color: var(--primary-dark);
+        font-size: .62rem;
+        font-weight: 800;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+    .maintenance-hero h1 { margin: 0; color: var(--dark); font-size: clamp(1.25rem, 2.5vw, 1.65rem); letter-spacing: -.04em; }
+    .maintenance-hero p { margin: .2rem 0 0; color: var(--text-sub); font-size: .78rem; }
+    .maintenance-add-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .55rem .8rem;
+        border: 0;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #fff;
+        font: inherit;
+        font-size: .75rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 6px 14px rgba(26,138,212,.22);
+        transition: var(--trans);
+    }
+    .maintenance-add-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .maintenance-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-bottom: 1rem; }
+    .maintenance-stat {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--card-bg);
+        box-shadow: var(--shadow);
+    }
+    .maintenance-stat-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; font-size: .9rem; }
+    .maintenance-stat-icon.blue { background: #e5f3ff; color: #1677d2; }
+    .maintenance-stat-icon.red { background: #fff0f0; color: #dc2626; }
+    .maintenance-stat-icon.amber { background: #fff7e6; color: #d97706; }
+    .maintenance-stat-icon.green { background: #eaf9f0; color: #15803d; }
+    .maintenance-stat strong { display: block; color: var(--text); font-size: 1.3rem; line-height: 1.1; }
+    .maintenance-stat div span { display: block; margin-top: .25rem; color: var(--text-sub); font-size: .73rem; }
+    .maintenance-section { width: 100%; min-width: 0; }
+    .scheduling-container { grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 1rem; align-items: stretch; }
+    .calendar-wrapper, .scheduled-tasks-panel { width: 100%; min-width: 0; box-sizing: border-box; padding: 1.2rem; border-radius: 16px; }
+    .calendar-wrapper { min-height: 500px; }
+    .scheduled-tasks-panel { min-height: 500px; }
+    .calendar-days, .calendar-weekdays { min-width: 0; }
+    @media (max-width: 900px) {
+        .maintenance-stats { grid-template-columns: repeat(2, 1fr); }
+        .scheduling-container { grid-template-columns: 1fr; }
+        .calendar-wrapper, .scheduled-tasks-panel { min-height: 0; }
+        .scheduled-tasks-panel { max-height: none; }
+    }
+    @media (max-width: 640px) {
+        .maintenance-hero { align-items: flex-start; flex-direction: column; padding: .85rem 1rem; }
+        .maintenance-add-btn { width: 100%; justify-content: center; }
+        .maintenance-stats { grid-template-columns: 1fr 1fr; gap: .55rem; }
+        .maintenance-stat { min-width: 0; gap: .5rem; padding: .7rem; }
+        .maintenance-stat-icon { flex: 0 0 32px; width: 32px; height: 32px; }
+        .maintenance-stat strong { font-size: 1.05rem; }
+        .maintenance-stat div span { font-size: .66rem; line-height: 1.2; }
+        .calendar-wrapper, .scheduled-tasks-panel { padding: .85rem; }
+        .calendar-header { margin-bottom: .8rem; }
+        .calendar-day { min-width: 0; aspect-ratio: auto; min-height: 44px; }
+        .calendar-task-marker { width: 10px; height: 5px; }
+    }
+
+    @media (max-width: 768px) {
+        .creation-form-row { grid-template-columns: 1fr; }
+        .creation-form .modal-footer { flex-wrap: wrap; }
+        .creation-form .modal-footer .maint-btn:not(.primary) {
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+        }
+        .creation-form .modal-footer .maint-btn.primary { flex-basis: 100%; }
+        .task-list-switcher { width: 100%; }
+        .task-list-tab { flex: 1 1 0; white-space: normal; line-height: 1.25; }
+
+        .maint-table-header { flex-direction: column; align-items: flex-start; }
+        .maint-table th, .maint-table td { padding: .65rem .75rem; }
+
+        .calendar-day { font-size: .7rem; }
+        .modal-content {
+            width: min(95%, 520px);
+        }
+
+        .task-actions { flex-direction: column; }
+        .task-actions .action-btn { width: 100%; justify-content: center; }
+        .maintenance-task-entry .task-actions { flex-direction: row; }
+        .maintenance-task-entry .task-actions .action-btn { width: auto; }
+        .tasks-panel-header { align-items: stretch; }
+        .task-count { align-self: flex-start; }
+    }
+</style>
+
+</body>
+</html>

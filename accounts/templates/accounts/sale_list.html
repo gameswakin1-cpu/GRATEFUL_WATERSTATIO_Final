@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales History - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <script src="{% static 'accounts/js/table_pagination.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Additional responsive styles that extend styles.css */
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.85rem;
+            }
+            
+            .stat-number {
+                font-size: 1.4rem;
+            }
+            
+            .sales-table {
+                min-width: 900px; /* Ensures table scrolls horizontally on mobile */
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sales-date-range {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .sales-filter-form {
+            display: grid;
+            grid-template-columns: minmax(320px, 1.2fr) minmax(220px, 1fr) auto;
+            align-items: end;
+        }
+
+        .sales-date-range .filter-group,
+        .sales-search-group {
+            width: auto;
+            min-width: 0;
+        }
+
+        .sales-date-range .filter-group input,
+        .sales-search-group input {
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sales-filter-form {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .sales-date-range {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                width: 100%;
+            }
+
+            .sales-date-range .filter-group,
+            .sales-search-group {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .sales-date-range .filter-group input,
+            .sales-search-group input {
+                box-sizing: border-box;
+                width: 100%;
+                min-width: 0;
+            }
+
+            .sales-filter-actions {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .sales-filter-actions .btn-secondary {
+                justify-content: center;
+            }
+        }
+        
+        /* Ensure table container scrolls properly */
+        .data-table {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% if request.user.profile.role == 'admin' %}
+       {% include "accounts/admin_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+        {% else %}
+        <ul class="nav-links">
+          <li><a href="{% url 'staff_dashboard' %}" {% if request.resolver_match.url_name == 'staff_dashboard' %}class="active"{% endif %}><i class="fas fa-th-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'pos_dashboard' %}" {% if request.resolver_match.url_name == 'pos_dashboard' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Products</a></li>
+            <li><a href="{% url 'manage_orders' %}" {% if request.resolver_match.url_name == 'manage_orders' %}class="active"{% endif %}><i class="fas fa-shopping-cart"></i> Orders</a></li>
+            <li><a href="{% url 'inventory_list' %}" {% if request.resolver_match.url_name == 'inventory_list' %}class="active"{% endif %}><i class="fas fa-boxes"></i> Inventory</a></li>
+            <li><a href="{% url 'sale_list' %}" {% if request.resolver_match.url_name == 'sale_list' %}class="active"{% endif %}><i class="fas fa-history"></i> Sales History</a></li>
+            <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' %}class="active"{% endif %}><i class="fas fa-envelope"></i> Messaging</a></li>
+            <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+            <div class="user-info">
+                <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+                <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- ── MAIN ─────────────────────────────────── -->
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <h1><i class="fas fa-history"></i> Sales History</h1>
+            
+        
+            <div class='header-actions dashboard-topbar-actions'>
+                {% include 'accounts/dashboard_header_actions.html' %}
+            </div>
+        </header>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        
+
+        <!-- Filter Section using date-filter from styles.css -->
+        <div class="date-filter">
+            <form method="GET" class="filter-form sales-filter-form">
+                <div class="sales-date-range">
+                    <div class="filter-group">
+                        <label for="date_from"><i class="fas fa-calendar"></i> From:</label>
+                        <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="date_to"><i class="fas fa-calendar"></i> To:</label>
+                        <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+                    </div>
+                </div>
+                
+                <div class="filter-group sales-search-group">
+                    <label for="search"><i class="fas fa-search"></i> Search:</label>
+                    <input type="text" id="search" name="search" placeholder="Receipt # or Customer" value="{{ search }}">
+                </div>
+                
+            </form>
+        </div>
+
+        <!-- Sales Table using data-table from styles.css -->
+        <div class="data-table sales-table-container">
+            <div class="table-header">
+                <h2><i class="fas fa-receipt"></i> Transaction History</h2>
+            </div>
+            
+            <table class="sales-table" id="transactionHistoryTable">
+                <thead>
+                    <tr>
+                        
+                        <th>Date & Time</th>
+                        <th>Customer</th>
+                        <th>Cashier</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                       
+                        <td>
+                            <div style="font-weight: 600;">{{ sale.created_at|date:"M d, Y" }}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">{{ sale.created_at|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            {% if sale.customer %}
+                                {{ sale.customer.get_full_name|default:sale.customer.username }}
+                            {% else %}
+                                Walk-in
+                            {% endif %}
+                        </td>
+                        <td>{% if sale.cashier %}{{ sale.cashier.get_full_name|default:sale.cashier.username }}{% else %}<span class="text-muted">Unknown</span>{% endif %}</td>
+                        <td>
+                            {% for item in sale.items.all %}
+                                {{ item.kept_quantity }} kept{% if item.returned_quantity %}, {{ item.returned_quantity }} returned{% endif %} &times; {{ item.product.name }}{% if not forloop.last %}<br>{% endif %}
+                            {% empty %}
+                                0
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if sale.returned_amount %}
+                                <small>Original: ₱{{ sale.total_amount|floatformat:2 }}</small><br>
+                                <small>Return adjustment (refund not processed): -₱{{ sale.returned_amount|floatformat:2 }}</small><br>
+                                <strong>Net sale: ₱{{ sale.net_amount|floatformat:2 }}</strong>
+                            {% else %}
+                                <strong>₱{{ sale.total_amount|floatformat:2 }}</strong>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if sale.payment_method == 'cash' %}
+                                <span class="payment-badge cash">Cash</span>
+                            {% elif sale.payment_method == 'gcash' %}
+                                <span class="payment-badge gcash">GCash</span>
+                            {% else %}
+                                <span class="payment-badge">{{ sale.get_payment_method_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if sale.status == 'completed' %}
+                                <span class="status-badge completed">Completed</span>
+                            {% elif sale.status == 'pending' %}
+                                <span class="status-badge pending">Pending</span>
+                            {% elif sale.status == 'cancelled' %}
+                                <span class="status-badge cancelled">Cancelled</span>
+                            {% elif sale.status == 'refunded' %}
+                                <span class="status-badge refunded">Refunded</span>
+                            {% else %}
+                                <span class="status-badge">{{ sale.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="actions">
+                            <a href="{% url 'sale_detail' sale.id %}" class="btn-view" title="View Details">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr data-empty-state>
+                        <td colspan="8" class="text-center" style="padding: 3rem;">
+                            <i class="fas fa-receipt" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem; display: block;"></i>
+                            <p class="text-muted">No sales found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr data-search-empty hidden>
+                        <td colspan="8" class="text-center text-muted" style="padding: 2rem;">No sales match your search.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-bar" data-pagination-for="transactionHistoryTable" data-page-size="6">
+            <span class="pagination-info">Showing — of — results</span>
+            <div class="pagination-controls"></div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    // Auto-submit form when filters change
+    document.querySelectorAll('.filter-group select, .filter-group input[type="date"]').forEach(element => {
+        element.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+
+    const saleSearchInput = document.getElementById('search');
+    saleSearchInput.addEventListener('input', () => {
+        const query = saleSearchInput.value.trim().toLowerCase();
+        const rows = document.querySelectorAll('.sales-table-container tbody tr:not([data-empty-state], [data-search-empty])');
+        let matchCount = 0;
+        rows.forEach(row => {
+            const matches = query === '' || row.textContent.toLowerCase().includes(query);
+            row.hidden = !matches;
+            if (matches) matchCount++;
+        });
+        const emptyState = document.querySelector('.sales-table-container [data-empty-state]');
+        const searchEmptyState = document.querySelector('.sales-table-container [data-search-empty]');
+        if (emptyState) emptyState.hidden = query !== '';
+        if (searchEmptyState) searchEmptyState.hidden = query === '' || matchCount > 0;
+        document.querySelector('.pagination-bar[data-pagination-for="transactionHistoryTable"]')?.refresh?.();
+    });
+
+    // Mobile sidebar
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.createElement('button');
+        menuToggle.className = 'menu-toggle';
+        menuToggle.id = 'menuToggle';
+        menuToggle.setAttribute('aria-label', 'Toggle menu');
+        menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        overlay.id = 'sidebarOverlay';
+        
+        document.body.appendChild(menuToggle);
+        document.body.appendChild(overlay);
+        
+        const sidebar = document.querySelector('.sidebar');
+        
+        if (sidebar) {
+            function toggleMenu() {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+                menuToggle.classList.toggle('active');
+                
+                const icon = menuToggle.querySelector('i');
+                if (sidebar.classList.contains('active')) {
+                    icon.className = 'fas fa-times';
+                } else {
+                    icon.className = 'fas fa-bars';
+                }
+            }
+            
+            menuToggle.addEventListener('click', toggleMenu);
+            
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+                menuToggle.classList.remove('active');
+                menuToggle.querySelector('i').className = 'fas fa-bars';
+            });
+            
+            const sidebarLinks = document.querySelectorAll('.nav-links a');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                        menuToggle.classList.remove('active');
+                        menuToggle.querySelector('i').className = 'fas fa-bars';
+                    }
+                });
+            });
+            
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    menuToggle.classList.remove('active');
+                    menuToggle.querySelector('i').className = 'fas fa-bars';
+                }
+            });
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    menuToggle.classList.remove('active');
+                    menuToggle.querySelector('i').className = 'fas fa-bars';
+                }
+            });
+            
+            // Reports dropdown toggle handler
+            const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+            if (reportsToggle) {
+                reportsToggle.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    reportsToggle.parentElement.classList.toggle('active');
+                });
+            }
+        }
+    });
+</script>
+</body>
+</html>

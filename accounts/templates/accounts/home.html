@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+{% load static %}
+{% load socialaccount %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grateful Water Station - Premium Water Delivery Service</title>
+    <meta name="description" content="Grateful Water Station - Your trusted partner for premium water delivery in Las Piñas City. Fresh, clean water delivered to your doorstep.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'accounts/home.css' %}?v=20261002-3">
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
+    </script>
+    <script type="text/javascript">
+    (function(){
+      emailjs.init("U-r55U51wLriFBq0n");
+    })();
+</script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful Water">
+            </a>
+            
+            <div class="nav-menu" id="navMenu">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#contact" class="nav-link">Contact</a>
+                <button type="button" class="btn btn-outline nav-login" onclick="openLoginModal()">Sign In</button>
+            </div>
+            
+            <div class="nav-actions">
+                <button type="button" class="btn btn-outline" onclick="openLoginModal()">Sign In</button>
+                <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'register' %}';">Get Started</button>
+            </div>
+            
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-bg">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </div>
+        
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge" data-reveal>
+                    <i class="fas fa-star"></i>
+                    <span>#1 Water Delivery in Las Piñas</span>
+                </div>
+                
+                <h1 class="hero-title" data-reveal>
+                    Pure Water.<br>
+                    <span class="gradient-text">Delivered Fresh.</span>
+                </h1>
+                
+                <p class="hero-description" data-reveal>
+                    Experience the convenience of premium purified water delivered straight to your doorstep. 
+                    Trusted by thousands of families in Las Piñas City.
+                </p>
+                
+                <div class="hero-cta" data-reveal>
+
+                    <a href="#about" class="btn btn-outline btn-lg">
+                        <span>Learn More</span>
+                    </a>
+                </div>
+                
+                <!-- Google Sign Up Option -->
+                <div class="hero-google-signup" data-reveal>
+                   
+                       
+                       
+                    </a>
+                </div>
+                
+                <div class="hero-stats" data-reveal>
+                    <div class="stat-item">
+                       
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-visual" data-reveal>
+                <div class="hero-image-wrapper">
+                    <div class="hero-glow"></div>
+                    <div class="hero-image">
+                        <div class="water-bottle-mockup">
+                            <div class="bottle-body">
+                                <div class="bottle-water">
+                                    <div class="water-wave"></div>
+                                </div>
+                                <div class="bottle-label">
+                                    <i class="fas fa-droplet"></i>
+                                    <span>Grateful Water</span>
+                                </div>
+                            </div>
+                            <div class="bottle-cap"></div>
+                            <div class="droplets">
+                                <span class="droplet"></span>
+                                <span class="droplet"></span>
+                                <span class="droplet"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="floating-card card-1">
+                        <i class="fas fa-truck-fast"></i>
+                        <span>Fast Delivery</span>
+                    </div>
+                    <div class="floating-card card-2">
+                        <i class="fas fa-shield-check"></i>
+                        <span>Pure & Safe</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+       
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+        <div class="section-container">
+            <div class="about-grid">
+                <div class="about-image" data-reveal>
+                    <div class="image-wrapper">
+                        <div class="image-bg"></div>
+                        <div class="about-img-content">
+                            <i class="fas fa-building"></i>
+                            <span>BLK 19 LOT 1 PHASE 1<br>ST.LOUIE VILLAGE<br>ADMIRAL TALON 3<br>Las Piñas City</span>
+                        </div>
+                        <div class="experience-badge">
+                            <span class="exp-number">10+</span>
+                            <span class="exp-text">Years of<br>Excellence</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="about-content">
+                    <div class="section-header" data-reveal>
+                        <span class="section-subtitle">About Us</span>
+                        <h2 class="section-title">Your Trusted Water Partner Since 2014</h2>
+                    </div>
+                    
+                    <p class="about-text" data-reveal>
+                        Grateful Water Station has been serving the Las Piñas community with dedication and excellence. 
+                        We understand that clean, safe water is essential for your family's health and well-being.
+                    </p>
+                    
+                    <p class="about-text" data-reveal>
+                        Our state-of-the-art purification process ensures every drop meets the highest quality standards. 
+                        With our modern ordering system and dedicated delivery team, getting fresh water has never been easier.
+                    </p>
+                    
+                    <div class="about-features" data-reveal>
+                        <div class="about-feature">
+                            <div class="feature-icon">
+                                <i class="fas fa-medal"></i>
+                            </div>
+                            <div class="feature-info">
+                                <h4>Premium Quality</h4>
+                                <p>Multi-stage purification process</p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <div class="feature-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="feature-info">
+                                <h4>Timely Delivery</h4>
+                                <p>Real-time order tracking</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <a href="{% url 'register' %}" class="btn btn-primary" data-reveal>
+                        <span>Start Ordering</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+   <!-- Contact Section -->
+<section class="contact" id="contact">
+    <div class="section-container">
+        <div class="contact-grid">
+            <div class="contact-info">
+                <div class="section-header" data-reveal>
+                    <span class="section-subtitle">Contact Us</span>
+                    <h2 class="section-title">Get In Touch</h2>
+                </div>
+                
+                <p class="contact-text" data-reveal>
+                    Have questions or need assistance? We're here to help! 
+                    Reach out to us through any of these channels.
+                </p>
+                
+                <div class="contact-methods">
+                    <div class="contact-method" data-reveal>
+                        <div class="method-icon">
+                            <i class="fas fa-location-dot"></i>
+                        </div>
+                        <div class="method-details">
+                            <h4>Visit Us</h4>
+                            <p>Blk 19 Lot 1 Phase 1 St.Louie Village<br>Admiral Talon 3, Las Piñas City</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-method" data-reveal>
+                        <div class="method-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="method-details">
+                            <h4>Call Us</h4>
+                            <p>+63 993 238 0389</p>
+                            <p>+63 930 028 3868</p>
+                            <span>Mon - Sun: 7:00 AM - 8:00 PM</span>
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+                
+                <div class="social-links" data-reveal>
+                    <a href="https://www.facebook.com/profile.php?id=100065189623889" class="social-link" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="social-link" aria-label="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="contact-form-wrapper" data-reveal>
+                <form class="contact-form" id="contactForm" method="post" action="{% url 'submit_contact_message' %}">
+                    {% csrf_token %}
+                    <h3 class="form-title">Send Us a Message</h3>
+                    
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" placeholder="Joaquin Casares" required>
+                        <i class="fas fa-user"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" placeholder="+63 912 345 6789">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">Your Message</label>
+                        <textarea id="message" name="message" rows="4" placeholder="How can we help you?" required></textarea>
+                        <i class="fas fa-message"></i>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
+                        <span>Send Message</span>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        
+        
+        <div class="footer-bottom">
+            <div class="footer-container">
+                <p class="copyright">
+                    &copy; 2024 Grateful Water Station. All rights reserved.
+                </p>
+                <div class="footer-legal">
+                    <a href="{% url 'privacy_policy' %}">Privacy Policy</a>
+                    <a href="{% url 'terms_of_service' %}">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-modal-close" onclick="closeLoginModal()">&times;</span>
+            <div class="auth-modal-header">
+                <img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful Water" class="auth-modal-logo">
+                <h2>Welcome
+                </h2>
+                <p>Sign in to your account to continue</p>
+            </div>
+            <form method="POST" action="{% url 'login' %}" class="auth-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'customer_dashboard' %}">
+                <div class="auth-form-group">
+                    <label><i class="fas fa-user"></i> Username or Email</label>
+                    <input type="text" name="username" placeholder="Enter your username" required autocomplete="username">
+                </div>
+                <div class="auth-form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" name="password" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="auth-form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                </div>
+                <button type="submit" class="auth-btn-primary">Sign In</button>
+            </form>
+            <div class="auth-divider">
+                <span>or continue with</span>
+            </div>
+            <a href="{% provider_login_url 'google' process='login' %}" class="auth-btn-google">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span>Sign in with Google</span>
+            </a>
+            <p class="auth-switch">Don't have an account? <a href="#" onclick="closeLoginModal(); openRegisterModal(); return false;">Create an account</a></p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-modal-close" onclick="closeRegisterModal()">&times;</span>
+            <div class="auth-modal-header">
+                <img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful Water" class="auth-modal-logo">
+                <h2>Create Account</h2>
+                <p>Join Grateful Water for premium delivery service</p>
+            </div>
+            <form method="POST" action="{% url 'register' %}" class="auth-form" id="registerForm">
+                {% csrf_token %}
+                <div class="auth-form-row">
+                    <div class="auth-form-group">
+                        <label><i class="fas fa-user"></i> First Name</label>
+                        <input type="text" name="first_name" required autocomplete="given-name">
+                    </div>
+                    <div class="auth-form-group">
+                        <label><i class="fas fa-user"></i> Last Name</label>
+                        <input type="text" name="last_name" required autocomplete="family-name">
+                    </div>
+                </div>
+                <div class="auth-form-group">
+                    <label><i class="fas fa-id-card"></i> Username</label>
+                    <input type="text" name="username" placeholder="Choose a username" required autocomplete="username">
+                </div>
+                <div class="auth-form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" name="email" placeholder="john@example.com" required autocomplete="email">
+                </div>
+                <div class="auth-form-group">
+                    <label><i class="fas fa-phone"></i> Phone</label>
+                    <input type="tel" name="phone_number" placeholder="+63 XXX XXX XXXX" required autocomplete="tel">
+                </div>
+                <div class="auth-form-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Delivery Address</label>
+                    <textarea name="address" rows="2" placeholder="Enter your complete delivery address" required autocomplete="street-address"></textarea>
+                </div>
+                <div class="auth-form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" name="password1" id="regPassword1" placeholder="Create a strong password" required autocomplete="new-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword('regPassword1')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="auth-form-group">
+                    <label><i class="fas fa-lock"></i> Confirm Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" name="password2" id="regPassword2" placeholder="Re-enter your password" required autocomplete="new-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword('regPassword2')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="auth-form-group terms-group">
+                    <label class="terms-checkbox">
+                        <input type="checkbox" name="terms" required>
+                        <span>I agree to the <a href="{% url 'terms_of_service' %}">Terms</a> and <a href="{% url 'privacy_policy' %}">Privacy Policy</a></span>
+                    </label>
+                </div>
+                <button type="submit" class="auth-btn-primary">Create Account</button>
+            </form>
+            <div class="auth-divider">
+                <span>or sign up with</span>
+            </div>
+            <a href="{% provider_login_url 'google' process='signup' auth_params='prompt=select_account' %}" class="auth-btn-google">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span>Sign up with Google</span>
+            </a>
+            <p class="auth-switch">Already have an account? <a href="#" onclick="closeRegisterModal(); openLoginModal(); return false;">Sign in</a></p>
+        </div>
+    </div>
+
+    <!-- Modal Styles -->
+    <style>
+        .auth-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            animation: fadeIn 0.3s ease;
+        }
+        .auth-modal.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .auth-modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2.5rem;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .auth-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        .auth-modal-close:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        .auth-modal-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .auth-modal-logo {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 1rem auto;
+            display: block;
+        }
+        .auth-modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+        .auth-modal-header p {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .auth-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .auth-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+        }
+        .auth-form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        .auth-form-group label i {
+            color: #0ea5e9;
+        }
+        .auth-form-group input,
+        .auth-form-group textarea {
+            padding: 0.75rem 1rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        .auth-form-group input:focus,
+        .auth-form-group textarea:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+        .auth-form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            width: 100%;
+            padding-right: 2.5rem;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .password-toggle:hover {
+            color: #64748b;
+        }
+        .auth-form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #475569;
+            cursor: pointer;
+        }
+        .remember-me input {
+            width: 16px;
+            height: 16px;
+            accent-color: #0ea5e9;
+        }
+        .forgot-link {
+            color: #0ea5e9;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+        .terms-group {
+            margin-top: 0.5rem;
+        }
+        .terms-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #475569;
+            cursor: pointer;
+        }
+        .terms-checkbox input {
+            width: 18px;
+            height: 18px;
+            margin-top: 1px;
+            accent-color: #0ea5e9;
+        }
+        .terms-checkbox a {
+            color: #0ea5e9;
+            text-decoration: none;
+        }
+        .terms-checkbox a:hover {
+            text-decoration: underline;
+        }
+        .auth-btn-primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .auth-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3);
+        }
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 1.25rem 0;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+        .auth-divider span {
+            padding: 0 1rem;
+        }
+        .auth-btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: white;
+            border: 1.5px solid #e2e8f0;
+            padding: 0.875rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #334155;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .auth-btn-google:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .auth-switch {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+        .auth-switch a {
+            color: #0ea5e9;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 640px) {
+            .auth-modal-content {
+                padding: 1.5rem;
+            }
+            .auth-form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <!-- Modal JavaScript -->
+     <!-- EmailJS SDK -->
+
+    <script>
+
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        function openRegisterModal() {
+            document.getElementById('registerModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeRegisterModal() {
+            document.getElementById('registerModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.parentElement.querySelector('.password-toggle i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        // Close modals when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('auth-modal')) {
+                e.target.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.auth-modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                document.body.style.overflow = '';
+            }
+        });
+    </script>
+
+    <!-- JavaScript -->
+    <script src="{% static 'accounts/home.js' %}?v=20261002-2"></script>
+</body>
+</html>

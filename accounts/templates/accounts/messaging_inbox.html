@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    <script src="{% static 'accounts/js/dashboard_topbar.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Modern CSS Variables */
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --primary-light: #e0f2fe;
+            --secondary: #06b6d4;
+            --accent: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+        }
+
+        .msg-layout { display: grid; grid-template-columns: minmax(390px, 410px) minmax(0, 1fr); gap: 1rem; height: calc(100vh - 80px); max-height: calc(100vh - 80px); }
+
+        .conversation-panel { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+
+        .conv-sidebar {
+            overflow-y: auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-lg);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .conv-sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 2px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass-bg);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        .conv-sidebar-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .conv-sidebar-header h2 i { color: var(--primary); }
+
+        .btn-compose {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 0.625rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-compose:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+        }
+
+        .conv-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+        }
+
+        .conv-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) scaleY(0);
+            height: 60%;
+            width: 4px;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 0 3px 3px 0;
+            transition: transform 0.3s ease;
+        }
+
+        .conv-item:hover {
+            background: var(--primary-light);
+        }
+
+        .conv-item:hover::before { transform: translateY(-50%) scaleY(1); }
+
+        .conv-item.active {
+            background: var(--primary-light);
+        }
+
+        .conv-item.active::before { transform: translateY(-50%) scaleY(1); }
+
+        .conv-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+
+        .conv-avatar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.3);
+        }
+
+        .conv-avatar.admin { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+        .conv-avatar.staff { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .conv-avatar.rider { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .conv-avatar.customer { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+
+        .conv-info { flex: 1; min-width: 0; }
+
+        .conv-name {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .conv-person-name {
+            min-width: 0;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .conv-preview {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conv-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .conv-role-line {
+            display: inline-flex !important;
+            flex-direction: row !important;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+            direction: ltr;
+            flex-wrap: nowrap !important;
+            width: max-content;
+        }
+
+        .conv-role-line .unread-badge {
+            display: inline-flex;
+            flex: 0 0 auto;
+            order: 1;
+            margin: 0 !important;
+        }
+
+        .conversation-unread-count {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            order: 1;
+            flex: 0 0 26px;
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            margin: 0 !important;
+            padding: 0 !important;
+            border-radius: 50%;
+            background: #ef4444;
+            color: #fff;
+            font-size: .75rem;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .conv-role-line .role-tag {
+            display: inline-flex;
+            flex: 0 0 auto;
+            order: 2;
+        }
+
+        .conv-time {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .unread-badge {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            min-width: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .role-tag {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        .role-tag.admin { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .role-tag.staff { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+        .role-tag.rider { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .role-tag.customer { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+        .empty-inbox {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            color: var(--gray-400);
+            text-align: center;
+        }
+
+        .empty-inbox i {
+            font-size: 4rem;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, var(--gray-300), var(--gray-400));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .empty-inbox h3 { color: var(--gray-600); margin-bottom: 0.5rem; font-size: 1.25rem; }
+        .empty-inbox p { font-size: 0.95rem; margin-bottom: 1.5rem; color: var(--gray-500); }
+
+        .welcome-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-lg);
+            color: var(--gray-400);
+            text-align: center;
+            padding: 2rem;
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+
+        .welcome-panel i {
+            font-size: 4rem;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0.7;
+        }
+
+        .welcome-panel h3 { color: var(--gray-700); margin-bottom: 0.5rem; font-size: 1.5rem; }
+        .welcome-panel p { font-size: 1rem; color: var(--gray-500); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .msg-layout {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            /* Show only conversation list on mobile inbox */
+            .conversation-panel {
+                display: none !important;
+            }
+            .conv-sidebar {
+                display: block !important;
+                height: calc(100vh - 60px);
+                overflow-y: auto;
+            }
+            .main-content {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body class="page-messaging" data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% include "accounts/messaging_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ user_role }}">{{ user_role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────── -->
+    <main class="main-content">
+
+        <div class="msg-layout">
+            <!-- Conversation List -->
+            <div class="conv-sidebar">
+                <div class="conv-sidebar-header">
+                    <h2><i class="fas fa-comments"></i> Chats</h2>
+                    <a href="{% url 'compose_message' %}" class="btn-compose"><i class="fas fa-plus"></i></a>
+                </div>
+                {% if conv_list %}
+                    {% for item in conv_list %}
+                    <a href="{% url 'conversation_detail' item.conversation.id %}" class="conv-item" data-conversation-id="{{ item.conversation.id }}">
+                        <div class="conv-avatar {{ item.other_user.profile.role }}">{{ item.other_user.first_name|first|default:"?" }}</div>
+                        <div class="conv-info">
+                            <div class="conv-name">
+                                <span class="conv-person-name">{{ item.other_user.get_full_name|default:item.other_user.username }}</span>
+                            </div>
+                            <div class="conv-preview">
+                                {% if item.last_message %}
+                                    {% if item.last_message.sender == request.user %}You: {% endif %}
+                                    {{ item.last_message.content|truncatechars:40 }}
+                                {% else %}
+                                    No messages yet
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="conv-meta">
+                            <div class="conv-role-line">
+                                {% if item.unread_count %}
+                                <span class="conversation-unread-count">{{ item.unread_count }}</span>
+                                {% endif %}
+                                <span class="role-tag {{ item.other_user.profile.role }}">{{ item.other_user.profile.role }}</span>
+                            </div>
+                            {% if item.last_message %}
+                            <span class="conv-time">{{ item.last_message.created_at|timesince }} ago</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-inbox">
+                        <i class="fas fa-comment-slash"></i>
+                        <h3>No conversations yet</h3>
+                        <p>Start a new conversation</p>
+                        <a href="{% url 'compose_message' %}" class="btn-compose"><i class="fas fa-pen"></i> New Message</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Conversation Panel (right side) -->
+            <div class="conversation-panel" id="conversationPanel">
+                <div class="welcome-panel" id="welcomePanel" style="flex: 1; min-height: 0;">
+                    <i class="fas fa-comments"></i>
+                    <h3>Select a conversation</h3>
+                    <p>Choose a chat from the left or start a new message</p>
+                </div>
+                <div class="conversation-content" id="conversationContent" style="display: none; flex: 1; min-height: 0; background: var(--glass-bg); backdrop-filter: blur(20px); border-radius: var(--radius-xl); border: 1px solid var(--glass-border); box-shadow: var(--shadow-lg); overflow: hidden; flex-direction: column;">
+                    <!-- Conversation will load here -->
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Mobile sidebar toggle
+    const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+    const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+    document.body.append(btn, ov);
+    const sb = document.querySelector('.sidebar');
+    const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+    const open = () => { sb.classList.add('active'); ov.classList.add('active'); btn.querySelector('i').className = 'fas fa-times'; };
+    btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+    ov.addEventListener('click', close);
+
+    // Handle conversation clicks - load on right panel (desktop) or navigate (mobile)
+    document.querySelectorAll('.conv-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // On mobile, allow default navigation to conversation_detail page
+            if (window.innerWidth <= 768) {
+                return; // Let the browser navigate to href normally
+            }
+            e.preventDefault();
+            const url = this.getAttribute('href');
+            loadConversation(url, this);
+        });
+    });
+
+    function loadConversation(url, element) {
+        // Highlight active conversation
+        document.querySelectorAll('.conv-item').forEach(item => item.classList.remove('active'));
+        element.classList.add('active');
+
+        // Show loading state
+        const contentDiv = document.getElementById('conversationContent');
+        const welcomePanel = document.getElementById('welcomePanel');
+        contentDiv.style.display = 'flex';
+        welcomePanel.style.display = 'none';
+        contentDiv.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i></div>';
+
+        // Store current conversation URL
+        contentDiv.dataset.url = url;
+
+        // Fetch conversation content
+        fetch(url + '?ajax=1')
+            .then(response => response.text())
+            .then(html => {
+                contentDiv.innerHTML = html;
+            const container = contentDiv.querySelector('#chatMessagesContainer');
+            if (container) container.scrollTop = container.scrollHeight;
+            const textarea = contentDiv.querySelector('textarea[name="content"]');
+            if (textarea) {
+                textarea.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        textarea.form.requestSubmit();
+                    }
+                });
+            }
+            fetch("{% url 'unread_message_count_api' %}")
+                .then(response => response.json())
+                .then(({ count }) => {
+                    document.querySelectorAll('.sidebar .unread-badge').forEach(badge => {
+                        badge.textContent = count;
+                        badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                    });
+                });
+        })
+            .catch(error => {
+                contentDiv.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--danger);"><i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 1rem;"></i><p>Failed to load conversation</p></div>';
+            });
+    }
+
+    function closeConversation() {
+        const contentDiv = document.getElementById('conversationContent');
+        const welcomePanel = document.getElementById('welcomePanel');
+        contentDiv.style.display = 'none';
+        contentDiv.innerHTML = '';
+        welcomePanel.style.display = 'flex';
+        document.querySelectorAll('.conv-item').forEach(item => item.classList.remove('active'));
+    }
+
+    function pollActiveConversation() {
+        const contentDiv = document.getElementById('conversationContent');
+        const url = contentDiv && contentDiv.dataset.url;
+        const chatMessages = contentDiv && contentDiv.querySelector('#chatMessagesContainer .chat-messages');
+        if (!url || !chatMessages) return;
+        fetch(url + '?format=json', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.json())
+            .then(data => {
+                data.messages.forEach(message => {
+                    if (chatMessages.querySelector(`[data-message-id="${message.id}"]`)) return;
+                    const bubble = document.createElement('div');
+                    bubble.className = message.sender_id === {{ request.user.id }} ? 'msg-bubble sent' : 'msg-bubble received';
+                    bubble.dataset.messageId = message.id;
+                    if (message.sender_id !== {{ request.user.id }}) {
+                        const sender = document.createElement('div');
+                        sender.className = 'msg-sender';
+                        sender.textContent = message.sender_name;
+                        bubble.appendChild(sender);
+                    }
+                    bubble.appendChild(document.createTextNode(message.content));
+                    const time = document.createElement('div');
+                    time.className = 'msg-time';
+                    time.textContent = message.created_at;
+                    bubble.appendChild(time);
+                    const empty = chatMessages.querySelector('.no-messages');
+                    if (empty) empty.remove();
+                    chatMessages.appendChild(bubble);
+                });
+                const container = contentDiv.querySelector('#chatMessagesContainer');
+                if (container) container.scrollTop = container.scrollHeight;
+            })
+            .catch(() => {});
+    }
+
+    window.setInterval(pollActiveConversation, 3000);
+
+    let inboxConversationToken = '';
+
+    function updateConversationUnreadBadge(row, unreadCount) {
+        const roleLine = row.querySelector('.conv-role-line');
+        if (!roleLine) return;
+
+        const existingBadge = row.querySelector('.conversation-unread-count');
+        const badge = existingBadge || document.createElement('span');
+
+        if (unreadCount > 0) {
+            badge.className = 'conversation-unread-count';
+            badge.textContent = unreadCount;
+            badge.style.display = 'inline-flex';
+            roleLine.insertBefore(badge, roleLine.querySelector('.role-tag'));
+        } else if (existingBadge) {
+            existingBadge.remove();
+        }
+    }
+
+    document.querySelectorAll('.conv-item').forEach(row => {
+        const badge = row.querySelector('.conversation-unread-count');
+        updateConversationUnreadBadge(row, badge ? parseInt(badge.textContent, 10) || 0 : 0);
+    });
+
+    function pollInboxConversations() {
+        fetch(`${window.location.pathname}?format=json`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(response => response.json())
+            .then(data => {
+                const token = JSON.stringify(data.conversations);
+                if (!inboxConversationToken) {
+                    inboxConversationToken = token;
+                    return;
+                }
+                if (token !== inboxConversationToken) {
+                    inboxConversationToken = token;
+                    data.conversations.forEach(item => {
+                        const row = document.querySelector(`[data-conversation-id="${item.id}"]`);
+                        if (!row) {
+                            window.location.reload();
+                            return;
+                        }
+                        const preview = row.querySelector('.conv-preview');
+                        if (preview) preview.textContent = item.preview || 'No messages yet';
+                        updateConversationUnreadBadge(row, item.unread_count);
+                    });
+                }
+            })
+            .catch(() => {});
+    }
+
+    pollInboxConversations();
+    window.setInterval(pollInboxConversations, 3000);
+
+    // Global function for form submission from partial template
+    function submitMessage(event, form) {
+        event.preventDefault();
+
+        const textarea = form.querySelector('textarea');
+        const content = textarea.value.trim();
+        if (!content) return;
+
+        const formData = new FormData(form);
+        const contentDiv = document.getElementById('conversationContent');
+        const chatMessages = contentDiv.querySelector('#chatMessagesContainer .chat-messages');
+        const scrollBtn = contentDiv.querySelector('#scrollToBottomBtn');
+
+        // Send to server silently
+        const url = form.getAttribute('action') + '?format=json';
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value }
+        }).then(response => response.json()).then(data => {
+            if (!data.message || !chatMessages) throw new Error('Message was not saved');
+            const noMsg = chatMessages.querySelector('.no-messages');
+            if (noMsg) noMsg.remove();
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble sent';
+            bubble.dataset.messageId = data.message.id;
+            bubble.appendChild(document.createTextNode(data.message.content));
+            const time = document.createElement('div');
+            time.className = 'msg-time';
+            time.textContent = data.message.created_at;
+            bubble.appendChild(time);
+            chatMessages.appendChild(bubble);
+            textarea.value = '';
+            textarea.style.height = 'auto';
+            textarea.focus();
+            const container = contentDiv.querySelector('#chatMessagesContainer');
+            if (container) container.scrollTop = container.scrollHeight;
+            if (scrollBtn) scrollBtn.classList.remove('visible');
+        }).catch(error => {
+            console.error('Failed to send message:', error);
+            textarea.value = content;
+        });
+    }
+
+    // Reports dropdown toggle handler
+    document.addEventListener('click', (event) => {
+        const reportsToggle = event.target.closest('.nav-dropdown-toggle');
+        if (!reportsToggle) return;
+        const dropdown = reportsToggle.closest('.nav-dropdown');
+        if (!dropdown) return;
+        event.preventDefault();
+        event.stopPropagation();
+        dropdown.classList.toggle('active');
+    }, true);
+</script>
+</body>
+</html>

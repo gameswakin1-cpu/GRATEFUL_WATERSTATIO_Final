@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .filter-bar-advanced {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .search-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+        }
+
+        .search-input {
+            padding: 10px 14px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1e293b;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #1a7db7;
+            box-shadow: 0 0 0 3px rgba(26, 125, 183, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .btn-apply, .btn-reset {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-apply {
+            background: #1a7db7;
+            color: white;
+        }
+
+        .btn-apply:hover {
+            background: #0f5e8a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 125, 183, 0.3);
+        }
+
+        .btn-apply:active {
+            transform: translateY(0);
+        }
+
+        .btn-reset {
+            background: white;
+            color: #1a7db7;
+            border: 1.5px solid #cbd5e1;
+        }
+
+        .btn-reset:hover {
+            background: #f1f5f9;
+            border-color: #1a7db7;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1024px) {
+            .filter-bar-advanced {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .search-section {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .button-group {
+                width: 100%;
+            }
+
+            .btn-apply, .btn-reset {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+        .nav-dropdown.active > .nav-dropdown-toggle {
+            background: rgba(26, 125, 183, 0.12);
+            color: #1a7db7;
+            border-radius: 10px;
+        }
+
+        .inventory-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .inventory-actions .action-delete-form {
+            display: inline-flex;
+            margin: 0;
+        }
+
+        .inventory-actions .btn-edit,
+        .inventory-actions .btn-delete {
+            box-sizing: border-box;
+            width: 86px;
+            min-height: 38px;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .inventory-actions {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                min-width: 178px;
+            }
+
+            .inventory-actions .action-delete-form,
+            .inventory-actions .btn-edit,
+            .inventory-actions .btn-delete {
+                width: 100%;
+            }
+        }
+
+        .delete-modal[hidden] {
+            display: none;
+        }
+
+        .delete-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: grid;
+            place-items: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, .48);
+            backdrop-filter: blur(3px);
+        }
+
+        .delete-modal-card {
+            width: min(100%, 430px);
+            padding: 1.6rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 20px 55px rgba(15, 23, 42, .2);
+            text-align: center;
+        }
+
+        .delete-modal-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto .9rem;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: #fff1f2;
+            color: #dc2626;
+            font-size: 1.25rem;
+        }
+
+        .delete-modal-card h2 {
+            margin: 0 0 .45rem;
+            color: #1e293b;
+            font-size: 1.15rem;
+        }
+
+        .delete-modal-card p {
+            margin: 0;
+            color: #64748b;
+            font-size: .9rem;
+            line-height: 1.5;
+        }
+
+        .delete-modal-product {
+            display: block;
+            margin-top: .35rem;
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .delete-modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: .75rem;
+            margin-top: 1.35rem;
+        }
+
+        .delete-modal-actions button {
+            min-width: 112px;
+            min-height: 40px;
+            padding: .65rem 1rem;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .delete-modal-cancel {
+            border-color: #cbd5e1 !important;
+            background: #fff;
+            color: #475569;
+        }
+
+        .delete-modal-confirm {
+            background: #dc2626;
+            color: #fff;
+        }
+
+        .delete-modal-confirm:hover {
+            background: #b91c1c;
+        }
+
+        @media (max-width: 420px) {
+            .delete-modal-actions {
+                flex-direction: column-reverse;
+            }
+
+            .delete-modal-actions button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% if request.user.profile.role == 'admin' %}
+        {% include "accounts/admin_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+        {% else %}
+        <ul class="nav-links">
+           <li><a href="{% url 'staff_dashboard' %}" {% if request.resolver_match.url_name == 'staff_dashboard' %}class="active"{% endif %}><i class="fas fa-th-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'pos_dashboard' %}" {% if request.resolver_match.url_name == 'pos_dashboard' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Products</a></li>
+            <li><a href="{% url 'manage_orders' %}" {% if request.resolver_match.url_name == 'manage_orders' %}class="active"{% endif %}><i class="fas fa-shopping-cart"></i> Orders</a></li>
+            <li><a href="{% url 'inventory_list' %}" {% if request.resolver_match.url_name == 'inventory_list' %}class="active"{% endif %}><i class="fas fa-boxes"></i> Inventory</a></li>
+            <li><a href="{% url 'sale_list' %}" {% if request.resolver_match.url_name == 'sale_list' %}class="active"{% endif %}><i class="fas fa-history"></i> Sales History</a></li>
+            <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' %}class="active"{% endif %}><i class="fas fa-envelope"></i> Messaging</a></li>
+            <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- ── MAIN ─────────────────────────────────── -->
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <h1><i class="fas fa-warehouse"></i> Inventory Management</h1>
+            <div class="header-actions">
+                {% include 'accounts/dashboard_header_actions.html' %}
+                {% if request.user.profile.role == 'admin' %}
+                <a href="{% url 'product_create' %}" class="btn-primary">
+                    <i class="fas fa-plus-circle"></i> Add New Product
+                </a>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:.6rem;">
+                    <i class="fas fa-{% if 'success' in message.tags %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+                <button onclick="this.closest('.alert').style.display='none'" style="background:none; border:none; cursor:pointer; font-size:1.1rem; color:inherit; opacity:.7; padding:.2rem .4rem; line-height:1;" title="Dismiss">&times;</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Water Refill Products -->
+        <div class="data-table">
+            <div class="table-header">
+                <h2><i class="fas fa-tint"></i> Water Refill Products</h2>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            {% if request.user.profile.role == 'admin' %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in refill_products %}
+                        <tr>
+                            <td><strong>{{ product.name }}</strong></td>
+                            <td>₱{{ product.price|floatformat:2 }}</td>
+                            <td><span class="status-badge completed">Active</span></td>
+                            {% if request.user.profile.role == 'admin' %}
+                            <td class="actions inventory-actions">
+                                <a href="{% url 'product_edit' product.id %}" class="btn-edit" title="Edit Product">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <form method="POST" action="{% url 'product_delete' product.id %}" class="action-delete-form" data-product-name="{{ product.name }}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-delete" title="Delete Product">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if request.user.profile.role == 'admin' %}4{% else %}3{% endif %}" class="text-center" style="padding: 3rem;">
+                                <i class="fas fa-tint" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem; display: block;"></i>
+                                <p class="text-muted">No water refill products found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="data-table">
+            <div class="table-header">
+                <h2><i class="fas fa-boxes"></i> Water Gallon Products</h2>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Stock Quantity</th>
+                            <th>Reorder Level</th>
+                            <th>Status</th>
+                            {% if request.user.profile.role == 'admin' %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td><strong>{{ product.name }}</strong></td>
+                            <td class="stock-cell">{{ product.stock_quantity }}</td>
+                            <td>{{ product.reorder_level }}</td>
+                            <td>
+                                {% if product.stock_quantity <= 0 %}
+                                    <span class="status-badge cancelled">Out of Stock</span>
+                                {% elif product.stock_quantity <= product.reorder_level %}
+                                    <span class="status-badge pending">Low Stock</span>
+                                {% else %}
+                                    <span class="status-badge completed">In Stock</span>
+                                {% endif %}
+                            </td>
+                            {% if request.user.profile.role == 'admin' %}
+                            <td class="actions inventory-actions">
+                                <a href="{% url 'product_edit' product.id %}" class="btn-edit" title="Edit Product">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <form method="POST" action="{% url 'product_delete' product.id %}" class="action-delete-form" data-product-name="{{ product.name }}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-delete" title="Delete Product">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if request.user.profile.role == 'admin' %}6{% else %}5{% endif %}" class="text-center" style="padding: 3rem;">
+                                <i class="fas fa-box-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem; display: block;"></i>
+                                <p class="text-muted">No products found</p>
+                                <a href="{% url 'product_create' %}" class="btn-primary" style="display: inline-flex; margin-top: 1rem;">
+                                    <i class="fas fa-plus-circle"></i> Add Product
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<div class="delete-modal" id="deleteModal" hidden role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+    <div class="delete-modal-card">
+        <div class="delete-modal-icon" aria-hidden="true">
+            <i class="fas fa-trash-alt"></i>
+        </div>
+        <h2 id="deleteModalTitle">Delete product?</h2>
+        <p>This action cannot be undone.</p>
+        <span class="delete-modal-product" id="deleteModalProduct"></span>
+        <div class="delete-modal-actions">
+            <button type="button" class="delete-modal-cancel" id="deleteModalCancel">Cancel</button>
+            <button type="button" class="delete-modal-confirm" id="deleteModalConfirm">Delete Product</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteModalProduct = document.getElementById('deleteModalProduct');
+    const deleteModalCancel = document.getElementById('deleteModalCancel');
+    const deleteModalConfirm = document.getElementById('deleteModalConfirm');
+    let pendingDeleteForm = null;
+
+    function closeDeleteModal() {
+        deleteModal.hidden = true;
+        pendingDeleteForm = null;
+    }
+
+    document.querySelectorAll('.action-delete-form').forEach(form => {
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            pendingDeleteForm = form;
+            deleteModalProduct.textContent = form.dataset.productName || 'Selected product';
+            deleteModal.hidden = false;
+            deleteModalCancel.focus();
+        });
+    });
+
+    deleteModalCancel.addEventListener('click', closeDeleteModal);
+    deleteModalConfirm.addEventListener('click', () => {
+        if (pendingDeleteForm) {
+            pendingDeleteForm.submit();
+        }
+    });
+
+    deleteModal.addEventListener('click', event => {
+        if (event.target === deleteModal) {
+            closeDeleteModal();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !deleteModal.hidden) {
+            closeDeleteModal();
+        }
+    });
+
+    // Auto refresh every 5 minutes
+    setTimeout(()=>location.reload(),60000);
+
+    // Mobile sidebar
+    document.addEventListener('DOMContentLoaded',()=>{
+        const btn=document.createElement('button'); btn.className='menu-toggle'; btn.innerHTML='<i class="fas fa-bars"></i>';
+        const ov=document.createElement('div'); ov.className='sidebar-overlay';
+        document.body.append(btn,ov);
+        const sb=document.querySelector('.sidebar');
+        const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+        const close=()=>{sb.classList.remove('active');ov.classList.remove('active');btn.querySelector('i').className='fas fa-bars';};
+        const open=()=>{sb.classList.add('active');ov.classList.add('active');btn.querySelector('i').className='fas fa-times';};
+        btn.addEventListener('click',()=>sb.classList.contains('active')?close():open());
+        ov.addEventListener('click',close);
+        if (reportsToggle) {
+            reportsToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                reportsToggle.parentElement.classList.toggle('active');
+            });
+        }
+        document.querySelectorAll('.nav-links a').forEach(l=>l.addEventListener('click',()=>{
+            if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+                close();
+            }
+        }));
+        window.addEventListener('resize',()=>window.innerWidth>768&&close());
+        document.addEventListener('keydown',e=>e.key==='Escape'&&close());
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    <script src="{% static 'accounts/js/dashboard_topbar.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .msg-layout { display: grid; grid-template-columns: 1fr; gap: 1rem; min-height: calc(100vh - 80px); }
+
+        /* Chat Area */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .chat-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 2px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: var(--glass-bg);
+        }
+
+        .chat-header-left { display: flex; align-items: center; gap: 1rem; }
+
+        .btn-back {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 0.625rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+        }
+
+        .chat-header .conv-avatar {
+            width: 48px;
+            height: 48px;
+            font-size: 1rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .chat-header .conv-avatar.admin { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+        .chat-header .conv-avatar.staff { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .chat-header .conv-avatar.rider { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .chat-header .conv-avatar.customer { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+
+        .chat-header-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chat-header-info p { font-size: 0.875rem; color: var(--gray-500); }
+        .chat-header-info .status-online { color: var(--success); font-weight: 600; }
+
+        .role-tag {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-tag.admin { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .role-tag.staff { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+        .role-tag.rider { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .role-tag.customer { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: var(--gray-50);
+        }
+
+        .msg-bubble {
+            max-width: 70%;
+            padding: 0.875rem 1.25rem;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-out;
+            box-shadow: var(--shadow-sm);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-bubble.sent {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-bubble.received {
+            background: white;
+            color: var(--gray-800);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--gray-200);
+        }
+        .message-order-context {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            margin-bottom: 0.45rem;
+            padding: 0.45rem 0.6rem;
+            border-left: 3px solid var(--primary);
+            border-radius: 0.35rem;
+            background: rgba(26, 138, 212, 0.08);
+            font-size: 0.76rem;
+        }
+        .message-order-context strong { color: var(--primary-dark); }
+        .message-order-context span { color: var(--gray-500); }
+
+        .msg-time {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .msg-bubble.sent .msg-time { color: rgba(255,255,255,0.7); }
+
+        .msg-sender {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.375rem;
+        }
+
+        .chat-input-area {
+            padding: 1rem 1.5rem;
+            border-top: 2px solid var(--gray-100);
+            background: white;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .chat-input-area textarea {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            font-size: 0.95rem;
+            resize: none;
+            min-height: 48px;
+            max-height: 120px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: var(--gray-50);
+        }
+
+        .chat-input-area textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+            background: white;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.25rem;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-send i { transition: transform 0.2s ease; }
+        .btn-send:hover i { transform: translateX(3px); }
+
+        .no-messages {
+            text-align: center;
+            padding: 4rem;
+            color: var(--gray-400);
+        }
+
+        .no-messages i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--gray-300), var(--gray-400));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: block;
+        }
+
+        .no-messages p { font-size: 1rem; color: var(--gray-500); }
+
+        .date-divider {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            padding: 1rem 0;
+            font-weight: 600;
+        }
+
+        .date-divider span {
+            background: var(--gray-100);
+            padding: 0.375rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--gray-200);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .msg-layout {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            .conv-sidebar {
+                display: none !important;
+            }
+            .chat-area {
+                height: calc(100vh - 60px);
+                border-radius: 0;
+                border: none;
+            }
+            .chat-header {
+                padding: 1rem;
+            }
+            .chat-header .conv-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 0.875rem;
+            }
+            .chat-header-info h3 {
+                font-size: 1rem;
+            }
+            .chat-messages {
+                padding: 1rem;
+            }
+            .msg-bubble {
+                max-width: 85%;
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            .chat-input-area {
+                padding: 0.75rem 1rem;
+            }
+            .main-content {
+                padding: 0;
+            }
+            .dashboard-topbar {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .msg-bubble { max-width: 92%; font-size: .85rem; }
+            .chat-header-info h3 { font-size: .95rem; }
+            .chat-input-area textarea { font-size: .9rem; }
+        }
+    </style>
+</head>
+<body class="page-messaging" data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% include "accounts/messaging_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name }}!</p>
+            <p class="role-badge {{ user_role }}">{{ user_role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────── -->
+    <main class="main-content">
+        {% include 'accounts/dashboard_topbar.html' %}
+
+        <div class="msg-layout">
+            <!-- Conversation List Sidebar -->
+           
+               
+          
+
+            <!-- Chat Area -->
+            <div class="chat-area">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <div class="chat-header-left">
+                        <div class="conv-avatar {{ other_user.profile.role }}">{{ other_user.first_name|first|default:"?" }}</div>
+                        <div class="chat-header-info">
+                            <h3>{{ other_user.get_full_name|default:other_user.username }} <span class="role-tag {{ other_user.profile.role }}">{{ other_user.profile.role }}</span></h3>
+                            <p>{{ other_user.profile.phone_number|default:"No phone" }}</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'messaging_inbox' %}" class="btn-back"><i class="fas fa-arrow-left"></i></a>
+                </div>
+
+                <!-- Messages -->
+                <div class="chat-messages" id="chatMessages">
+                    {% if messages %}
+                        {% for msg in messages %}
+                        <div class="msg-bubble {% if msg.sender == request.user %}sent{% else %}received{% endif %}" data-message-id="{{ msg.id }}">
+                            {% if msg.sender != request.user %}
+                            <div class="msg-sender">{{ msg.sender.get_full_name|default:msg.sender.username }}</div>
+                            {% endif %}
+                            {% if msg.order %}
+                            <div class="message-order-context">
+                                <strong>Order#{{ msg.order.order_number }}</strong>
+                                {% for item in msg.order.items.all %}
+                                <span>{{ item.quantity }} {{ item.product.name }}</span>
+                                {% endfor %}
+                                <span>₱{{ msg.order.total_amount|floatformat:2 }}</span>
+                                <span>{{ msg.order.get_payment_method_display }}</span>
+                            </div>
+                            {% endif %}
+                            {{ msg.content }}
+                            <div class="msg-time">{{ msg.created_at|date:"h:i A" }} · {{ msg.created_at|date:"M d" }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-messages">
+                            <i class="fas fa-comment-dots"></i>
+                            <p>No messages yet. Say hello!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Input Area -->
+                <form method="post" class="chat-input-area" id="msgForm">
+                    {% csrf_token %}
+                    <textarea name="content" rows="1" placeholder="Type a message..." id="msgInput" required></textarea>
+                    <button type="submit" class="btn-send"><i class="fas fa-paper-plane"></i> Send</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chatMessages');
+    const msgForm = document.getElementById('msgForm');
+    const msgInput = document.getElementById('msgInput');
+
+    // Scroll to bottom helper
+    function scrollToBottom() {
+        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Scroll to bottom on load
+    scrollToBottom();
+
+    // Auto-resize textarea
+    if (msgInput) {
+        msgInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Enter to send (Shift+Enter for newline)
+        msgInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                msgForm.requestSubmit();
+            }
+        });
+    }
+
+    // AJAX submit — appends new message bubble without page reload
+    if (msgForm) {
+        msgForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const content = msgInput.value.trim();
+            if (!content) return;
+
+            const formData = new FormData(msgForm);
+
+            // Send to server
+            fetch(`${window.location.pathname}?format=json`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(response => response.json()).then(data => {
+                if (!data.message) throw new Error('Message was not saved');
+                const bubble = document.createElement('div');
+                bubble.className = 'msg-bubble sent';
+                bubble.dataset.messageId = data.message.id;
+                appendOrderContext(bubble, data.message.order);
+                bubble.appendChild(document.createTextNode(data.message.content));
+                const time = document.createElement('div');
+                time.className = 'msg-time';
+                time.textContent = data.message.created_at;
+                bubble.appendChild(time);
+                const noMsg = chatBox.querySelector('.no-messages');
+                if (noMsg) noMsg.remove();
+                chatBox.appendChild(bubble);
+                msgInput.value = '';
+                msgInput.style.height = 'auto';
+                scrollToBottom();
+            }).catch(() => {
+                msgInput.value = content;
+            });
+        });
+    }
+
+    function renderIncomingMessage(message) {
+        if (!chatBox || chatBox.querySelector(`[data-message-id="${message.id}"]`)) return;
+        const bubble = document.createElement('div');
+        bubble.className = `msg-bubble ${message.sender_id === {{ request.user.id }} ? 'sent' : 'received'}`;
+        if (message.sender_id !== {{ request.user.id }}) {
+            const sender = document.createElement('div');
+            sender.className = 'msg-sender';
+            sender.textContent = message.sender_name;
+            bubble.appendChild(sender);
+        }
+        appendOrderContext(bubble, message.order);
+        bubble.appendChild(document.createTextNode(message.content));
+        const time = document.createElement('div');
+        time.className = 'msg-time';
+        time.textContent = message.created_at;
+        bubble.appendChild(time);
+        bubble.dataset.messageId = message.id;
+        const noMsg = chatBox.querySelector('.no-messages');
+        if (noMsg) noMsg.remove();
+        chatBox.appendChild(bubble);
+        scrollToBottom();
+    }
+
+    function appendOrderContext(bubble, order) {
+        if (!order) return;
+        const context = document.createElement('div');
+        context.className = 'message-order-context';
+        const title = document.createElement('strong');
+        title.textContent = `Order#${order.order_number}`;
+        context.appendChild(title);
+        order.items.forEach(item => {
+            const itemDetails = document.createElement('span');
+            itemDetails.textContent = `${item.quantity} ${item.product_name}`;
+            context.appendChild(itemDetails);
+        });
+        const total = document.createElement('span');
+        total.textContent = `₱${order.total_amount}`;
+        context.appendChild(total);
+        const payment = document.createElement('span');
+        payment.textContent = order.payment_method;
+        context.appendChild(payment);
+        bubble.appendChild(context);
+    }
+
+    function pollConversation() {
+        fetch(`${window.location.pathname}?format=json`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(response => response.json())
+            .then(data => {
+                data.messages.forEach(renderIncomingMessage);
+                fetch("{% url 'unread_message_count_api' %}")
+                    .then(response => response.json())
+                    .then(({ count }) => {
+                        document.querySelectorAll('.unread-badge').forEach(badge => {
+                            badge.textContent = count;
+                            badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                        });
+                    });
+            })
+            .catch(() => {});
+    }
+
+    window.setInterval(pollConversation, 3000);
+
+    // Mobile sidebar toggle
+    const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+    const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+    document.body.append(btn, ov);
+    const sb = document.querySelector('.sidebar');
+    const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+    const open = () => { sb.classList.add('active'); ov.classList.add('active'); btn.querySelector('i').className = 'fas fa-times'; };
+    btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+    ov.addEventListener('click', close);
+    
+    // Reports dropdown toggle handler
+    const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+    if (reportsToggle) {
+        reportsToggle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            reportsToggle.parentElement.classList.toggle('active');
+        });
+    }
+</script>
+</body>
+</html>

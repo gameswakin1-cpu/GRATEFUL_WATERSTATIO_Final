@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Message - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    <script src="{% static 'accounts/js/dashboard_topbar.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .chat-header {
+            padding: 1.25rem 1.5rem;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .chat-header-left { display: flex; align-items: center; gap: 1rem; }
+
+        .chat-header-info h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chat-header-info h3 i { color: var(--primary); }
+
+        .chat-header-info p { font-size: 0.875rem; color: var(--gray-500); }
+
+        .compose-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-lg);
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+
+        .compose-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .compose-card h2 i {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group { margin-bottom: 1.5rem; }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group label i { color: var(--primary); margin-right: 0.25rem; }
+
+        .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: white;
+            color: var(--gray-800);
+        }
+
+        .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+        }
+
+        .form-group textarea { min-height: 140px; resize: vertical; }
+
+        .btn-send-msg {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-send-msg:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-send-msg:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
+            color: var(--gray-600);
+            border: 2px solid var(--gray-300);
+            padding: 0.625rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back:hover {
+            background: var(--gray-200);
+            border-color: var(--gray-400);
+            color: var(--gray-700);
+            transform: translateY(-2px);
+        }
+
+        .btn-cancel {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-cancel:hover {
+            background: var(--gray-200);
+            border-color: var(--gray-300);
+            color: var(--gray-700);
+            transform: translateY(-2px);
+        }
+
+        .contacts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 0.5rem; }
+
+        .contact-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .contact-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .contact-card:hover::before { transform: scaleX(1); }
+
+        .contact-card.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+        }
+
+        .contact-card.selected::before { transform: scaleX(1); }
+
+        .contact-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .contact-avatar.admin { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+        .contact-avatar.staff { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .contact-avatar.rider { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .contact-avatar.customer { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+
+        .contact-info { flex: 1; min-width: 0; }
+
+        .contact-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .role-tag {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-tag.admin { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .role-tag.staff { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+        .role-tag.rider { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .role-tag.customer { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+        .contact-phone { font-size: 0.85rem; color: var(--gray-500); }
+
+        .filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: white;
+            color: var(--gray-600);
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="page-messaging" data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% include "accounts/messaging_nav_links.html" %}
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name }}!</p>
+            <p class="role-badge {{ user_role }}">{{ user_role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────── -->
+    <main class="main-content">
+
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <div class="chat-header-info">
+                    <h3><i class="fas fa-pen"></i> New Message</h3>
+                </div>
+            </div>
+            <a href="{% url 'messaging_inbox' %}" class="btn-back"><i class="fas fa-arrow-left"></i></a>
+        </div>
+
+        <form method="post" id="composeForm">
+            {% csrf_token %}
+            <div class="compose-card">
+                <h2><i class="fas fa-user-plus"></i> Select Recipient</h2>
+
+                <div class="filter-bar">
+                    <button type="button" class="filter-btn active" data-filter="all">All</button>
+                    {% if user_role != 'admin' %}
+                    <button type="button" class="filter-btn" data-filter="admin">Admin</button>
+                    {% endif %}
+                    <button type="button" class="filter-btn" data-filter="staff">Staff</button>
+                    <button type="button" class="filter-btn" data-filter="rider">Rider</button>
+                    {% if user_role != 'customer' %}
+                    <button type="button" class="filter-btn" data-filter="customer">Customer</button>
+                    {% endif %}
+                </div>
+
+                <div class="contacts-grid" id="contactsGrid">
+                    {% for contact in contacts %}
+                    <div class="contact-card" data-role="{{ contact.profile.role }}" data-id="{{ contact.id }}" onclick="selectContact({{ contact.id }}, this)">
+                        <div class="contact-avatar {{ contact.profile.role }}">{{ contact.first_name|first|default:"?" }}</div>
+                        <div class="contact-info">
+                            <div class="contact-name">
+                                {{ contact.get_full_name|default:contact.username }}
+                                <span class="role-tag {{ contact.profile.role }}">{{ contact.profile.role }}</span>
+                            </div>
+                            <div class="contact-phone">{{ contact.profile.phone_number|default:"—" }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="color:#94a3b8; grid-column:1/-1; text-align:center; padding:2rem;">No contacts available</p>
+                    {% endfor %}
+                </div>
+
+                <input type="hidden" name="recipient" id="recipientInput" value="" required>
+            </div>
+        </form>
+    </main>
+</div>
+
+<script>
+    let selectedId = null;
+
+    function selectContact(id, el) {
+        // Redirect to conversation with this user
+        window.location.href = `/accounts/messages/start/${id}/`;
+    }
+
+    // Filter contacts by role
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const filter = this.dataset.filter;
+            document.querySelectorAll('.contact-card').forEach(card => {
+                if (filter === 'all' || card.dataset.role === filter) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // Mobile sidebar toggle
+    const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+    const ov = document.createElement('div'); ov.className = 'sidebar-overlay';
+    document.body.append(btn, ov);
+    const sb = document.querySelector('.sidebar');
+    const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+    const open = () => { sb.classList.add('active'); ov.classList.add('active'); btn.querySelector('i').className = 'fas fa-times'; };
+    btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+    ov.addEventListener('click', close);
+    
+    // Reports dropdown toggle handler
+    const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+    if (reportsToggle) {
+        reportsToggle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            reportsToggle.parentElement.classList.toggle('active');
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sale Details - Grateful Water Station</title>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard_topbar.css' %}">
+    <script src="{% static 'accounts/js/dashboard_topbar.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Sale detail-specific styles only */
+        .sale-detail-container { max-width: 860px; margin: 0 auto; }
+
+        .detail-card {
+            background: linear-gradient(145deg, #fff, #f9fbff);
+            border-radius: 14px;
+            padding: 2rem;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, .07);
+            border: 1px solid #dce8fb;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Sale header inside card */
+        .sale-card-header {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 96px;
+            margin: -2rem -2rem 1rem;
+            padding: 1.15rem 1.5rem;
+            overflow: hidden;
+            border-radius: 13px 13px 0 0;
+            background: linear-gradient(115deg, #347fe8, #5798f2);
+            flex-wrap: wrap;
+            gap: .75rem;
+        }
+        .sale-card-header::after {
+            position: absolute;
+            content: "";
+            width: 165px;
+            height: 165px;
+            right: 30px;
+            bottom: -125px;
+            border: 1px solid rgba(255,255,255,.13);
+            border-radius: 40px;
+            transform: rotate(45deg);
+            box-shadow: 0 0 0 22px rgba(255,255,255,.035), 0 0 0 45px rgba(255,255,255,.025);
+        }
+        .receipt-heading {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+            min-width: 0;
+            color: #fff;
+        }
+        .receipt-icon {
+            display: inline-flex;
+            flex: 0 0 52px;
+            width: 52px;
+            height: 52px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(255,255,255,.2);
+            font-size: 1.5rem;
+        }
+        .receipt-copy { min-width: 0; }
+        .receipt-kicker {
+            display: block;
+            margin-bottom: .15rem;
+            color: rgba(255,255,255,.76);
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .18em;
+        }
+        .receipt-number {
+            display: block;
+            color: #fff;
+            font-size: 1.28rem;
+            font-weight: 800;
+            letter-spacing: .02em;
+            overflow-wrap: anywhere;
+        }
+        .receipt-caption {
+            display: block;
+            margin-top: .25rem;
+            color: rgba(255,255,255,.83);
+            font-size: .72rem;
+        }
+        .status-badge { position: relative; z-index: 1; }
+        .sale-card-header .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .4rem .7rem;
+            border: 1px solid rgba(255,255,255,.7);
+            border-radius: 20px;
+            background: rgba(255,255,255,.92);
+            color: #13834e;
+            font-size: .68rem;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+        .sale-card-header .status-badge::before {
+            content: "\f058";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+        }
+        .sale-card-header .status-badge.voided,
+        .sale-card-header .status-badge.cancelled {
+            color: #c62828;
+        }
+        .sale-card-header .status-badge.voided::before,
+        .sale-card-header .status-badge.cancelled::before { content: "\f057"; }
+
+        /* Info grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-areas:
+                "date cashier"
+                "customer payment";
+            gap: 0;
+            margin-bottom: 1rem;
+            padding: .85rem 1rem;
+            border-radius: 11px;
+            border: 1px solid #dce8fb;
+            background: rgba(255,255,255,.82);
+        }
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: .6rem;
+            min-width: 0;
+            padding: .25rem .7rem;
+        }
+        .info-item.date-info { grid-area: date; }
+        .info-item.cashier-info {
+            grid-area: cashier;
+            border-left: 1px solid #dce8fb;
+        }
+        .info-item.payment-info {
+            grid-area: payment;
+            border-top: 1px solid #dce8fb;
+            border-left: 1px solid #dce8fb;
+            margin-top: .45rem;
+            padding-top: .65rem;
+        }
+        .info-icon {
+            display: inline-flex;
+            flex: 0 0 38px;
+            width: 38px;
+            height: 38px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: #1670e8;
+            background: #eaf2ff;
+            font-size: .95rem;
+        }
+        .info-copy { min-width: 0; }
+        .info-label {
+            display: block;
+            margin: .1rem 0 .2rem;
+            color: #7186ad;
+            font-size: .68rem;
+            font-weight: 650;
+        }
+        .info-value { display: block; color: #172b55; font-size: .82rem; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+        .info-value small { display: inline-block; margin-top: .3rem; color: #7186ad; font-size: .72rem; font-weight: 500; }
+        .info-item.customer-info {
+            grid-area: customer;
+            align-items: flex-start;
+            margin-top: .45rem;
+            padding-top: .65rem;
+            border-top: 1px solid #dce8fb;
+        }
+        .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .28rem .6rem;
+            border-radius: 20px;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+        .payment-badge.cash { background: #e3f8eb; color: #11804a; }
+        .payment-badge.gcash { background: #e7f0ff; color: #1762ca; }
+
+        /* Section heading */
+        .section-heading {
+            font-size: .98rem;
+            font-weight: 700;
+            color: #172b55;
+            margin: .25rem 0 .75rem;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+        }
+        .section-heading > i {
+            display: inline-flex;
+            width: 30px;
+            height: 30px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #fff;
+            background: #2878ee;
+            font-size: .85rem;
+        }
+        .items-count {
+            margin-left: auto;
+            padding: .25rem .6rem;
+            border-radius: 20px;
+            color: #1762ca;
+            background: #eaf2ff;
+            font-size: .68rem;
+            font-weight: 700;
+        }
+
+        /* Items table */
+        .items-table-wrap { overflow-x: auto; margin-bottom: 1rem; border: 1px solid #dce8fb; border-radius: 9px; }
+        .items-table { width: 100%; border-collapse: collapse; margin: 0; }
+        .items-table th {
+            background: #edf4fd; color: #6a7f9f;
+            padding: .65rem .8rem; text-align: left;
+            font-size: .65rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .5px;
+        }
+        .items-table th:first-child { border-radius: 8px 0 0 0; }
+        .items-table th:last-child  { border-radius: 0 8px 0 0; }
+        .items-table th:first-child,
+        .items-table td:first-child { width: 42px; text-align: center; }
+        .items-table th:nth-child(2),
+        .items-table th:nth-child(n+3),
+        .items-table td:nth-child(n+3) { text-align: right; }
+        .items-table td { padding: .6rem .8rem; border-bottom: 1px solid #e6eef9; font-size: .78rem; color: #172b55; }
+        .items-table tbody tr:hover { background: #f8fbff; }
+        .items-table tbody tr:last-child td { border-bottom: none; }
+        .product-cell { display: flex; align-items: center; gap: .6rem; min-width: 220px; font-weight: 650; }
+        .product-thumb {
+            display: inline-flex;
+            flex: 0 0 38px;
+            width: 38px;
+            height: 38px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 1px solid #e2eaf6;
+            background: #f1f6fd;
+            overflow: hidden;
+        }
+        .product-thumb img { width: 34px; height: 34px; object-fit: contain; }
+
+        /* Totals */
+        .total-section {
+            background: #f3f8ff;
+            padding: 1rem 1.1rem;
+            border-radius: 10px;
+            border: 1px solid #e1edfc;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: .28rem 0;
+            font-size: .78rem;
+            color: #7186ad;
+        }
+        .total-row .total-label { font-weight: 500; }
+        .total-row .total-amount { font-weight: 600; color: var(--text); }
+        .total-row.grand-total {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #176ef1;
+            border-top: 1px solid #cfe0f8;
+            padding-top: .55rem;
+            margin-top: .35rem;
+        }
+        .total-row.grand-total .total-amount { color: #176ef1; font-size: 1.15rem; }
+        .amount-paid  { color: var(--success); }
+        .change-amount { color: var(--secondary); }
+
+        .payment-highlight {
+            background: var(--blue-50);
+            padding: .6rem 1rem;
+            border-radius: var(--radius);
+            margin-top: .75rem;
+            font-size: .85rem;
+            border: 1px solid var(--blue-100);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .payment-highlight { border-color: #d7e8ff; font-size: .75rem; }
+
+        /* Notes box */
+        .notes-box {
+            margin-top: 1.25rem;
+            padding: .85rem 1rem;
+            background: var(--light);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            font-size: .88rem;
+        }
+        .notes-box strong { color: var(--primary); }
+
+        /* Action buttons */
+        .sale-actions {
+            display: flex;
+            gap: .75rem;
+            margin-top: 1.25rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Void Modal */
+        .void-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn .25s ease;
+        }
+        .void-modal-content {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn .28s ease;
+        }
+        .void-modal-content h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .void-modal-content p { font-size: .9rem; color: var(--text-muted); margin-bottom: 1rem; }
+        .void-summary {
+            background: var(--light);
+            padding: 1rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin: 1rem 0;
+            font-size: .88rem;
+        }
+        .void-summary p { color: var(--text); margin-bottom: .35rem; }
+        .void-summary p:last-child { margin-bottom: 0; }
+
+        /* Print */
+        @media print {
+            .no-print, .sidebar, .dashboard-header,
+            .sale-actions, .void-modal,
+            .menu-toggle, .sidebar-overlay { display: none !important; }
+            .main-content { margin-left: 0 !important; padding: 0 !important; }
+            .detail-card { box-shadow: none; border: 1px solid #ddd; }
+            .sale-card-header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-areas:
+                    "date cashier"
+                    "customer payment";
+            }
+            .sale-actions { flex-direction: column; }
+            .items-table { min-width: 620px; }
+            .items-table-wrap { overflow-x: auto; }
+        }
+        @media (max-width: 480px) {
+            .detail-card { padding: 1rem; }
+            .sale-card-header { min-height: 84px; margin: -1rem -1rem .75rem; padding: .8rem; }
+            .receipt-heading { gap: .55rem; }
+            .receipt-icon { flex-basis: 42px; width: 42px; height: 42px; font-size: 1.2rem; }
+            .receipt-number { font-size: .95rem; }
+            .receipt-kicker { font-size: .58rem; }
+            .receipt-caption { font-size: .62rem; }
+            .sale-card-header .status-badge { padding: .3rem .5rem; font-size: .6rem; }
+            .info-grid {
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas:
+                    "date"
+                    "cashier"
+                    "payment"
+                    "customer";
+                padding: .5rem .35rem;
+            }
+            .info-item { gap: .4rem; padding: .35rem .3rem; }
+            .info-item.cashier-info,
+            .info-item.payment-info {
+                border-top: 1px solid #dce8fb;
+                border-left: 0;
+                margin-top: .25rem;
+                padding-top: .55rem;
+            }
+            .info-item.customer-info {
+                margin-top: .25rem;
+                padding-top: .55rem;
+            }
+            .info-icon { flex-basis: 30px; width: 30px; height: 30px; font-size: .78rem; }
+            .info-label { font-size: .58rem; }
+            .info-value { font-size: .7rem; }
+            .info-value small { font-size: .62rem; }
+            .payment-badge { padding: .22rem .42rem; font-size: .62rem; }
+            .section-heading { font-size: .85rem; }
+            .items-count { font-size: .6rem; }
+            .total-section { padding: .75rem; }
+            .total-row { font-size: .72rem; }
+            .total-row.grand-total { font-size: .9rem; }
+            .total-row.grand-total .total-amount { font-size: 1rem; }
+            .payment-highlight { align-items: flex-start; font-size: .68rem; }
+        }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+    <nav class="sidebar no-print">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        {% if request.user.profile.role == 'admin' %}
+        {% include "accounts/admin_nav_links.html" %}
+        {% else %}
+        <ul class="nav-links">
+          <li><a href="{% url 'staff_dashboard' %}" {% if request.resolver_match.url_name == 'staff_dashboard' %}class="active"{% endif %}><i class="fas fa-th-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'pos_dashboard' %}" {% if request.resolver_match.url_name == 'pos_dashboard' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Products</a></li>
+            <li><a href="{% url 'manage_orders' %}" {% if request.resolver_match.url_name == 'manage_orders' %}class="active"{% endif %}><i class="fas fa-shopping-cart"></i> Orders</a></li>
+            <li><a href="{% url 'inventory_list' %}" {% if request.resolver_match.url_name == 'inventory_list' %}class="active"{% endif %}><i class="fas fa-boxes"></i> Inventory</a></li>
+            <li><a href="{% url 'sale_list' %}" {% if request.resolver_match.url_name == 'sale_list' %}class="active"{% endif %}><i class="fas fa-history"></i> Sales History</a></li>
+            <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' %}class="active"{% endif %}><i class="fas fa-envelope"></i> Messaging</a></li>
+            <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        <div class="user-info">
+        </div>
+        {% endif %}
+    <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────── -->
+    <main class="main-content">
+
+        <header class="dashboard-header no-print">
+            <h1><i class="fas fa-file-invoice"></i> Sale Details</h1>
+            
+        </header>
+
+        <div class="sale-detail-container">
+            <div class="detail-card">
+
+                <!-- Card header: receipt # + status -->
+                <div class="sale-card-header">
+                    <div class="receipt-heading">
+                        <span class="receipt-icon"><i class="fas fa-receipt"></i></span>
+                        <span class="receipt-copy">
+                            <span class="receipt-kicker">RECEIPT</span>
+                            <span class="receipt-number">{{ sale.receipt_number }}</span>
+                            <span class="receipt-caption">Transaction details and payment information</span>
+                        </span>
+                    </div>
+                    <span class="status-badge {{ sale.status }}">{{ sale.get_status_display }}</span>
+                </div>
+
+                <!-- Info grid -->
+                <div class="info-grid">
+                    <div class="info-item date-info">
+                        <span class="info-icon"><i class="far fa-calendar-alt"></i></span>
+                        <span class="info-copy">
+                            <span class="info-label">Date &amp; Time</span>
+                            <span class="info-value">{{ sale.created_at|date:"F d, Y h:i A" }}</span>
+                        </span>
+                    </div>
+                    <div class="info-item cashier-info">
+                        <span class="info-icon"><i class="fas fa-user-tie"></i></span>
+                        <span class="info-copy">
+                            <span class="info-label">Cashier</span>
+                            <span class="info-value">{% if sale.cashier %}{{ sale.cashier.get_full_name|default:sale.cashier.username }}{% else %}Unknown{% endif %}</span>
+                        </span>
+                    </div>
+                    <div class="info-item payment-info">
+                        <span class="info-icon"><i class="far fa-credit-card"></i></span>
+                        <span class="info-copy">
+                            <span class="info-label">Payment Method</span>
+                            {% if sale.payment_method == 'cash' %}
+                                <span class="payment-badge cash"><i class="fas fa-money-bill-wave"></i> Cash</span>
+                            {% elif sale.payment_method == 'gcash' %}
+                                <span class="payment-badge gcash"><i class="fas fa-mobile-alt"></i> GCash</span>
+                            {% else %}
+                                <span class="payment-badge">{{ sale.get_payment_method_display }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item customer-info">
+                        <span class="info-icon"><i class="fas fa-user"></i></span>
+                        <span class="info-copy">
+                            <span class="info-label">Customer</span>
+                            <span class="info-value">
+                                {% if sale.customer %}
+                                    {{ sale.customer.get_full_name|default:sale.customer.username }}
+                                    <br><small><i class="fas fa-phone"></i> {{ sale.customer.profile.phone_number|default:"N/A" }}</small>
+                                {% else %}
+                                    <em>Walk-in Customer</em>
+                                {% endif %}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Items -->
+                <div class="section-heading">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Items Purchased</span>
+                    <span class="items-count">{{ sale.items.count }} item{% if sale.items.count != 1 %}s{% endif %}</span>
+                </div>
+
+                <div class="items-table-wrap">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Net Line Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in sale.items.all %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <div class="product-cell">
+                                        <span class="product-thumb">
+                                            {% with product_image=item.product.get_main_image %}
+                                            {% if product_image %}
+                                            <img src="{{ product_image }}" alt="{{ item.product.name }}">
+                                            {% elif item.product.container_type == 'distilled' %}
+                                            <img src="{% static 'pos/images/distilled_water.png' %}" alt="{{ item.product.name }}">
+                                            {% elif item.product.container_type == 'container_5g' %}
+                                            <img src="{% static 'pos/images/Blue_Water_Dispenser_Round_Container-removebg-preview.png' %}" alt="{{ item.product.name }}">
+                                            {% elif item.product.container_type == 'bottle_350ml' %}
+                                            <img src="{% static 'pos/images/gallon_slim-removebg-preview.png' %}" alt="{{ item.product.name }}">
+                                            {% else %}
+                                            <img src="{% static 'pos/images/Gallon_Blue_Water_Container-removebg-preview.png' %}" alt="{{ item.product.name }}">
+                                            {% endif %}
+                                            {% endwith %}
+                                        </span>
+                                        <span>{{ item.product.name }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ item.kept_quantity }} kept{% if item.returned_quantity %}<br><small>{{ item.returned_quantity }} returned</small>{% endif %}</td>
+                                <td>₱{{ item.unit_price|floatformat:2 }}</td>
+                                <td>
+                                    {% if item.returned_amount %}
+                                        <small>Original: ₱{{ item.subtotal|floatformat:2 }}</small><br>
+                                        <strong>₱{{ item.net_subtotal|floatformat:2 }}</strong>
+                                    {% else %}
+                                        ₱{{ item.subtotal|floatformat:2 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totals -->
+                <div class="total-section">
+                    <div class="total-row">
+                        <span class="total-label">Subtotal:</span>
+                        <span class="total-amount">₱{{ sale.subtotal|floatformat:2 }}</span>
+                    </div>
+                    {% if sale.discount > 0 %}
+                    <div class="total-row">
+                        <span class="total-label">Discount:</span>
+                        <span class="total-amount" style="color:var(--danger);">-₱{{ sale.discount|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                    {% if sale.tax > 0 %}
+                    <div class="total-row">
+                        <span class="total-label">Tax:</span>
+                        <span class="total-amount">+₱{{ sale.tax|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="total-row grand-total">
+                        <span class="total-label">{% if sale.returned_amount %}Original Total:{% else %}Total Amount:{% endif %}</span>
+                        <span class="total-amount">₱{{ sale.total_amount|floatformat:2 }}</span>
+                    </div>
+                    {% if sale.returned_amount %}
+                    <div class="total-row">
+                        <span class="total-label">Recorded return adjustment (refund not processed):</span>
+                        <span class="total-amount" style="color:var(--danger);">-₱{{ sale.returned_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span class="total-label">Net Sale:</span>
+                        <span class="total-amount">₱{{ sale.net_amount|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="total-row">
+                        <span class="total-label">Amount Paid:</span>
+                        <span class="total-amount amount-paid">₱{{ sale.amount_paid|floatformat:2 }}</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="total-label">Change:</span>
+                        <span class="total-amount change-amount">₱{{ sale.change_amount|floatformat:2 }}</span>
+                    </div>
+
+                    {% if sale.amount_paid < sale.total_amount and sale.status == 'completed' %}
+                    <div class="payment-highlight">
+                        <i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i>
+                        <strong>Note:</strong> Amount paid (₱{{ sale.amount_paid|floatformat:2 }}) is less than total (₱{{ sale.total_amount|floatformat:2 }})
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if sale.notes %}
+                <div class="notes-box">
+                    <strong><i class="fas fa-sticky-note"></i> Notes:</strong>
+                    <p style="margin-top:.4rem;">{{ sale.notes }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="sale-actions no-print">
+                    <a href="{% url 'receipt_view' sale.id %}" class="btn-print" target="_blank">
+                        <i class="fas fa-print"></i> Print Receipt
+                    </a>
+                    <a href="{% url 'sale_list' %}" class="btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Sales
+                    </a>
+                    {% if sale.status == 'completed' %}
+                    <button onclick="openVoidModal()" class="btn-danger">
+                        <i class="fas fa-ban"></i> Void Sale
+                    </button>
+                    {% endif %}
+                </div>
+
+            </div><!-- /detail-card -->
+        </div><!-- /sale-detail-container -->
+
+    </main>
+</div>
+
+<!-- ── VOID MODAL ────────────────────────────────── -->
+<div class="void-modal" id="voidModal">
+    <div class="void-modal-content">
+        <span class="close" onclick="closeVoidModal()">&times;</span>
+        <h2>
+            <i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i>
+            Void Sale
+        </h2>
+        <p>Are you sure you want to void this sale? This action cannot be undone.</p>
+
+        <div class="void-summary">
+            <p><strong>Receipt #:</strong> {{ sale.receipt_number }}</p>
+            <p><strong>Total Amount:</strong> ₱{{ sale.total_amount|floatformat:2 }}</p>
+            <p><strong>Amount Paid:</strong> ₱{{ sale.amount_paid|floatformat:2 }}</p>
+        </div>
+
+        <form method="POST" action="{% url 'void_sale' sale.id %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="reason">Reason for voiding: <span class="required">*</span></label>
+                <textarea name="reason" id="reason" rows="3"
+                          placeholder="Please provide a reason for voiding this transaction..."
+                          required></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeVoidModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" class="btn-danger">
+                    <i class="fas fa-check"></i> Confirm Void
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openVoidModal()  { document.getElementById('voidModal').style.display = 'flex'; }
+    function closeVoidModal() { document.getElementById('voidModal').style.display = 'none'; }
+
+    window.addEventListener('click', e => {
+        const modal = document.getElementById('voidModal');
+        if (e.target === modal) modal.style.display = 'none';
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+        const ov  = document.createElement('div');    ov.className = 'sidebar-overlay';
+        document.body.append(btn, ov);
+        const sb = document.querySelector('.sidebar');
+        const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+        const open  = () => { sb.classList.add('active');    ov.classList.add('active');    btn.querySelector('i').className = 'fas fa-times'; };
+        btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+        ov.addEventListener('click', close);
+        document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+                close();
+            }
+        }));
+        window.addEventListener('resize', () => window.innerWidth > 768 && close());
+        document.addEventListener('keydown', e => e.key === 'Escape' && close());
+        
+        // Reports dropdown toggle handler
+        const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+        if (reportsToggle) {
+            reportsToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                reportsToggle.parentElement.classList.toggle('active');
+            });
+        }
+    });
+</script>
+</body>
+</html>

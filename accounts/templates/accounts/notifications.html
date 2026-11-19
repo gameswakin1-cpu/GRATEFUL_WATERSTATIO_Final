@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Grateful Water Station</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+<div class="dashboard-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo"></div>
+            <h2>Grateful</h2><p>Water Station</p>
+        </div>
+        {% include "accounts/messaging_nav_links.html" with user_role=request.user.profile.role %}
+        <div class="user-info"><p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p><p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p></div>
+    </nav>
+    <main class="main-content">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-bell"></i> Notifications</h1>
+            <div class="header-actions">
+                {% include 'accounts/dashboard_header_actions.html' %}<button class="btn-secondary" type="button" id="pageMarkAll">Mark all as read</button></div>
+        </header>
+        <section class="data-table notification-page-card">
+            <div class="notification-filters">
+                <input id="notificationSearch" type="search" placeholder="Search notifications">
+                <select id="notificationStatus"><option value="all">All</option><option value="unread">Unread</option></select>
+                <select id="notificationCategory">
+                    <option value="all">All categories</option>
+                    {% if request.user.profile.role == 'customer' %}
+                    <option value="orders">Orders</option>
+                    <option value="announcement">Announcement</option>
+                    {% elif request.user.profile.role == 'rider' %}
+                    <option value="orders">Orders</option>
+                    <option value="messages">Messages</option>
+                    {% elif request.user.profile.role == 'staff' %}
+                    <option value="orders">Orders</option>
+                    <option value="messages">Messages</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="maintenance">IoT/Maintenance</option>
+                    {% else %}
+                    <option value="orders">Orders</option>
+                    <option value="messages">Messages</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="maintenance">IoT/Maintenance</option>
+                    <option value="riders">Riders</option>
+                    <option value="users">Users</option>
+                    {% endif %}
+                </select>
+                <select id="notificationDate"><option value="all">All time</option><option value="today">Today</option><option value="week">Last 7 days</option></select>
+                <button class="btn-secondary" type="button" id="archiveAll"><i class="fas fa-box-archive"></i> Archive history</button>
+            </div>
+            <div id="notificationPageList" class="notification-page-list"></div>
+            <div class="notification-preferences">
+                <div><strong>Notification preferences</strong><span>Choose which categories appear in your live alerts.</span></div>
+                {% if request.user.profile.role == 'customer' %}
+                <label>Orders <input type="checkbox" checked></label>
+                <label>Announcement <input type="checkbox" checked></label>
+                {% elif request.user.profile.role == 'rider' %}
+                <label>Orders <input type="checkbox" checked></label>
+                <label>Messages <input type="checkbox" checked></label>
+                {% elif request.user.profile.role == 'staff' %}
+                <label>Orders <input type="checkbox" checked></label>
+                <label>Messages <input type="checkbox" checked></label>
+                <label>Inventory <input type="checkbox" checked></label>
+                <label>IoT / Maintenance <input type="checkbox" checked></label>
+                {% else %}
+                <label>Orders <input type="checkbox" checked></label>
+                <label>Messages <input type="checkbox" checked></label>
+                <label>Inventory <input type="checkbox" checked></label>
+                <label>IoT / Maintenance <input type="checkbox" checked></label>
+                <label>Riders <input type="checkbox" checked></label>
+                <label>Users <input type="checkbox" checked></label>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const list = document.getElementById('notificationPageList');
+    const csrf = (document.cookie.match(/(?:^|; )csrftoken=([^;]+)/) || [])[1] || '';
+    let allItems = [];
+    function render(items) {
+        allItems = items;
+        const query = document.getElementById('notificationSearch').value.toLowerCase();
+        const status = document.getElementById('notificationStatus').value;
+        const category = document.getElementById('notificationCategory').value;
+        const date = document.getElementById('notificationDate').value;
+        const now = Date.now();
+        items = items.filter(item => {
+            const matchesText = (item.title + ' ' + item.description).toLowerCase().includes(query);
+            const matchesStatus = status === 'all' || !item.is_read;
+            const matchesCategory = category === 'all' || item.category === category;
+            const age = now - new Date(item.created_at).getTime();
+            const matchesDate = date === 'all' || (date === 'today' ? age < 86400000 : age < 604800000);
+            return matchesText && matchesStatus && matchesCategory && matchesDate;
+        });
+        list.replaceChildren();
+        if (!items.length) {
+            const empty = document.createElement('div');
+            empty.className = 'notification-empty';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-check-circle';
+            const title = document.createElement('strong');
+            title.textContent = 'You’re all caught up';
+            const message = document.createElement('span');
+            message.textContent = 'No notifications match your current list.';
+            empty.append(icon, title, message);
+            list.appendChild(empty);
+        } else {
+            items.forEach(notification => {
+                const button = document.createElement('button');
+                button.className = `notification-page-item ${notification.is_read ? 'is-read' : ''}`;
+                button.dataset.id = String(notification.id);
+                button.dataset.target = notification.target_url || '';
+                const severity = document.createElement('span');
+                severity.className = `notification-severity ${notification.severity}`;
+                const content = document.createElement('span');
+                const title = document.createElement('strong');
+                title.textContent = notification.title || '';
+                const description = document.createElement('small');
+                description.textContent = notification.description || '';
+                const category = document.createElement('small');
+                category.textContent = notification.category_label || '';
+                const time = document.createElement('time');
+                time.textContent = new Date(notification.created_at).toLocaleString();
+                content.append(title, description, category, time);
+                button.append(severity, content);
+                list.appendChild(button);
+            });
+        }
+        list.querySelectorAll('[data-id]').forEach(item => item.addEventListener('click', () => {
+            const targetUrl = item.dataset.target;
+            let safeTarget = '';
+            if (targetUrl) {
+                try {
+                    const parsedTarget = new URL(targetUrl, window.location.origin);
+                    if (parsedTarget.origin === window.location.origin) safeTarget = parsedTarget.href;
+                } catch (error) {
+                    console.error('Invalid notification target URL:', error);
+                }
+            }
+            if (!/^\d+$/.test(item.dataset.id)) {
+                if (safeTarget) window.location.href = safeTarget;
+                return;
+            }
+            fetch('/accounts/notifications/api/' + item.dataset.id + '/', {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':decodeURIComponent(csrf)}, body:JSON.stringify({action:'read'})}).then(() => {
+                if (safeTarget) window.location.href = safeTarget;
+                else load();
+            });
+        }));
+    }
+    function load() { fetch('/accounts/notifications/api/').then(r => r.json()).then(data => render(data.notifications || [])); }
+    document.getElementById('pageMarkAll').addEventListener('click', () => fetch('/accounts/notifications/api/read/', {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':decodeURIComponent(csrf)}, body:JSON.stringify({action:'read'})}).then(load));
+    document.getElementById('archiveAll').addEventListener('click', () => fetch('/accounts/notifications/api/read/', {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':decodeURIComponent(csrf)}, body:JSON.stringify({action:'archive'})}).then(load));
+    ['notificationSearch','notificationStatus','notificationCategory','notificationDate'].forEach(id => document.getElementById(id).addEventListener('input', () => render(allItems)));
+    load();
+});
+</script>
+</body>
+</html>

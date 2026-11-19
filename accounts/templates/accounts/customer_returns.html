@@ -1,0 +1,226 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Return - Grateful Water Station</title>
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+    <style>
+        .customer-returns-content { display: grid; gap: 1rem; }
+        .customer-returns-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+        .customer-returns-heading h1 { margin: 0; color: #172b55; font-size: 1.55rem; }
+        .customer-returns-heading p { margin: .35rem 0 0; color: #64748b; font-size: .88rem; }
+        .customer-return-list { display: grid; gap: .9rem; }
+        .customer-return-card { overflow: hidden; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 2px 8px rgba(15, 23, 42, .04); }
+        .customer-return-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1rem 1.15rem; border-bottom: 1px solid #edf2f7; }
+        .customer-return-order { color: #172b55; font-weight: 750; }
+        .customer-return-date { margin-top: .25rem; color: #64748b; font-size: .82rem; }
+        .customer-return-status { display: inline-flex; align-items: center; gap: .4rem; padding: .38rem .68rem; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+        .customer-return-status::before { width: 7px; height: 7px; border-radius: 50%; background: currentColor; content: ""; }
+        .customer-return-status-pending { background: #fff7db; color: #9a6700; }
+        .customer-return-status-approved { background: #e6f7ed; color: #16834a; }
+        .customer-return-status-rejected { background: #feecec; color: #c53030; }
+        .customer-return-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; padding: 1rem 1.15rem; }
+        .customer-return-section { min-width: 0; padding: .85rem; border: 1px solid #e5edf7; border-radius: 10px; background: #f8fbff; }
+        .customer-return-section h2 { margin: 0 0 .55rem; color: #263b5f; font-size: .9rem; }
+        .customer-return-section-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .55rem; }
+        .customer-return-section-heading h2 { margin: 0; }
+        .customer-return-products { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+        .customer-return-products li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; color: #475569; font-size: .84rem; }
+        .customer-return-product-name { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: .35rem; }
+        .customer-return-product-amount { color: #172b55; white-space: nowrap; }
+        .customer-return-type { padding: .14rem .4rem; border-radius: 999px; font-size: .58rem; font-weight: 800; letter-spacing: .04em; white-space: nowrap; }
+        .customer-return-type-refill { background: #e5f8fa; color: #147d87; }
+        .customer-return-type-gallon { background: #e9f1ff; color: #2b61c8; }
+        .customer-return-total { display: flex; justify-content: space-between; gap: .75rem; margin-top: .7rem; padding-top: .65rem; border-top: 1px solid #dbe5f1; color: #263b5f; font-size: .85rem; font-weight: 700; }
+        .customer-return-reason p, .customer-return-pickup p { margin: .25rem 0; color: #475569; font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
+        .customer-return-pickup { padding: .85rem 1.15rem; border-top: 1px solid #edf2f7; }
+        .customer-return-empty { padding: 2rem 1rem; border: 1px dashed #cbd5e1; border-radius: 12px; background: #fff; color: #64748b; text-align: center; }
+        .customer-return-empty i { display: block; margin-bottom: .6rem; color: #94a3b8; font-size: 1.6rem; }
+        .customer-return-empty a { display: inline-block; margin-top: .75rem; color: #1762c4; font-weight: 650; text-decoration: none; }
+        @media (max-width: 760px) {
+            .customer-return-body { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .customer-returns-heading h1 { font-size: 1.3rem; }
+            .customer-return-header { padding: .85rem; }
+            .customer-return-body { padding: .8rem .85rem; }
+            .customer-return-pickup { padding: .8rem .85rem; }
+        }
+    </style>
+</head>
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<div class="dashboard-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"></div>
+            <h2>GRATEFUL</h2>
+            <p>Water Station</p>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{% url 'customer_dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="{% url 'customer_order' %}"><i class="fas fa-shopping-cart"></i> Place Order</a></li>
+            <li><a href="{% url 'customer_orders' %}"><i class="fas fa-history"></i> My Orders</a></li>
+            <li><a href="{% url 'customer_returns' %}" class="active" aria-current="page"><i class="fas fa-undo"></i> Return</a></li>
+            <li><a href="{% url 'messaging_inbox' %}"><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+            <li><a href="{% url 'customer_profile' %}"><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        <div class="user-info">
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge customer">Customer</p>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        
+
+        <section id="customerReturnsContent" class="customer-returns-content" aria-live="polite">
+            <div class="customer-returns-heading">
+                <div>
+                    <h1>Returned products</h1>
+                    <p>Track the products you have requested to return and their latest status.</p>
+                </div>
+            </div>
+
+            <div class="customer-return-list">
+                {% for return_request in return_requests %}
+                    <article class="customer-return-card">
+                        <header class="customer-return-header">
+                            <div>
+                                <div class="customer-return-order">Order {{ return_request.order.order_number }}</div>
+                                <div class="customer-return-date">Requested {{ return_request.created_at|date:"M d, Y - h:i A" }}</div>
+                            </div>
+                            <span class="customer-return-status customer-return-status-{{ return_request.status }}">
+                                {% if return_request.status == 'approved' %}
+                                    Approved
+                                {% elif return_request.status == 'rejected' %}
+                                    Return Rejected
+                                {% else %}
+                                    Return
+                                {% endif %}
+                            </span>
+                        </header>
+
+                        <div class="customer-return-body">
+                            <section class="customer-return-section">
+                                <div class="customer-return-section-heading">
+                                    <h2>Products to return</h2>
+                                    {% if return_request.status == 'approved' and return_request.payment_returned_at %}
+                                        <span class="customer-return-status customer-return-status-approved">Payment Returned</span>
+                                    {% endif %}
+                                </div>
+                                <ul class="customer-return-products">
+                                    {% for item in return_request.items.all %}
+                                        <li>
+                                            <span class="customer-return-product-name">
+                                                <span>{{ item.quantity }} &times; {{ item.order_item.product.name }} (of {{ item.order_item.quantity }} purchased)</span>
+                                            {% if item.order_item.product.product_type == 'refill' %}
+                                                    <span class="customer-return-type customer-return-type-refill">REFILL</span>
+                                            {% else %}
+                                                    <span class="customer-return-type customer-return-type-gallon">GALLON</span>
+                                            {% endif %}
+                                            </span>
+                                            <strong class="customer-return-product-amount">₱{{ item.display_return_amount|floatformat:2 }}</strong>
+                                        </li>
+                                    {% empty %}
+                                        <li>No returned product details.</li>
+                                    {% endfor %}
+                                </ul>
+                                {% if return_request.items.all %}
+                                    <div class="customer-return-total">
+                                        <span>Estimated total return cash</span>
+                                        <strong>₱{{ return_request.return_cash_total|floatformat:2 }}</strong>
+                                    </div>
+                                {% endif %}
+                            </section>
+                            <section class="customer-return-section customer-return-reason">
+                                <h2>Return reason</h2>
+                                <p><strong>Reason:</strong> {{ return_request.get_reason_display }}</p>
+                                <p><strong>Details:</strong> {{ return_request.details|default:"No additional details provided."|linebreaksbr }}</p>
+                                {% if return_request.review_notes %}
+                                    <p><strong>Station note:</strong> {{ return_request.review_notes|linebreaksbr }}</p>
+                                {% endif %}
+                            </section>
+                        </div>
+
+                        {% if return_request.status == 'approved' and return_request.pickup_rider %}
+                            <div class="customer-return-pickup">
+                                <p><strong>Rider:</strong> {{ return_request.pickup_rider.get_full_name|default:return_request.pickup_rider.username }}</p>
+                            </div>
+                        {% endif %}
+
+                    </article>
+                {% empty %}
+                    <div class="customer-return-empty">
+                        <i class="fas fa-undo" aria-hidden="true"></i>
+                        <strong>No return requests yet</strong>
+                        <p>Products you request to return will appear here.</p>
+                        <a href="{% url 'customer_orders' %}">Go to My Orders</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    let refreshingCustomerReturns = false;
+    async function refreshCustomerReturns() {
+        if (refreshingCustomerReturns) return;
+        refreshingCustomerReturns = true;
+        try {
+            const response = await fetch(window.location.href, {
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) throw new Error(`Return list refresh failed (${response.status})`);
+            const html = await response.text();
+            const updatedDocument = new DOMParser().parseFromString(html, 'text/html');
+            const updatedContent = updatedDocument.getElementById('customerReturnsContent');
+            const currentContent = document.getElementById('customerReturnsContent');
+            if (!updatedContent || !currentContent) {
+                throw new Error('Unable to find the return list in the refreshed page.');
+            }
+            currentContent.replaceWith(updatedContent);
+        } catch (error) {
+            console.error('Unable to update customer returns:', error);
+        } finally {
+            refreshingCustomerReturns = false;
+        }
+    }
+
+    document.addEventListener('gws:live-update', event => {
+        if (event.detail?.customerReturnChanged) refreshCustomerReturns();
+    });
+
+    const menuButton = document.createElement('button');
+    menuButton.type = 'button';
+    menuButton.className = 'menu-toggle';
+    menuButton.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
+    menuButton.setAttribute('aria-label', 'Toggle navigation');
+    const sidebarOverlay = document.createElement('div');
+    sidebarOverlay.className = 'sidebar-overlay';
+    document.body.append(menuButton, sidebarOverlay);
+    const sidebar = document.querySelector('.sidebar');
+    const closeSidebar = () => {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+    };
+    menuButton.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
+    });
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) closeSidebar();
+        });
+    });
+</script>
+</body>
+</html>

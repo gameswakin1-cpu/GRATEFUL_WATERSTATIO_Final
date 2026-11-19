@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% if product %}Edit{% else %}Add{% endif %} Product - Grateful Water Station</title>
+
+    {% load static %}
+
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+
+    <link rel="stylesheet" href="{% static 'accounts/css/styles.css' %}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+</head>
+
+<body data-live-updates-url="{% url 'live_updates_api' %}">
+<script src="{% static 'accounts/js/live_updates.js' %}" defer></script>
+
+<div class="dashboard-container">
+
+
+
+    <!-- ── SIDEBAR ──────────────────────────────── -->
+
+    <nav class="sidebar">
+
+        <div class="sidebar-header">
+
+            <div class="brand-icon"><img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful logo" style="width:48px;height:48px;object-fit:contain;"/></div>
+
+            <h2>GRATEFUL</h2>
+
+            <p>Water Station</p>
+
+        </div>
+
+        {% if request.user.profile.role == 'admin' %}
+
+        {% include "accounts/admin_nav_links.html" %}
+
+        <div class="user-info">
+
+        </div>
+
+        {% else %}
+
+        <ul class="nav-links">
+
+          <li><a href="{% url 'staff_dashboard' %}" {% if request.resolver_match.url_name == 'staff_dashboard' %}class="active"{% endif %}><i class="fas fa-th-large"></i> Dashboard</a></li>
+
+            <li><a href="{% url 'pos_dashboard' %}" {% if request.resolver_match.url_name == 'pos_dashboard' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Products</a></li>
+
+            <li><a href="{% url 'manage_orders' %}" {% if request.resolver_match.url_name == 'manage_orders' %}class="active"{% endif %}><i class="fas fa-shopping-cart"></i> Orders</a></li>
+
+            <li><a href="{% url 'inventory_list' %}" {% if request.resolver_match.url_name == 'inventory_list' %}class="active"{% endif %}><i class="fas fa-boxes"></i> Inventory</a></li>
+
+            <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' %}class="active"{% endif %}><i class="fas fa-envelope"></i> Messaging</a></li>
+            <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+
+            <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+
+        </ul>
+
+        <div class="user-info">
+
+        </div>
+
+        {% endif %}
+
+    <div class="user-info">
+
+            <p>Welcome, {{ request.user.first_name|default:request.user.username }}!</p>
+            <p class="role-badge {{ request.user.profile.role }}">{{ request.user.profile.role|title }}</p>
+
+        </div>
+
+    </nav>
+
+
+
+    <!-- ── MAIN ─────────────────────────────────── -->
+
+    <main class="main-content">
+
+
+
+        <header class="dashboard-header">
+
+            <h1>
+
+                <i class="fas fa-{% if product %}edit{% else %}plus-circle{% endif %}"></i>
+
+                {% if product %}Edit{% else %}Add{% endif %} Product
+
+            </h1>
+
+            <div class="header-actions">
+                {% include 'accounts/dashboard_header_actions.html' %}
+
+                <a href="{% url 'inventory_list' %}" class="btn-secondary">
+
+                    <i class="fas fa-arrow-left"></i> Back to Inventory
+
+                </a>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- Messages -->
+
+        {% if messages %}
+
+            {% for message in messages %}
+
+            <div class="alert alert-{{ message.tags }}" style="display:flex; align-items:center; justify-content:space-between;">
+
+                <div style="display:flex; align-items:center; gap:.6rem;">
+
+                    <i class="fas fa-{% if 'success' in message.tags %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+
+                    <span>{{ message }}</span>
+
+                </div>
+
+                <button onclick="this.closest('.alert').style.display='none'" style="background:none; border:none; cursor:pointer; font-size:1.1rem; color:inherit; opacity:.7; padding:.2rem .4rem; line-height:1;" title="Dismiss">&times;</button>
+
+            </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+
+
+        <!-- "No changes" warning (shown by JS only) -->
+
+        <div id="noChangeWarning" class="alert alert-warning" style="display:none;">
+
+            <i class="fas fa-exclamation-triangle"></i>
+
+            <span>No changes detected — please update at least one field before saving.</span>
+
+        </div>
+
+
+
+        <!-- ── FORM ── -->
+
+        <div class="form-container">
+
+            <div class="section-header">
+
+                <h2>
+
+                    <i class="fas fa-{% if product %}edit{% else %}plus{% endif %}"></i>
+
+                    Product Details
+
+                </h2>
+
+                {% if product %}
+
+                <span class="badge {% if product.is_active %}badge-success{% else %}badge-danger{% endif %}">
+
+                    {{ product.is_active|yesno:"Active,Inactive" }}
+
+                </span>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- Tab Navigation -->
+
+            <div class="product-type-tabs">
+
+                {% if not product or product.product_type == 'refill' %}
+                <button class="tab-btn {% if form.is_bound %}{% if form.product_type.value == 'refill' %}active{% endif %}{% elif not product or product.product_type == 'refill' %}active{% endif %}" data-tab="water-refill">
+
+                    <i class="fas fa-tint"></i> Water Refill
+
+                </button>
+                {% endif %}
+
+                {% if not product or product.product_type == 'gallon' %}
+                <button class="tab-btn {% if form.is_bound %}{% if form.product_type.value == 'gallon' %}active{% endif %}{% elif product and product.product_type == 'gallon' %}active{% endif %}" data-tab="water-gallon">
+
+                    <i class="fas fa-box"></i> Water Gallon
+
+                </button>
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- Water Refill Form -->
+
+            {% if not product or product.product_type == 'refill' %}
+            <div class="tab-content {% if form.is_bound %}{% if form.product_type.value == 'refill' %}active{% endif %}{% elif not product or product.product_type == 'refill' %}active{% endif %}" id="water-refill">
+
+            <form method="POST" enctype="multipart/form-data" id="waterRefillForm" class="water-refill-form">
+
+                {% csrf_token %}
+
+                <input type="hidden" name="product_type" value="refill">
+                <input type="hidden" name="container_type" value="{% if form.container_type.value %}{{ form.container_type.value }}{% elif product %}{{ product.container_type }}{% else %}gallon{% endif %}">
+
+
+
+                {% if form.non_field_errors %}
+
+                <div class="alert alert-error">
+
+                    <i class="fas fa-exclamation-triangle"></i>
+
+                    {{ form.non_field_errors }}
+
+                </div>
+                {% endif %}
+
+                {% endif %}
+
+
+
+                <div class="form-group">
+
+                    <label for="{{ form.name.id_for_label }}">
+
+                        Product Name <span class="required">*</span>
+
+                    </label>
+
+                    <input type="text"
+
+                           name="name"
+
+                           id="{{ form.name.id_for_label }}"
+
+                           value="{% if form.name.value %}{{ form.name.value }}{% elif product %}{{ product.name }}{% endif %}"
+
+                           placeholder="e.g., Mineral Water 500ml"
+
+                           required maxlength="100">
+
+                    {% if form.name.errors %}
+
+                        <ul class="errorlist">{{ form.name.errors }}</ul>
+
+                    {% endif %}
+
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">Product Details</label>
+                    <textarea name="description"
+                              id="{{ form.description.id_for_label }}"
+                              rows="3"
+                              maxlength="1000"
+                              placeholder="e.g., Purified Water&#10;20 Liters">{% if form.description.value %}{{ form.description.value }}{% elif product %}{{ product.description }}{% endif %}</textarea>
+                    {% if form.description.errors %}
+                        <ul class="errorlist">{{ form.description.errors }}</ul>
+                    {% endif %}
+                </div>
+
+                <div class="form-row" style="grid-template-columns: 1fr;">
+
+                    <div class="form-group" hidden>
+
+                        <label for="{{ form.water_type.id_for_label }}">
+
+                            Water Type <span class="required">*</span>
+
+                        </label>
+
+                        <select name="water_type" id="{{ form.water_type.id_for_label }}" required>
+
+                            <option value="">— Select —</option>
+
+                            <option value="mineral" selected>Mineral Water</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+                    <label for="id_image">Product / Container Image</label>
+                    <input type="file" name="image" id="id_image" accept="image/*">
+                    {% if product and product.get_main_image %}
+                        <span class="help-text">Upload a new image to replace the current main image.</span>
+                    {% else %}
+                        <span class="help-text">Upload an image for this product container.</span>
+                    {% endif %}
+                    {% if form.image.errors %}
+                        <ul class="errorlist">{{ form.image.errors }}</ul>
+                    {% endif %}
+                </div>
+
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="{{ form.price.id_for_label }}">
+
+                            Selling Price <span class="required">*</span>
+
+                        </label>
+
+                        <div class="price-input">
+
+                            <input type="number"
+
+                                   name="price"
+
+                                   id="{{ form.price.id_for_label }}"
+
+                                   value="{% if form.price.value %}{{ form.price.value }}{% elif product %}{{ product.price }}{% endif %}"
+
+                                   min="0" step="0.01" required placeholder="0.00">
+
+                        </div>
+
+                        {% if form.price.errors %}
+
+                            <ul class="errorlist">{{ form.price.errors }}</ul>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="{{ form.cost_price.id_for_label }}">Cost Price</label>
+
+                        <div class="price-input">
+
+                            <input type="number"
+
+                                   name="cost_price"
+
+                                   id="{{ form.cost_price.id_for_label }}"
+
+                                   value="{% if form.cost_price.value %}{{ form.cost_price.value }}{% elif product %}{{ product.cost_price }}{% else %}0{% endif %}"
+
+                                   min="0" step="0.01" placeholder="0.00">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-actions">
+
+                    <button type="submit" class="btn-primary" id="submitRefillBtn">
+
+                        <i class="fas fa-save"></i>
+
+                        {% if product %}Update{% else %}Create{% endif %} Water Refill
+
+                    </button>
+
+                    <a href="{% url 'inventory_list' %}" class="btn-secondary">
+
+                        <i class="fas fa-times"></i> Cancel
+
+                    </a>
+
+                </div>
+
+            </form>
+
+            </div>
+
+
+
+            <!-- Water Gallon Form -->
+
+            {% if not product or product.product_type == 'gallon' %}
+            <div class="tab-content {% if form.is_bound %}{% if form.product_type.value == 'gallon' %}active{% endif %}{% elif product and product.product_type == 'gallon' %}active{% endif %}" id="water-gallon">
+
+            <form method="POST" enctype="multipart/form-data" id="waterGallonForm" class="water-gallon-form">
+
+                {% csrf_token %}
+
+                <input type="hidden" name="product_type" value="gallon">
+                <input type="hidden" name="container_type" value="{% if form.container_type.value %}{{ form.container_type.value }}{% elif product %}{{ product.container_type }}{% else %}gallon{% endif %}">
+
+
+
+                {% if form.non_field_errors %}
+
+                <div class="alert alert-error">
+
+                    <i class="fas fa-exclamation-triangle"></i>
+
+                    {{ form.non_field_errors }}
+
+                </div>
+                {% endif %}
+
+                {% endif %}
+
+
+
+                <div class="form-group">
+
+                    <label for="{{ form.name.id_for_label }}_gallon">
+
+                        Product Name <span class="required">*</span>
+
+                    </label>
+
+                    <input type="text"
+
+                           name="name"
+
+                           id="{{ form.name.id_for_label }}_gallon"
+
+                           value="{% if form.name.value %}{{ form.name.value }}{% elif product %}{{ product.name }}{% endif %}"
+
+                           placeholder="e.g., Mineral Water 500ml"
+
+                           required maxlength="100">
+
+                    {% if form.name.errors %}
+
+                        <ul class="errorlist">{{ form.name.errors }}</ul>
+
+                    {% endif %}
+
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}_gallon">Product Details</label>
+                    <textarea name="description"
+                              id="{{ form.description.id_for_label }}_gallon"
+                              rows="3"
+                              maxlength="1000"
+                              placeholder="e.g., Purified Water&#10;20 Liters">{% if form.description.value %}{{ form.description.value }}{% elif product %}{{ product.description }}{% endif %}</textarea>
+                    {% if form.description.errors %}
+                        <ul class="errorlist">{{ form.description.errors }}</ul>
+                    {% endif %}
+                </div>
+
+                <div class="form-row" style="grid-template-columns: 1fr;">
+
+                    <div class="form-group" hidden>
+
+                        <label for="{{ form.water_type.id_for_label }}_gallon">
+
+                            Water Type <span class="required">*</span>
+
+                        </label>
+
+                        <select name="water_type" id="{{ form.water_type.id_for_label }}_gallon" required>
+
+                            <option value="">— Select —</option>
+
+                            <option value="mineral" selected>Mineral Water</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+                    <label for="id_image_gallon">Product / Container Image</label>
+                    <input type="file" name="image" id="id_image_gallon" accept="image/*">
+                    {% if product and product.get_main_image %}
+                        <span class="help-text">Upload a new image to replace the current main image.</span>
+                    {% else %}
+                        <span class="help-text">Upload an image for this product container.</span>
+                    {% endif %}
+                    {% if form.image.errors %}
+                        <ul class="errorlist">{{ form.image.errors }}</ul>
+                    {% endif %}
+                </div>
+
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="{{ form.price.id_for_label }}_gallon">
+
+                            Selling Price <span class="required">*</span>
+
+                        </label>
+
+                        <div class="price-input">
+
+                            <input type="number"
+
+                                   name="price"
+
+                                   id="{{ form.price.id_for_label }}_gallon"
+
+                                   value="{% if form.price.value %}{{ form.price.value }}{% elif product %}{{ product.price }}{% endif %}"
+
+                                   min="0" step="0.01" required placeholder="0.00">
+
+                        </div>
+
+                        {% if form.price.errors %}
+
+                            <ul class="errorlist">{{ form.price.errors }}</ul>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="{{ form.cost_price.id_for_label }}_gallon">Cost Price</label>
+
+                        <div class="price-input">
+
+                            <input type="number"
+
+                                   name="cost_price"
+
+                                   id="{{ form.cost_price.id_for_label }}_gallon"
+
+                                   value="{% if form.cost_price.value %}{{ form.cost_price.value }}{% elif product %}{{ product.cost_price }}{% else %}0{% endif %}"
+
+                                   min="0" step="0.01" placeholder="0.00">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="{{ form.stock_quantity.id_for_label }}_gallon">
+
+                            Stock Quantity <span class="required">*</span>
+
+                        </label>
+
+                        <input type="number"
+
+                               name="stock_quantity"
+
+                               id="{{ form.stock_quantity.id_for_label }}_gallon"
+
+                               value="{% if form.stock_quantity.value %}{{ form.stock_quantity.value }}{% elif product %}{{ product.stock_quantity }}{% else %}0{% endif %}"
+
+                               min="0" step="1" required>
+
+                        {% if form.stock_quantity.errors %}
+
+                            <ul class="errorlist">{{ form.stock_quantity.errors }}</ul>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="{{ form.reorder_level.id_for_label }}_gallon">
+
+                            Reorder Level <span class="required">*</span>
+
+                        </label>
+
+                        <input type="number"
+
+                               name="reorder_level"
+
+                               id="{{ form.reorder_level.id_for_label }}_gallon"
+
+                               value="{% if form.reorder_level.value %}{{ form.reorder_level.value }}{% elif product %}{{ product.reorder_level }}{% else %}10{% endif %}"
+
+                               min="1" step="1" required>
+
+                        <span class="help-text"><i class="fas fa-info-circle"></i> Alert when stock reaches this level</span>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-checkbox" style="margin-bottom:1.25rem;">
+
+                    <input type="checkbox"
+
+                           name="is_active"
+
+                           id="{{ form.is_active.id_for_label }}_gallon"
+
+                           style="accent-color:var(--primary);"
+
+                           {% if form.is_bound %}{% if form.is_active.value %}checked{% endif %}{% elif product and product.is_active %}checked{% endif %}>
+
+                    <label for="{{ form.is_active.id_for_label }}_gallon" style="font-weight:500; color:var(--text-sub);">
+
+                        Active — available for sale
+
+                    </label>
+
+                </div>
+
+
+
+                <div class="form-actions">
+
+                    <button type="submit" class="btn-primary" id="submitGallonBtn">
+
+                        <i class="fas fa-save"></i>
+
+                        {% if product %}Update{% else %}Create{% endif %} Water Gallon
+
+                    </button>
+
+                    <a href="{% url 'inventory_list' %}" class="btn-secondary">
+
+                        <i class="fas fa-times"></i> Cancel
+
+                    </a>
+
+                </div>
+
+            </form>
+
+            </div>
+
+        </div>
+
+
+
+    </main>
+
+</div>
+
+
+
+<script>
+
+// Tab switching functionality
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    const tabBtns = document.querySelectorAll('.tab-btn');
+
+    const tabContents = document.querySelectorAll('.tab-content');
+
+
+
+    tabBtns.forEach(btn => {
+
+        btn.addEventListener('click', function() {
+
+            const targetTab = this.getAttribute('data-tab');
+
+
+
+            // Remove active class from all buttons and contents
+
+            tabBtns.forEach(b => b.classList.remove('active'));
+
+            tabContents.forEach(c => c.classList.remove('active'));
+
+
+
+            // Add active class to clicked button and corresponding content
+
+            this.classList.add('active');
+
+            document.getElementById(targetTab).classList.add('active');
+
+        });
+
+    });
+
+});
+
+
+
+(function () {
+
+    const refillForm = document.getElementById('waterRefillForm');
+
+    const gallonForm = document.getElementById('waterGallonForm');
+
+
+
+    if (!refillForm && !gallonForm) return;
+
+
+
+    const isEditing = {{ product|yesno:"true,false" }};
+
+
+
+    function setupForm(form, submitBtnId) {
+
+        if (!form) return;
+
+
+
+        let originalValues = {};
+
+
+
+        function snapshotForm() {
+
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+
+                if (el.name && el.name !== 'csrfmiddlewaretoken') {
+
+                    originalValues[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+
+                }
+
+            });
+
+        }
+
+
+
+        function hasChanged() {
+
+            let changed = false;
+
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+
+                if (el.name && el.name !== 'csrfmiddlewaretoken') {
+
+                    const cur = el.type === 'checkbox' ? el.checked : el.value;
+
+                    if (cur !== originalValues[el.name]) changed = true;
+
+                }
+
+            });
+
+            return changed;
+
+        }
+
+
+
+        snapshotForm();
+
+
+
+        form.addEventListener('submit', function (e) {
+
+            const warning = document.getElementById('noChangeWarning');
+
+            if (isEditing && !hasChanged()) {
+
+                e.preventDefault();
+
+                warning.style.display = 'flex';
+
+                warning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                return;
+
+            }
+
+            warning.style.display = 'none';
+
+            const btn = document.getElementById(submitBtnId);
+
+            if (btn) {
+
+                btn.disabled = true;
+
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            }
+
+        });
+
+
+
+        form.addEventListener('input',  () => { if (hasChanged()) document.getElementById('noChangeWarning').style.display = 'none'; });
+
+        form.addEventListener('change', () => { if (hasChanged()) document.getElementById('noChangeWarning').style.display = 'none'; });
+
+    }
+
+
+
+    setupForm(refillForm, 'submitRefillBtn');
+
+    setupForm(gallonForm, 'submitGallonBtn');
+
+
+
+    // Price auto-format
+
+    document.querySelectorAll('.price-input input').forEach(input => {
+
+        input.addEventListener('blur', function () {
+
+            if (this.value) this.value = parseFloat(this.value).toFixed(2);
+
+        });
+
+    });
+
+})();
+
+
+
+// Mobile sidebar
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const btn = document.createElement('button'); btn.className = 'menu-toggle'; btn.innerHTML = '<i class="fas fa-bars"></i>';
+
+    const ov  = document.createElement('div');    ov.className = 'sidebar-overlay';
+
+    document.body.append(btn, ov);
+
+    const sb = document.querySelector('.sidebar');
+
+    const close = () => { sb.classList.remove('active'); ov.classList.remove('active'); btn.querySelector('i').className = 'fas fa-bars'; };
+
+    const open  = () => { sb.classList.add('active');    ov.classList.add('active');    btn.querySelector('i').className = 'fas fa-times'; };
+
+    btn.addEventListener('click', () => sb.classList.contains('active') ? close() : open());
+
+    ov.addEventListener('click', close);
+
+    document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', () => {
+        if (window.innerWidth <= 768 && !l.classList.contains('nav-dropdown-toggle')) {
+            close();
+        }
+    }));
+
+    window.addEventListener('resize', () => window.innerWidth > 768 && close());
+
+    document.addEventListener('keydown', e => e.key === 'Escape' && close());
+    
+    // Reports dropdown toggle handler
+    const reportsToggle = document.querySelector('.nav-dropdown-toggle');
+    if (reportsToggle) {
+        reportsToggle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            reportsToggle.parentElement.classList.toggle('active');
+        });
+    }
+
+});
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create your Grateful Water Station account - Start ordering premium water delivery in Las Piñas City.">
+    <title>Create Account - Grateful Water Station</title>
+    {% load static %}
+    {% load socialaccount %}
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{% static 'accounts/images/for login image.png' %}">
+    <link rel="shortcut icon" href="{% static 'accounts/images/for login image.png' %}">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{% static 'accounts/css/register.css' %}">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="register-bg">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+        <div class="grid-pattern"></div>
+    </div>
+
+    <!-- Back to Home Link -->
+    <a href="{% url 'home' %}" class="back-home">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Home</span>
+    </a>
+
+    <!-- Main Register Container -->
+    <div class="register-wrapper">
+        <div class="register-card">
+            <!-- Left Side - Branding -->
+            <div class="register-branding">
+                <div class="branding-content">
+                    <div class="logo-container">
+                        <div class="logo-glow"></div>
+                        <img src="{% static 'accounts/images/for login image.png' %}" alt="Grateful Water Station" class="logo-img">
+                    </div>
+
+                    <h1 class="brand-title">
+                        <span class="gradient-text">Join</span>
+                        <span>Grateful Water</span>
+                    </h1>
+
+                    <p class="brand-tagline">
+                        Create your account and enjoy premium water delivery with exclusive member benefits
+                    </p>
+
+                    <div class="benefits-list">
+                        <div class="benefit-item">
+                            <div class="benefit-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span>Easy online ordering</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span>Real-time delivery tracking</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span>Exclusive member discounts</span>
+                        </div>
+                        <div class="benefit-item">
+                            <div class="benefit-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span>Priority customer support</span>
+                        </div>
+                    </div>
+
+                    <div class="stats-mini">
+                        <div class="stat-item">
+                            <span class="stat-value">5,000+</span>
+                            <span class="stat-label">Happy Customers</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">99%</span>
+                            <span class="stat-label">Satisfaction Rate</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decorative Elements -->
+                <div class="deco-circle deco-1"></div>
+                <div class="deco-circle deco-2"></div>
+                <div class="deco-circle deco-3"></div>
+                <div class="deco-dots"></div>
+            </div>
+
+            <!-- Right Side - Registration Form -->
+            <div class="register-form-section">
+                <div class="form-header">
+                    <h2>Create Your Account</h2>
+                    <p>Fill in your details to get started</p>
+                </div>
+
+                <!-- Messages -->
+                {% if messages %}
+                    <div class="messages-container">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if form.errors %}
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Please correct the errors below.</span>
+                    </div>
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <div class="alert alert-error">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>{{ field|title }}: {{ error }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Google Sign Up Button -->
+                <div class="social-signup">
+                    <a href="{% provider_login_url 'google' process='signup' auth_params='prompt=select_account' %}" class="btn-google-signup">
+                        <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span>Sign up with Google</span>
+                    </a>
+                    <p class="signup-hint">Quick registration with your Google account</p>
+                </div>
+
+                <!-- Social Divider -->
+                <div class="social-divider">
+                    <span class="divider-line"></span>
+                    <span class="divider-text">or register with email</span>
+                    <span class="divider-line"></span>
+                </div>
+
+                <!-- Registration Form -->
+                <form method="POST" class="register-form" id="registerForm" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Name Row -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="first_name">
+                                <i class="fas fa-user"></i>
+                                First Name
+                            </label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="first_name" 
+                                    name="first_name" 
+                                    value="{{ form.first_name.value|default:'' }}"
+                                    placeholder="Joaquin"
+                                    required
+                                    autocomplete="given-name"
+                                >
+                            </div>
+                            {% if form.first_name.errors %}
+                                <span class="error-message">{{ form.first_name.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="last_name">
+                                <i class="fas fa-user"></i>
+                                Last Name
+                            </label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="last_name" 
+                                    name="last_name" 
+                                    value="{{ form.last_name.value|default:'' }}"
+                                    placeholder="Casares"
+                                    required
+                                    autocomplete="family-name"
+                                >
+                            </div>
+                            {% if form.last_name.errors %}
+                                <span class="error-message">{{ form.last_name.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-id-card"></i>
+                            Username
+                        </label>
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="username" 
+                                name="username" 
+                                value="{{ form.username.value|default:'' }}"
+                                placeholder="Choose a username"
+                                required
+                                autocomplete="username"
+                            >
+                            <i class="fas fa-at input-icon"></i>
+                        </div>
+                        {% if form.username.errors %}
+                            <span class="error-message">{{ form.username.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i>
+                            Email Address
+                        </label>
+                        <div class="input-wrapper">
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                value="{{ form.email.value|default:'' }}"
+                                placeholder="your@email.com"
+                                required
+                                autocomplete="email"
+                            >
+                            <i class="fas fa-envelope input-icon"></i>
+                        </div>
+                        <span class="help-text">Email verification is currently off. Use an email address you can access.</span>
+                        {% if form.email.errors %}
+                            <span class="error-message">{{ form.email.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="form-group">
+                        <label for="phone_number">
+                            <i class="fas fa-phone"></i>
+                            Phone Number
+                        </label>
+                        <div class="input-wrapper">
+                            <input 
+                                type="tel" 
+                                id="phone_number" 
+                                name="phone_number" 
+                                value="{{ form.phone_number.value|default:'' }}"
+                                placeholder="+63 XXX XXX XXXX"
+                                maxlength="15"
+                                inputmode="tel"
+                                pattern="(?:\+[0-9]{9,14}|[0-9]{9,15})"
+                                required
+                                autocomplete="tel"
+                            >
+                            <i class="fas fa-phone input-icon"></i>
+                        </div>
+                        {% if form.phone_number.errors %}
+                            <span class="error-message">{{ form.phone_number.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Address Section -->
+                    <div class="form-group address-section-label">
+                        <label>
+                            <i class="fas fa-map-marker-alt"></i>
+                            Delivery Address
+                        </label>
+                        <span class="help-text">We'll deliver your water to this address</span>
+                        <button type="button" class="btn-register-locate" id="registerLocateBtn">
+                            <i class="fas fa-crosshairs"></i> <span id="registerLocateBtnText">Locate Me</span>
+                        </button>
+                        <span class="help-text" id="registerLocationStatus" role="status" aria-live="polite">
+                            Save your current location now so you can confirm it when placing your first order.
+                        </span>
+                    </div>
+
+                    <!-- Hidden combined address field submitted to Django -->
+                    <input type="hidden" id="address" name="address">
+                    <input type="hidden" id="default_latitude" name="default_latitude" value="{{ form.default_latitude.value|default:'' }}">
+                    <input type="hidden" id="default_longitude" name="default_longitude" value="{{ form.default_longitude.value|default:'' }}">
+
+                    <!-- House/Unit No. -->
+                    <div class="form-row address-row">
+                        <div class="form-group">
+                            <label for="addr_house" class="addr-sub-label">
+                                House / Unit No.
+                            </label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="addr_house" 
+                                    placeholder="e.g. 12B, Unit 3"
+                                    autocomplete="off"
+                                    class="addr-field"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Barangay -->
+                        <div class="form-group">
+                            <label for="addr_barangay" class="addr-sub-label">
+                                Barangay <span style="color:#ef4444">*</span>
+                            </label>
+                            <div class="input-wrapper select-wrapper">
+                                <select id="addr_barangay" class="addr-field" required>
+                                    <option value="">— Select Barangay —</option>
+                                    <option value="Almanza Uno">Almanza Uno</option>
+                                    <option value="Talon Uno">Talon Uno</option>
+                                    <option value="Talon Dos">Talon Dos</option>
+                                    <option value="Talon Tres">Talon Tres</option>
+                                    <option value="Talon Kuatro">Talon Kuatro</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-chevron"></i>
+                            </div>
+                            <span class="error-message" id="barangayError"></span>
+                        </div>
+                    </div>
+
+                    <!-- Street / Subdivision fields -->
+                    <div id="streetGroup">
+
+                        <!-- TALON TRES: two separate dropdown fields -->
+                        <div id="talonTresFields" style="display:none;">
+                            <div class="form-row address-row">
+
+                                <!-- Street dropdown -->
+                                <div class="form-group">
+                                    <label class="addr-sub-label">
+                                        <i class="fas fa-road" style="color:#0ea5e9;font-size:0.75rem;"></i>
+                                        Street
+                                    </label>
+                                    <div class="tt-dropdown-wrap" id="streetDropWrap">
+                                        <div class="tt-input-row">
+                                            <input
+                                                type="text"
+                                                id="tt_street_input"
+                                                class="addr-field tt-input"
+                                                placeholder="Search street…"
+                                                autocomplete="off"
+                                                oninput="filterTTDropdown('street')"
+                                                onfocus="openTTDropdown('street')"
+                                            >
+                                            <i class="fas fa-chevron-down tt-chevron" id="streetChevron"></i>
+                                        </div>
+                                        <ul class="tt-dropdown-list" id="streetDropList"></ul>
+                                    </div>
+                                </div>
+
+                                <!-- Subdivision dropdown -->
+                                <div class="form-group">
+                                    <label class="addr-sub-label">
+                                        <i class="fas fa-home" style="color:#0ea5e9;font-size:0.75rem;"></i>
+                                        Subdivision / Village
+                                    </label>
+                                    <div class="tt-dropdown-wrap" id="subdivDropWrap">
+                                        <div class="tt-input-row">
+                                            <input
+                                                type="text"
+                                                id="tt_subdiv_input"
+                                                class="addr-field tt-input"
+                                                placeholder="Search subdivision…"
+                                                autocomplete="off"
+                                                oninput="filterTTDropdown('subdiv')"
+                                                onfocus="openTTDropdown('subdiv')"
+                                            >
+                                            <i class="fas fa-chevron-down tt-chevron" id="subdivChevron"></i>
+                                        </div>
+                                        <ul class="tt-dropdown-list" id="subdivDropList"></ul>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <span class="help-text" style="color:#0ea5e9;margin-top:-0.4rem;display:block;">
+                                <i class="fas fa-info-circle"></i> Select a street and/or subdivision — both are optional but at least one helps us find you.
+                            </span>
+                        </div>
+
+                        <!-- GENERIC: simple input with datalist for other barangays -->
+                        <div id="genericStreetField" class="form-group">
+                            <label for="addr_street" class="addr-sub-label">Street / Subdivision</label>
+                            <div class="input-wrapper">
+                                <input
+                                    type="text"
+                                    id="addr_street"
+                                    list="streetSuggestions"
+                                    placeholder="Start typing or pick a street…"
+                                    autocomplete="off"
+                                    class="addr-field"
+                                >
+                                <i class="fas fa-road input-icon"></i>
+                            </div>
+                            <datalist id="streetSuggestions"></datalist>
+                            <span class="help-text street-hint" id="streetHint" style="display:none;color:#0ea5e9;">
+                                <i class="fas fa-info-circle"></i> Streets for selected barangay are shown — you can also type your own.
+                            </span>
+                        </div>
+
+                        <!-- Hidden field that gets submitted (combined street + subdiv) -->
+                        <input type="hidden" id="addr_street" name="addr_street">
+                    </div>
+
+                    <!-- City & Province (read-only) -->
+                    <div class="form-row address-row">
+                        <div class="form-group">
+                            <label for="addr_city" class="addr-sub-label">City</label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="addr_city" 
+                                    value="Las Piñas City"
+                                    class="addr-field addr-readonly"
+                                    readonly
+                                >
+                                <i class="fas fa-city input-icon"></i>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="addr_province" class="addr-sub-label">Province / Region</label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="addr_province" 
+                                    value="Metro Manila"
+                                    class="addr-field addr-readonly"
+                                    readonly
+                                >
+                                <i class="fas fa-map input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Preview -->
+                    <div class="address-preview" id="addressPreview" style="display:none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="addressPreviewText"></span>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label for="password1">
+                            <i class="fas fa-lock"></i>
+                            Password
+                        </label>
+                        <div class="input-wrapper">
+                            <input 
+                                type="password" 
+                                id="password1" 
+                                name="password1" 
+                                placeholder="Create a strong password (min. 8 characters)"
+                                required
+                                autocomplete="new-password"
+                            >
+                            <i class="fas fa-lock input-icon"></i>
+                            <button type="button" class="password-toggle" id="password1Toggle" aria-label="Toggle password visibility">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <!-- Password Strength Indicator -->
+                        <div class="password-strength" id="passwordStrength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="strengthFill"></div>
+                            </div>
+                            <span class="strength-text" id="strengthText">Password strength</span>
+                        </div>
+                        {% if form.password1.errors %}
+                            <span class="error-message">{{ form.password1.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="form-group">
+                        <label for="password2">
+                            <i class="fas fa-lock"></i>
+                            Confirm Password
+                        </label>
+                        <div class="input-wrapper">
+                            <input 
+                                type="password" 
+                                id="password2" 
+                                name="password2" 
+                                placeholder="Re-enter your password"
+                                required
+                                autocomplete="new-password"
+                            >
+                            <i class="fas fa-lock input-icon"></i>
+                            <button type="button" class="password-toggle" id="password2Toggle" aria-label="Toggle password visibility">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span class="error-message" id="passwordMatchError"></span>
+                        {% if form.password2.errors %}
+                            <span class="error-message">{{ form.password2.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Terms & Conditions -->
+                    <div class="form-group terms-group">
+                        <label class="terms-checkbox">
+                            <input type="checkbox" name="terms" id="termsCheckbox" required>
+                            <span class="checkmark"></span>
+                            <span class="label-text">
+                                I agree to the <a href="{% url 'terms_of_service' %}" class="terms-link">Terms of Service</a> and <a href="{% url 'privacy_policy' %}" class="terms-link">Privacy Policy</a>
+                            </span>
+                        </label>
+                        <span class="error-message" id="termsError"></span>
+                    </div>
+
+                    <!-- Create Account Button -->
+                    <button type="submit" class="btn-register" id="registerBtn">
+                        <span class="btn-text">Create Account</span>
+                        <span class="btn-loader">
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                        </span>
+                        <i class="fas fa-arrow-right btn-icon"></i>
+                    </button>
+                </form>
+
+                <!-- Login Link -->
+                <div class="login-prompt">
+                    <p>Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+                </div>
+
+                <!-- Security Badge -->
+                <div class="security-badge">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Your data is securely encrypted</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]+/)) strength++;
+            if (password.match(/[A-Z]+/)) strength++;
+            if (password.match(/[0-9]+/)) strength++;
+            if (password.match(/[$@#&!]+/)) strength++;
+            
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthText = document.getElementById('strengthText');
+            
+            if (password.length === 0) {
+                strengthFill.style.width = '0%';
+                strengthFill.style.backgroundColor = '#e2e8f0';
+                strengthText.textContent = 'Password strength';
+                strengthText.style.color = '#64748b';
+                return;
+            }
+            
+            let width, color, text;
+            if (strength <= 2) {
+                width = '25%';
+                color = '#ef4444';
+                text = 'Weak';
+            } else if (strength <= 3) {
+                width = '50%';
+                color = '#f59e0b';
+                text = 'Fair';
+            } else if (strength <= 4) {
+                width = '75%';
+                color = '#10b981';
+                text = 'Good';
+            } else {
+                width = '100%';
+                color = '#0ea5e9';
+                text = 'Strong';
+            }
+            
+            strengthFill.style.width = width;
+            strengthFill.style.backgroundColor = color;
+            strengthText.textContent = text;
+            strengthText.style.color = color;
+        }
+        
+        // Password match checker
+        function checkPasswordMatch() {
+            const password1 = document.getElementById('password1').value;
+            const password2 = document.getElementById('password2').value;
+            const matchError = document.getElementById('passwordMatchError');
+            
+            if (password2.length > 0 && password1 !== password2) {
+                matchError.textContent = 'Passwords do not match';
+                return false;
+            } else {
+                matchError.textContent = '';
+                return true;
+            }
+        }
+        
+        // Password visibility toggle
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.parentElement.querySelector('.password-toggle i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        
+        // Form submission validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const password1 = document.getElementById('password1').value;
+            const password2 = document.getElementById('password2').value;
+            const terms = document.getElementById('termsCheckbox').checked;
+            const termsError = document.getElementById('termsError');
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+            
+            // Check barangay
+            const barangay = document.getElementById('addr_barangay').value;
+            if (!barangay) {
+                e.preventDefault();
+                document.getElementById('barangayError').textContent = 'Please select your barangay';
+                document.getElementById('addr_barangay').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // Check username
+            if (username.length < 3) {
+                e.preventDefault();
+                const usernameError = document.querySelector('#username').closest('.form-group').querySelector('.error-message');
+                if (usernameError) usernameError.textContent = 'Username must be at least 3 characters';
+                return;
+            }
+            
+            // Check email
+            if (!email.includes('@')) {
+                e.preventDefault();
+                const emailError = document.querySelector('#email').closest('.form-group').querySelector('.error-message');
+                if (emailError) emailError.textContent = 'Enter a valid email address';
+                return;
+            }
+            
+            // Check password match
+            if (password1 !== password2) {
+                e.preventDefault();
+                document.getElementById('passwordMatchError').textContent = 'Passwords do not match';
+                return;
+            }
+            
+            // Check password length
+            if (password1.length < 8) {
+                e.preventDefault();
+                document.getElementById('passwordMatchError').textContent = 'Password must be at least 8 characters';
+                return;
+            }
+            
+            // Check terms
+            if (!terms) {
+                e.preventDefault();
+                termsError.textContent = 'You must agree to the Terms of Service';
+                return;
+            }
+            
+            // Show loading state
+            const btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            btn.querySelector('.btn-text').textContent = 'Creating Account...';
+            btn.querySelector('.btn-loader').style.display = 'inline-block';
+            btn.querySelector('.btn-icon').style.display = 'none';
+        });
+        
+        // Event listeners
+        const phoneNumberInput = document.getElementById('phone_number');
+        phoneNumberInput.addEventListener('input', function() {
+            const hasLeadingPlus = this.value.trimStart().startsWith('+');
+            const digits = this.value.replace(/[^0-9]/g, '').slice(0, hasLeadingPlus ? 14 : 15);
+            this.value = `${hasLeadingPlus ? '+' : ''}${digits}`;
+        });
+
+        document.getElementById('password1').addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+            checkPasswordMatch();
+        });
+        
+        document.getElementById('password2').addEventListener('input', checkPasswordMatch);
+        
+        document.getElementById('password1Toggle').addEventListener('click', function() {
+            togglePassword('password1');
+        });
+        
+        document.getElementById('password2Toggle').addEventListener('click', function() {
+            togglePassword('password2');
+        });
+        
+        document.getElementById('termsCheckbox').addEventListener('change', function() {
+            document.getElementById('termsError').textContent = '';
+        });
+
+        document.getElementById('registerLocateBtn').addEventListener('click', function() {
+            const button = this;
+            const buttonText = document.getElementById('registerLocateBtnText');
+            const status = document.getElementById('registerLocationStatus');
+            const latitudeInput = document.getElementById('default_latitude');
+            const longitudeInput = document.getElementById('default_longitude');
+
+            if (!navigator.geolocation) {
+                status.textContent = 'Location is not supported by this browser. You can still enter your address manually.';
+                status.classList.add('location-error');
+                return;
+            }
+
+            button.disabled = true;
+            buttonText.textContent = 'Locating...';
+            status.textContent = 'Waiting for location permission...';
+            status.classList.remove('location-error', 'location-success');
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    latitudeInput.value = position.coords.latitude.toFixed(6);
+                    longitudeInput.value = position.coords.longitude.toFixed(6);
+                    button.disabled = false;
+                    buttonText.textContent = 'Location Saved';
+                    status.textContent = 'Location saved. You can confirm this pin when placing your first order.';
+                    status.classList.add('location-success');
+                },
+                function(error) {
+                    button.disabled = false;
+                    buttonText.textContent = 'Locate Me';
+                    if (error.code === error.PERMISSION_DENIED) {
+                        status.textContent = 'Location permission was denied. Allow location access in your browser and try again.';
+                    } else if (error.code === error.TIMEOUT) {
+                        status.textContent = 'Getting your location timed out. Please try again.';
+                    } else {
+                        status.textContent = 'Could not get your location. Please try again or enter your address manually.';
+                    }
+                    status.classList.add('location-error');
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        });
+        
+        // Clear errors on input
+        document.querySelectorAll('.input-wrapper input, .input-wrapper textarea').forEach(input => {
+            input.addEventListener('input', function() {
+                const errorSpan = this.closest('.form-group').querySelector('.error-message');
+                if (errorSpan) errorSpan.textContent = '';
+            });
+        });
+        
+        // =============================================
+        // STRUCTURED ADDRESS — barangay → streets map
+        // =============================================
+        const barangayStreets = {
+            "Almanza Uno": {
+                streets: [
+                    "Alabang–Zapote Road",
+                    "Concha Cruz Drive",
+                    "CRM Avenue",
+                    "C.M. Recto",
+                    "Buencamino Street",
+                    "Calle Verde",
+                    "Calle Azul",
+                    "Calle Rojo",
+                    "Camia Street",
+                    "Carnation Street"
+                ],
+                subdivisions: [
+                    "BF Homes Almanza Gate",
+                    "OneComm Workhub Vicinity",
+                    "Southville / Pilar Side",
+                    "Madrigal Business Park Vicinity"
+                ]
+            },
+            "Talon Uno": {
+                streets: [
+                    "Alabang–Zapote Road",
+                    "BF Resort Drive",
+                    "Marcos Alvarez Avenue",
+                    "Talon Road",
+                    "Casimiro Avenue",
+                    "Manuela Drive",
+                    "Daang Hari",
+                    "Friendship Route"
+                ],
+                subdivisions: [
+                    "BF Resort Village",
+                    "Pilar Village",
+                    "Talon Village",
+                    "Alder Residences Area",
+                    "Pag-IBIG Homes",
+                    "Villa Regina",
+                    "Southland Village"
+                ]
+            },
+            "Talon Dos": {
+                streets: [
+                    "BF Resort Drive",
+                    "CAA Road",
+                    "Alabang–Zapote Road",
+                    "Vatican City Drive",
+                    "Sun Pointe Drive",
+                    "Donnaville Drive",
+                    "Rainbow Road",
+                    "Spring Road",
+                    "Benetton Road",
+                    "Chanel Road",
+                    "Crimson Road"
+                ],
+                subdivisions: [
+                    "BF Vista Grande",
+                    "Camella del Rio",
+                    "Combridge Classics",
+                    "Donnaville BF Homes",
+                    "Italia 500",
+                    "Mother Earth Subdivision",
+                    "Saint Michael Village",
+                    "Venezia Homes",
+                    "Veraville Philam"
+                ]
+            },
+            "Talon Tres": {
+                streets: [
+                    "Alabang–Zapote Road",
+                    "CAA Road",
+                    "Admiral Road",
+                    "Admiral Drive",
+                    "America Avenue",
+                    "Casimiro Avenue",
+                    "Casimiro Street",
+                    "Mendoza Avenue",
+                    "San Isidro Street",
+                    "Santo Tomas Street",
+                    "Santo Niño Street",
+                    "Antipolo Street",
+                    "Acacia Street",
+                    "Avocado Street",
+                    "Bayabas Street",
+                    "Chico Street",
+                    "Durian Street",
+                    "Santol Street",
+                    "Orchid Street",
+                    "Tulips Street",
+                    "Pelayo Street",
+                    "Ubas Extension"
+                ],
+                subdivisions: [
+                    "Admiral Park Subdivision",
+                    "Aristocrat Village",
+                    "BF International Central",
+                    "BF Southland Classic Homes",
+                    "Carmencita Village",
+                    "Mariposa Village",
+                    "Rio Garden Homes",
+                    "Villa Miranda",
+                    "Golden Gate Subdivision",
+                    "Pelayo Subdivision",
+                    "Doña Purisima Subdivision",
+                    "Paramount Village",
+                    "URCI Las Piñas Townhomes",
+                    "V.A.A Homes Subdivision"
+                ]
+            },
+            "Talon Kuatro": {
+                streets: [
+                    "Alabang–Zapote Road",
+                    "Camara Avenue",
+                    "Diamond Street",
+                    "Dahlia Street",
+                    "Camia Street",
+                    "Carnation Street",
+                    "Cherry Blossoms Street",
+                    "China Aster Street",
+                    "Coral Bells Street",
+                    "Everlasting Street"
+                ],
+                subdivisions: [
+                    "Angela Village",
+                    "San Antonio Valley",
+                    "Pag-IBIG Homes",
+                    "Talon Village",
+                    "Equitable Village"
+                ]
+            }
+        };
+
+        function updateAddressPreview() {
+            const house    = document.getElementById('addr_house').value.trim();
+            const street   = document.getElementById('addr_street').value.trim();
+            const barangay = document.getElementById('addr_barangay').value;
+            const city     = 'Las Piñas City';
+            const province = 'Metro Manila';
+
+            const parts = [house, street, barangay ? `Brgy. ${barangay}` : '', city, province].filter(Boolean);
+            const combined = parts.join(', ');
+
+            document.getElementById('address').value = combined;
+
+            const preview = document.getElementById('addressPreview');
+            const previewText = document.getElementById('addressPreviewText');
+            if (combined.length > 0) {
+                previewText.textContent = combined;
+                preview.style.display = 'flex';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        document.getElementById('addr_barangay').addEventListener('change', function() {
+            const selected = this.value;
+            const talonFields  = document.getElementById('talonTresFields');
+            const genericField = document.getElementById('genericStreetField');
+            const hint         = document.getElementById('streetHint');
+
+            // Reset inputs
+            document.getElementById('addr_street').value = '';
+            ttSelectedStreet = '';
+            ttSelectedSubdiv = '';
+            const si = document.getElementById('tt_street_input');
+            const di = document.getElementById('tt_subdiv_input');
+            if (si) si.value = '';
+            if (di) di.value = '';
+
+            if (selected && barangayStreets[selected]) {
+                talonFields.style.display  = 'block';
+                genericField.style.display = 'none';
+                hint.style.display         = 'none';
+                buildTTDropdowns(selected);
+            } else {
+                talonFields.style.display  = 'none';
+                genericField.style.display = 'block';
+                hint.style.display         = 'none';
+                document.getElementById('streetSuggestions').innerHTML = '';
+            }
+
+            document.getElementById('barangayError').textContent = '';
+            updateAddressPreview();
+        });
+
+        // ── Talon Tres custom dropdown ─────────────────────────────
+        let ttSelectedStreet = '';
+        let ttSelectedSubdiv = '';
+
+        function buildTTDropdowns(barangay) {
+            const data = barangayStreets[barangay || document.getElementById('addr_barangay').value];
+            if (!data) return;
+            populateTTList('streetDropList', data.streets,      'street');
+            populateTTList('subdivDropList', data.subdivisions, 'subdiv');
+        }
+
+        function populateTTList(listId, items, type) {
+            const ul = document.getElementById(listId);
+            ul.innerHTML = '';
+            items.forEach(function(item) {
+                const li = document.createElement('li');
+                li.className = 'tt-drop-item';
+                li.textContent = item;
+                li.onmousedown = function(e) {
+                    e.preventDefault(); // prevent blur before click registers
+                    selectTTItem(type, item);
+                };
+                ul.appendChild(li);
+            });
+        }
+
+        function selectTTItem(type, value) {
+            if (type === 'street') {
+                ttSelectedStreet = value;
+                document.getElementById('tt_street_input').value = value;
+                closeTTDropdown('street');
+            } else {
+                ttSelectedSubdiv = value;
+                document.getElementById('tt_subdiv_input').value = value;
+                closeTTDropdown('subdiv');
+            }
+            syncTTToHidden();
+            updateAddressPreview();
+        }
+
+        function syncTTToHidden() {
+            const parts = [ttSelectedStreet, ttSelectedSubdiv].filter(Boolean);
+            document.getElementById('addr_street').value = parts.join(', ');
+        }
+
+        function filterTTDropdown(type) {
+            const inputId  = type === 'street' ? 'tt_street_input'  : 'tt_subdiv_input';
+            const listId   = type === 'street' ? 'streetDropList'   : 'subdivDropList';
+            const query    = document.getElementById(inputId).value.toLowerCase();
+            const items    = document.getElementById(listId).querySelectorAll('.tt-drop-item');
+
+            // Clear selection if user edits text
+            if (type === 'street') ttSelectedStreet = '';
+            else ttSelectedSubdiv = '';
+            syncTTToHidden();
+            updateAddressPreview();
+
+            items.forEach(function(li) {
+                li.style.display = li.textContent.toLowerCase().includes(query) ? '' : 'none';
+            });
+            openTTDropdown(type);
+        }
+
+        function openTTDropdown(type) {
+            const listId   = type === 'street' ? 'streetDropList' : 'subdivDropList';
+            const chevId   = type === 'street' ? 'streetChevron'  : 'subdivChevron';
+            document.getElementById(listId).classList.add('open');
+            document.getElementById(chevId).style.transform = 'translateY(-50%) rotate(180deg)';
+        }
+
+        function closeTTDropdown(type) {
+            const listId = type === 'street' ? 'streetDropList' : 'subdivDropList';
+            const chevId = type === 'street' ? 'streetChevron'  : 'subdivChevron';
+            document.getElementById(listId).classList.remove('open');
+            document.getElementById(chevId).style.transform = 'translateY(-50%) rotate(0deg)';
+        }
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', function(e) {
+            ['street', 'subdiv'].forEach(function(type) {
+                const wrapId = type === 'street' ? 'streetDropWrap' : 'subdivDropWrap';
+                const wrap   = document.getElementById(wrapId);
+                if (wrap && !wrap.contains(e.target)) closeTTDropdown(type);
+            });
+        });
+
+        // Blur handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            ['tt_street_input', 'tt_subdiv_input'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('blur', function() {
+                    const type = id === 'tt_street_input' ? 'street' : 'subdiv';
+                    setTimeout(() => closeTTDropdown(type), 150);
+                });
+            });
+        });
+        // ──────────────────────────────────────────────────────────
+
+        ['addr_house','addr_street','addr_barangay'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', updateAddressPreview);
+                el.addEventListener('change', updateAddressPreview);
+            }
+        });
+
+        // Clear any success messages after 5 seconds
+        setTimeout(() => {
+            document.querySelectorAll('.alert-success').forEach(alert => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+    </script>
+
+    <style>
+        /* ===== Talon Tres Custom Dropdown ===== */
+        .tt-dropdown-wrap {
+            position: relative;
+            width: 100%;
+        }
+        .tt-input-row {
+            position: relative;
+        }
+        .tt-input {
+            width: 100%;
+            padding-right: 2.2rem !important;
+            cursor: pointer;
+        }
+        .tt-chevron {
+            position: absolute;
+            right: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%) rotate(0deg);
+            color: #94a3b8;
+            pointer-events: none;
+            font-size: 0.72rem;
+            transition: transform 0.2s;
+        }
+        .tt-dropdown-list {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 0.6rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 999;
+            list-style: none;
+            padding: 0.3rem;
+            margin: 0;
+            scrollbar-width: thin;
+        }
+        .tt-dropdown-list::-webkit-scrollbar { width: 4px; }
+        .tt-dropdown-list::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .tt-dropdown-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .tt-dropdown-list.open {
+            display: block;
+        }
+        .tt-drop-item {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.4rem;
+            font-size: 0.82rem;
+            color: #334155;
+            cursor: pointer;
+            transition: background 0.12s, color 0.12s;
+        }
+        .tt-drop-item:hover {
+            background: #f0f9ff;
+            color: #0ea5e9;
+        }
+        .tt-drop-item.active {
+            background: #0ea5e9;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* ===== Structured Address Styles ===== */
+        .address-section-label > label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.1rem;
+        }
+        .address-section-label .help-text {
+            margin-top: 0;
+        }
+        .btn-register-locate {
+            align-self: flex-start;
+            margin-top: 0.65rem;
+            padding: 0.55rem 0.9rem;
+            border: 1px solid #bae6fd;
+            border-radius: 0.5rem;
+            background: #f0f9ff;
+            color: #0369a1;
+            font: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-register-locate:hover { background: #e0f2fe; }
+        .btn-register-locate:disabled { opacity: 0.65; cursor: wait; }
+        #registerLocationStatus.location-success { color: #059669; }
+        #registerLocationStatus.location-error { color: #dc2626; }
+        .addr-sub-label {
+            font-size: 0.78rem !important;
+            font-weight: 500 !important;
+            color: #475569 !important;
+        }
+        .address-row {
+            gap: 0.75rem;
+        }
+        .addr-field {
+            width: 100%;
+            background: #fff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.65rem 0.85rem;
+            font-size: 0.875rem;
+            color: #1e293b;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .addr-field:focus {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+        }
+        .addr-readonly {
+            background: #f1f5f9 !important;
+            color: #64748b !important;
+            cursor: not-allowed;
+        }
+        .select-wrapper {
+            position: relative;
+        }
+        .select-wrapper select.addr-field {
+            padding-right: 2.2rem;
+            cursor: pointer;
+        }
+        .select-chevron {
+            position: absolute;
+            right: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            pointer-events: none;
+            font-size: 0.75rem;
+        }
+        #streetGroup {
+            margin-top: -0.25rem;
+        }
+        .street-hint {
+            font-size: 0.72rem !important;
+        }
+        .address-preview {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #e0f2fe, #f0fdf4);
+            border: 1.5px solid #bae6fd;
+            border-radius: 0.6rem;
+            padding: 0.7rem 1rem;
+            margin-top: 0.25rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            color: #0369a1;
+            animation: slideIn 0.3s ease;
+        }
+        .address-preview i {
+            color: #10b981;
+            margin-top: 0.05rem;
+            flex-shrink: 0;
+        }
+        .address-preview span {
+            line-height: 1.4;
+        }
+
+        /* ===== Existing UX Styles ===== */
+        .help-text {
+            display: block;
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+        
+        .btn-loader {
+            display: none;
+        }
+        
+        .btn-register:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            display: block;
+            font-size: 0.7rem;
+            color: #ef4444;
+            margin-top: 0.25rem;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .messages-container {
+            margin-bottom: 1rem;
+        }
+        
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+    </style>
+</body>
+</html>

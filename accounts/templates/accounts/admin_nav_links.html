@@ -1,0 +1,25 @@
+<ul class="nav-links">
+    <li><a href="{% url 'admin_dashboard' %}" {% if request.resolver_match.url_name == 'admin_dashboard' %}class="active"{% endif %}><i class="fas fa-th-large"></i> Dashboard</a></li>
+    <li><a href="{% url 'pos_dashboard' %}" {% if request.resolver_match.url_name == 'pos_dashboard' or request.resolver_match.url_name == 'create_sale' or request.resolver_match.url_name == 'product_list' or request.resolver_match.url_name == 'product_create' or request.resolver_match.url_name == 'product_edit' or request.resolver_match.url_name == 'product_delete' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Products</a></li>
+    <li><a href="{% url 'manage_orders' %}" {% if request.resolver_match.url_name == 'manage_orders' %}class="active"{% endif %}><i class="fas fa-shopping-cart"></i> Orders <span class="order-badge" style="display:none;">0</span></a></li>
+    <li><a href="{% url 'return_orders' %}" {% if request.resolver_match.url_name == 'return_orders' %}class="active" aria-current="page"{% endif %}><i class="fas fa-undo"></i> Return Order</a></li>
+    <li><a href="{% url 'messaging_inbox' %}" {% if request.resolver_match.url_name == 'messaging_inbox' or request.resolver_match.url_name == 'conversation_detail' or request.resolver_match.url_name == 'compose_message' %}class="active"{% endif %}><i class="fas fa-envelope"></i> Messages <span class="unread-badge" style="display:none;">0</span></a></li>
+    <li><a href="{% url 'contact_messages' %}" {% if request.resolver_match.url_name == 'contact_messages' %}class="active"{% endif %}><i class="fas fa-inbox"></i> Customer Inquiries</a></li>
+    <li><a href="{% url 'inventory_list' %}" {% if request.resolver_match.url_name == 'inventory_list' or request.resolver_match.url_name == 'adjust_inventory' %}class="active"{% endif %}><i class="fas fa-boxes"></i> Inventory</a></li>
+    <li><a href="{% url 'sale_list' %}" {% if request.resolver_match.url_name == 'sale_list' or request.resolver_match.url_name == 'sale_detail' %}class="active"{% endif %}><i class="fas fa-history"></i> Sales History</a></li>
+    <li><a href="{% url 'maintenance' %}" {% if request.resolver_match.url_name == 'maintenance' %}class="active"{% endif %}><i class="fas fa-tools"></i> Maintenance</a></li>
+    <li><a href="{% url 'manage_users' %}" {% if request.resolver_match.url_name == 'manage_users' or request.resolver_match.url_name == 'edit_user' %}class="active"{% endif %}><i class="fas fa-users"></i> Manage Users</a></li>
+    <li class="nav-dropdown{% if request.resolver_match.url_name == 'inventory_reports' or request.resolver_match.url_name == 'sales_report' or request.resolver_match.url_name == 'maintenance_reports' %} active{% endif %}">
+        <a href="#" class="nav-dropdown-toggle{% if request.resolver_match.url_name == 'inventory_reports' or request.resolver_match.url_name == 'sales_report' or request.resolver_match.url_name == 'maintenance_reports' %} active{% endif %}" onclick="event.preventDefault(); event.stopImmediatePropagation(); this.parentElement.classList.toggle('active');">
+            <i class="fas fa-chart-pie"></i> Reports
+            <i class="fas fa-chevron-down"></i>
+        </a>
+        <ul class="nav-dropdown-menu">
+            <li><a href="{% url 'inventory_reports' %}" {% if request.resolver_match.url_name == 'inventory_reports' %}class="active"{% endif %}><i class="fas fa-chart-line"></i> Inventory Reports</a></li>
+            <li><a href="{% url 'sales_report' %}" {% if request.resolver_match.url_name == 'sales_report' %}class="active"{% endif %}><i class="fas fa-chart-bar"></i> Sales Reports</a></li>
+            <li><a href="{% url 'maintenance_reports' %}" {% if request.resolver_match.url_name == 'maintenance_reports' %}class="active"{% endif %}><i class="fas fa-clipboard-list"></i> Maintenance Reports</a></li>
+        </ul>
+    </li>
+    <li><a href="{% url 'account_profile' %}" data-standalone-profile {% if request.resolver_match.url_name == 'account_profile' %}class="active"{% endif %}><i class="fas fa-user"></i> Profile</a></li>
+    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+</ul>
