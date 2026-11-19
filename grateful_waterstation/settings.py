@@ -99,10 +99,11 @@ DATABASES = {
         'NAME': os.environ.get('DB_NAME', 'neondb'),
         'USER': os.environ.get('DB_USER', 'neondb_owner'),
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', 'ep-shiny-art-b3qlglbs-pooler.c-4.ap-southeast-1.aws.neon.tech'),
+        'HOST': os.environ.get('DB_HOST', 'ep-shiny-art-b3qlglbs.c-4.ap-southeast-1.aws.neon.tech'),
         'PORT': os.environ.get('DB_PORT', '5432'),
         'OPTIONS': {
             'sslmode': os.environ.get('DB_SSLMODE', 'require'),
+            'channel_binding': os.environ.get('DB_CHANNEL_BINDING', 'require'),
         },
     }
 }
