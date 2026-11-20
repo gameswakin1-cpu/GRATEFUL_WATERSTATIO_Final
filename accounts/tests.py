@@ -235,6 +235,62 @@ class VercelPrivateBlobStorageTests(SimpleTestCase):
 
         self.assertEqual(b''.join(response.streaming_content), b'evidence-data')
 
+    def test_staff_can_view_maintenance_report_photo(self):
+        request = RequestFactory().get(
+            '/accounts/private-media/maintenance_reports/photo.jpg'
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            is_superuser=False,
+            pk=12,
+            profile=SimpleNamespace(role='admin'),
+        )
+        photo = SimpleNamespace(
+            image=SimpleNamespace(
+                open=Mock(return_value=BytesIO(b'maintenance-data')),
+            ),
+        )
+        no_match = Mock()
+        no_match.first.return_value = None
+        no_match.select_related.return_value = no_match
+        matching_photo = Mock()
+        matching_photo.first.return_value = photo
+
+        with (
+            patch.object(views.Order.objects, 'filter', return_value=no_match),
+            patch.object(
+                views.ReturnRequest.objects,
+                'filter',
+                return_value=no_match,
+            ),
+            patch.object(
+                views.ReturnRequestImage.objects,
+                'filter',
+                return_value=no_match,
+            ),
+            patch.object(
+                views.ProductImage.objects,
+                'filter',
+                return_value=no_match,
+            ),
+            patch.object(
+                views.AdminAnnouncementImage.objects,
+                'filter',
+                return_value=no_match,
+            ),
+            patch.object(
+                views.MaintenanceReportPhoto.objects,
+                'filter',
+                return_value=matching_photo,
+            ),
+        ):
+            response = views.private_media(
+                request,
+                'maintenance_reports/photo.jpg',
+            )
+
+        self.assertEqual(b''.join(response.streaming_content), b'maintenance-data')
+
 
 class UserProfileFixtureSignalTests(SimpleTestCase):
     def test_raw_user_fixture_save_does_not_create_or_save_profile(self):

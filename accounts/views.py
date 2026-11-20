@@ -9862,16 +9862,15 @@ def private_media(request, path):
             evidence = ReturnRequestImage.objects.filter(
                 image=path,
             ).select_related('return_request__order').first()
-            if not evidence:
-                raise Http404
-            return_request = evidence.return_request
-            if not is_staff and request.user.pk not in {
-                return_request.order.customer_id,
-                return_request.order.rider_id,
-                return_request.pickup_rider_id,
-            }:
-                raise Http404
-            media = evidence.image
+            if evidence:
+                return_request = evidence.return_request
+                if not is_staff and request.user.pk not in {
+                    return_request.order.customer_id,
+                    return_request.order.rider_id,
+                    return_request.pickup_rider_id,
+                }:
+                    raise Http404
+                media = evidence.image
 
     if media is None:
         product_image = ProductImage.objects.filter(image=path).first()
