@@ -95,7 +95,7 @@
             display: flex;
             gap: .5rem;
             padding: .7rem;
-            margin: 0 1.4rem 1rem;
+            margin: 0 0 1rem;
             border-radius: 12px;
             background: #f1f5f9;
             overflow-x: auto;
@@ -1176,42 +1176,42 @@
             </article>
         </div>
 
+        <!-- Status tabs sit above and outside the orders card. -->
+        <div class="status-tabs">
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=&page=1"
+               class="status-tab {% if not request.GET.status %}active{% endif %}">
+                All <span class="tab-count">{{ all_orders_count }}</span>
+            </a>
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=awaiting_payment&page=1"
+               class="status-tab {% if request.GET.status == 'awaiting_payment' %}active{% endif %}">
+                Awaiting Payment
+                <span class="tab-count">{{ awaiting_payment_count }}</span>
+            </a>
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=pending&page=1"
+               class="status-tab {% if request.GET.status == 'pending' %}active{% endif %}">
+                Pending
+                <span class="tab-count">{{ pending_count }}</span>
+            </a>
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=out_for_delivery&page=1"
+               class="status-tab {% if request.GET.status == 'out_for_delivery' or request.GET.status == 'processing' or request.GET.status == 'choose_rider' or request.GET.status == 'rider_accepted' or request.GET.status == 'send-to-rider' %}active{% endif %}">
+                In Progress <span class="tab-count">{{ in_progress_count }}</span>
+            </a>
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=delivered&page=1"
+               class="status-tab {% if request.GET.status == 'delivered' %}active{% endif %}">
+                Completed <span class="tab-count">{{ completed_orders_count }}</span>
+            </a>
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=return&page=1"
+               class="status-tab {% if request.GET.status == 'return' %}active{% endif %}">
+                Return <span class="tab-count">{{ return_orders_count }}</span>
+            </a>
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=cancelled&page=1"
+               class="status-tab {% if request.GET.status == 'cancelled' %}active{% endif %}">
+                Cancelled <span class="tab-count">{{ cancelled_orders_count }}</span>
+            </a>
+        </div>
+
         <!-- ── Orders Card ── -->
         <div class="orders-card">
-
-            <!-- Status tab pills -->
-            <div class="status-tabs">
-                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=&page=1"
-                   class="status-tab {% if not request.GET.status %}active{% endif %}">
-                    All <span class="tab-count">{{ all_orders_count }}</span>
-                </a>
-                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=awaiting_payment&page=1"
-                   class="status-tab {% if request.GET.status == 'awaiting_payment' %}active{% endif %}">
-                    Awaiting Payment
-                    <span class="tab-count">{{ awaiting_payment_count }}</span>
-                </a>
-                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=pending&page=1"
-                   class="status-tab {% if request.GET.status == 'pending' %}active{% endif %}">
-                    Pending
-                    <span class="tab-count">{{ pending_count }}</span>
-                </a>
-                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=out_for_delivery&page=1"
-                   class="status-tab {% if request.GET.status == 'out_for_delivery' or request.GET.status == 'processing' or request.GET.status == 'choose_rider' or request.GET.status == 'rider_accepted' or request.GET.status == 'send-to-rider' %}active{% endif %}">
-                    In Progress <span class="tab-count">{{ in_progress_count }}</span>
-                </a>
-                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=delivered&page=1"
-                   class="status-tab {% if request.GET.status == 'delivered' %}active{% endif %}">
-                    Completed <span class="tab-count">{{ completed_orders_count }}</span>
-                </a>
-                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=return&page=1"
-                   class="status-tab {% if request.GET.status == 'return' %}active{% endif %}">
-                    Return <span class="tab-count">{{ return_orders_count }}</span>
-                </a>
-                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=cancelled&page=1"
-                   class="status-tab {% if request.GET.status == 'cancelled' %}active{% endif %}">
-                    Cancelled <span class="tab-count">{{ cancelled_orders_count }}</span>
-                </a>
-            </div>
 
             <!-- Card header: title + search + export -->
             <div class="orders-card-header">
