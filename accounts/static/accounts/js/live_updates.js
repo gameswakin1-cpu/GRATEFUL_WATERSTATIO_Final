@@ -425,11 +425,69 @@
 
     let previousToken = null;
     let previousOrderToken = null;
+    let previousProductToken = null;
     let previousReturnRequestToken = null;
     let previousReturnPickupToken = null;
     let previousCustomerReturnToken = null;
     let previousMaintenanceToken = null;
     let previousDeliveryFeeToken = null;
+    let refreshingProductFragments = false;
+
+    async function refreshLiveProductFragments() {
+        const currentFragments = Array.from(
+            document.querySelectorAll('[data-live-products]')
+        );
+        if (!currentFragments.length || refreshingProductFragments) return;
+
+        refreshingProductFragments = true;
+        try {
+            const pageUrl = new URL(window.location.href);
+            pageUrl.searchParams.set('_live_products_refresh', String(Date.now()));
+            const response = await fetch(pageUrl.toString(), {
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) throw new Error('Product refresh request failed');
+            if (
+                response.redirected &&
+                new URL(response.url).pathname !== window.location.pathname
+            ) {
+                throw new Error('Product refresh was redirected');
+            }
+
+            const freshDocument = new DOMParser().parseFromString(
+                await response.text(),
+                'text/html',
+            );
+            const freshFragments = Array.from(
+                freshDocument.querySelectorAll('[data-live-products]')
+            );
+            const usedFragments = new Set();
+            let updated = false;
+
+            currentFragments.forEach((currentFragment) => {
+                const freshFragment = freshFragments.find((candidate) => (
+                    !usedFragments.has(candidate) &&
+                    candidate.dataset.liveProducts === currentFragment.dataset.liveProducts
+                ));
+                if (!freshFragment) return;
+
+                usedFragments.add(freshFragment);
+                currentFragment.innerHTML = freshFragment.innerHTML;
+                updated = true;
+            });
+
+            if (updated) {
+                document.dispatchEvent(new CustomEvent('gws:product-fragments-updated'));
+            }
+        } catch (error) {
+            console.error('Unable to refresh live product sections:', error);
+        } finally {
+            refreshingProductFragments = false;
+        }
+    }
+
+    document.addEventListener('gws:products-updated', refreshLiveProductFragments);
     let customerOrderBaseline = null;
     let adminStaffOrderBaseline = null;
 
@@ -825,6 +883,14 @@
                 const orderStatusChanged =
                     previousOrderToken !== null && orderToken !== previousOrderToken;
                 previousOrderToken = orderToken;
+                const productToken = JSON.stringify(data.products);
+                const productsChanged =
+                    previousProductToken !== null &&
+                    productToken !== previousProductToken;
+                previousProductToken = productToken;
+                if (productsChanged) {
+                    document.dispatchEvent(new CustomEvent('gws:products-updated'));
+                }
                 const returnRequestToken = JSON.stringify(data.return_requests);
                 const returnRequestChanged =
                     previousReturnRequestToken !== null &&
@@ -879,6 +945,7 @@
                         detail: {
                             ...data,
                             orderStatusChanged,
+                            productsChanged,
                             returnRequestChanged,
                             returnPickupChanged,
                             customerReturnChanged,

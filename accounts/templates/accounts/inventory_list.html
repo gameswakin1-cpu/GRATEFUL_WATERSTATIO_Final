@@ -353,7 +353,7 @@
                             {% endif %}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-live-products="inventory-refill">
                         {% for product in refill_products %}
                         <tr>
                             <td><strong>{{ product.name }}</strong></td>
@@ -405,7 +405,7 @@
                             {% endif %}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-live-products="inventory-gallon">
                         {% for product in products %}
                         <tr>
                             <td><strong>{{ product.name }}</strong></td>
@@ -480,14 +480,14 @@
         pendingDeleteForm = null;
     }
 
-    document.querySelectorAll('.action-delete-form').forEach(form => {
-        form.addEventListener('submit', event => {
-            event.preventDefault();
-            pendingDeleteForm = form;
-            deleteModalProduct.textContent = form.dataset.productName || 'Selected product';
-            deleteModal.hidden = false;
-            deleteModalCancel.focus();
-        });
+    document.addEventListener('submit', event => {
+        const form = event.target.closest('.action-delete-form');
+        if (!form) return;
+        event.preventDefault();
+        pendingDeleteForm = form;
+        deleteModalProduct.textContent = form.dataset.productName || 'Selected product';
+        deleteModal.hidden = false;
+        deleteModalCancel.focus();
     });
 
     deleteModalCancel.addEventListener('click', closeDeleteModal);
@@ -508,9 +508,6 @@
             closeDeleteModal();
         }
     });
-
-    // Auto refresh every 5 minutes
-    setTimeout(()=>location.reload(),60000);
 
     // Mobile sidebar
     document.addEventListener('DOMContentLoaded',()=>{

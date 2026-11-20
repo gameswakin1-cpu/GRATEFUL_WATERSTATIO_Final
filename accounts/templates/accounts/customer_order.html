@@ -1971,7 +1971,7 @@
 
                 </div>
 
-                <div class="product-grid" id="productGrid">
+                <div class="product-grid" id="productGrid" data-live-products="customer-order-catalog">
 
                     {% for product in products %}
 
@@ -3517,6 +3517,9 @@
 
     // Initialize with refill category active
     filterByCategory('refill');
+    document.addEventListener('gws:product-fragments-updated', () => {
+        filterByCategory(activeCategory);
+    });
 
     document.getElementById('quickSearch').addEventListener('input', function () {
 

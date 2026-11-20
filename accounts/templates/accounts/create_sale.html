@@ -460,7 +460,7 @@
                 </div>
                 {% endif %}
 
-                <div class="product-grid" id="refillGrid">
+                <div class="product-grid" id="refillGrid" data-live-products="sale-refill">
                     {% for product in refill_products %}
                     <div class="product-card {% if product.product_type == 'gallon' and product.stock_quantity <= 0 %}out-of-stock{% endif %}"
                          data-name="{{ product.name|lower }}"
@@ -504,7 +504,7 @@
                     {% endfor %}
                 </div>
 
-                <div class="product-grid" id="gallonGrid" style="display:none;">
+                <div class="product-grid" id="gallonGrid" data-live-products="sale-gallon" style="display:none;">
                     {% for product in gallon_products %}
                     <div class="product-card {% if product.product_type == 'gallon' and product.stock_quantity <= 0 %}out-of-stock{% endif %}"
                          data-name="{{ product.name|lower }}"
@@ -720,6 +720,7 @@ document.addEventListener('DOMContentLoaded', function () {
             c.style.display = (matchSearch && matchType && matchCat) ? '' : 'none';
         });
     }
+    document.addEventListener('gws:product-fragments-updated', filterProducts);
 
     document.getElementById('quickSearch').addEventListener('input', filterProducts);
 
