@@ -1213,11 +1213,9 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody id="ordersTableBody" data-loaded-status="{% if request.GET.status %}filtered{% else %}all{% endif %}">
+                    <tbody id="ordersTableBody">
                         {% for order in orders %}
-                        <tr class="order-row" data-page="0" data-delivery-fee="{{ order.delivery_fee }}"
-                            data-order-status="{{ order.status }}"
-                            data-has-return="{% if order.return_request %}true{% else %}false{% endif %}">
+                        <tr class="order-row" data-page="0" data-delivery-fee="{{ order.delivery_fee }}">
                             <!-- Customer -->
                             <td>
                                 <strong>{{ order.customer.get_full_name|default:order.customer.username }}</strong>
@@ -2051,41 +2049,11 @@
         select.disabled = false;
     }
 
-    function getOrderStatusFilter(url) {
-        return new URL(url, window.location.href).searchParams.get('status') || 'all';
-    }
-
-    let currentOrderStatusFilter = getOrderStatusFilter(window.location.href);
-    let allOrdersLoaded = document.getElementById('ordersTableBody')?.dataset.loadedStatus === 'all';
-
-    function setActiveOrderStatusTab(status) {
-        document.querySelectorAll('.status-tabs .status-tab').forEach(tab => {
-            const tabStatus = getOrderStatusFilter(tab.href);
-            tab.classList.toggle('active', tabStatus === status);
-        });
-    }
-
-    function orderMatchesStatusFilter(row) {
-        const status = row.dataset.orderStatus;
-        const hasReturn = row.dataset.hasReturn === 'true';
-        if (currentOrderStatusFilter === 'all') return true;
-        if (currentOrderStatusFilter === 'return') return hasReturn;
-        if (currentOrderStatusFilter === 'delivered') {
-            return status === 'delivered' && !hasReturn;
-        }
-        return status === currentOrderStatusFilter;
-    }
-
     let ordersTableRefreshId = 0;
     async function refreshOrdersTableInPlace(url = window.location.href) {
         const refreshId = ++ordersTableRefreshId;
-        const requestUrl = new URL(url, window.location.href);
-        if (allOrdersLoaded) {
-            requestUrl.searchParams.delete('status');
-            requestUrl.searchParams.delete('page');
-        }
         try {
-            const response = await fetch(requestUrl.href, {
+            const response = await fetch(url, {
                 cache: 'no-store',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
             });
@@ -2100,15 +2068,11 @@
             }
 
             currentBody.innerHTML = updatedBody.innerHTML;
-            currentBody.dataset.loadedStatus = updatedBody.dataset.loadedStatus;
-            allOrdersLoaded = currentBody.dataset.loadedStatus === 'all';
-            currentOrderStatusFilter = getOrderStatusFilter(url);
             const currentTabs = document.querySelector('.status-tabs');
             const updatedTabs = updatedDocument.querySelector('.status-tabs');
             if (currentTabs && updatedTabs) currentTabs.replaceWith(updatedTabs);
 
             bindOrderRowActions(currentBody);
-            setActiveOrderStatusTab(currentOrderStatusFilter);
             applyFilters();
         } catch (error) {
             if (refreshId !== ordersTableRefreshId) return;
@@ -2125,22 +2089,10 @@
         if (targetUrl.href === window.location.href) return;
 
         window.history.pushState({}, '', targetUrl.href);
-        currentOrderStatusFilter = getOrderStatusFilter(targetUrl.href);
-        if (allOrdersLoaded) {
-            setActiveOrderStatusTab(currentOrderStatusFilter);
-            applyFilters();
-            return;
-        }
         refreshOrdersTableInPlace(targetUrl.href);
     });
 
     window.addEventListener('popstate', () => {
-        currentOrderStatusFilter = getOrderStatusFilter(window.location.href);
-        if (allOrdersLoaded) {
-            setActiveOrderStatusTab(currentOrderStatusFilter);
-            applyFilters();
-            return;
-        }
         refreshOrdersTableInPlace(window.location.href);
     });
 
@@ -2373,7 +2325,7 @@
         const allRows = Array.from(document.querySelectorAll('#ordersTableBody .order-row'));
 
         allRows.forEach(row => {
-            let show = orderMatchesStatusFilter(row);
+            let show = true;
 
             // Payment filter
             if (activeFilters.payment) {
