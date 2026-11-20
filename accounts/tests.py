@@ -502,6 +502,32 @@ class MaintenanceReportCreateTests(SimpleTestCase):
 
 
 class DeliveryFeeDistanceTests(SimpleTestCase):
+    def test_customer_order_page_uses_default_rates_when_settings_table_is_unavailable(self):
+        request = RequestFactory().get('/accounts/customer/order/')
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            profile=SimpleNamespace(role='customer'),
+        )
+        products = Mock()
+        products.order_by.return_value = []
+
+        with (
+            patch.object(views.Product.objects, 'filter', return_value=products),
+            patch.object(
+                views.StationAvailability.objects,
+                'get_or_create',
+                side_effect=views.DatabaseError('settings table unavailable'),
+            ),
+            patch.object(views, 'render') as render_page,
+        ):
+            views.customer_order_page(request)
+
+        context = render_page.call_args.args[2]
+        self.assertEqual(context['delivery_fee_rates'], {
+            'up_to_2km': Decimal('20.00'),
+            'up_to_3km': Decimal('30.00'),
+        })
+
     def test_customer_order_page_uses_manage_orders_fee_rates(self):
         station_availability = SimpleNamespace(
             delivery_fee_up_to_2km=Decimal('22.00'),

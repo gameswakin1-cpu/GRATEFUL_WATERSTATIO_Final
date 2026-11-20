@@ -24,7 +24,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 
 from django.db.models import Count, Sum, Q, F, OuterRef, Subquery
-from django.db import IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 
 from django.utils import timezone
@@ -9688,11 +9688,17 @@ def update_order_status(request, order_id):
 def customer_order_page(request):
 
     products = Product.objects.filter(is_active=True).order_by('name')
-    station_availability, _ = StationAvailability.objects.get_or_create(pk=1)
-    delivery_fee_rates = {
-        'up_to_2km': station_availability.delivery_fee_up_to_2km,
-        'up_to_3km': station_availability.delivery_fee_up_to_3km,
-    }
+    try:
+        station_availability, _ = StationAvailability.objects.get_or_create(pk=1)
+        delivery_fee_rates = {
+            'up_to_2km': station_availability.delivery_fee_up_to_2km,
+            'up_to_3km': station_availability.delivery_fee_up_to_3km,
+        }
+    except (DatabaseError, AttributeError):
+        delivery_fee_rates = {
+            'up_to_2km': DEFAULT_DELIVERY_FEE_RATES['up_to_2km'],
+            'up_to_3km': DEFAULT_DELIVERY_FEE_RATES['up_to_3km'],
+        }
 
     context = {
 
