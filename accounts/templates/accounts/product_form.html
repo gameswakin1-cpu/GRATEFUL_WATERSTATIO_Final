@@ -20,6 +20,13 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+    <style>
+        .form-container .tab-content:not(.active),
+        .form-container .tab-content[hidden] {
+            display: none !important;
+        }
+    </style>
+
 </head>
 
 <body data-live-updates-url="{% url 'live_updates_api' %}">
@@ -674,33 +681,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tabContents = document.querySelectorAll('.tab-content');
 
+    function activateTab(btn) {
+        const targetTab = btn.getAttribute('data-tab');
 
+        tabBtns.forEach(tab => tab.classList.toggle('active', tab === btn));
+        tabContents.forEach(content => {
+            const isActive = content.id === targetTab;
+            content.classList.toggle('active', isActive);
+            content.hidden = !isActive;
+        });
+    }
 
     tabBtns.forEach(btn => {
 
         btn.addEventListener('click', function() {
 
-            const targetTab = this.getAttribute('data-tab');
-
-
-
-            // Remove active class from all buttons and contents
-
-            tabBtns.forEach(b => b.classList.remove('active'));
-
-            tabContents.forEach(c => c.classList.remove('active'));
-
-
-
-            // Add active class to clicked button and corresponding content
-
-            this.classList.add('active');
-
-            document.getElementById(targetTab).classList.add('active');
+            activateTab(this);
 
         });
 
     });
+
+    const initialTab = Array.from(tabBtns).find(btn => btn.classList.contains('active'))
+        || tabBtns[0];
+    if (initialTab) activateTab(initialTab);
 
 });
 
