@@ -7492,7 +7492,6 @@ def manage_orders(request):
 
 
     tab_counts = Order.objects.aggregate(
-        all_orders_count=Count('id'),
         awaiting_payment_count=Count(
             'id',
             filter=Q(status='awaiting_payment'),
@@ -7501,10 +7500,6 @@ def manage_orders(request):
         in_progress_count=Count(
             'id',
             filter=Q(status__in=in_progress_statuses),
-        ),
-        completed_orders_count=Count(
-            'id',
-            filter=Q(status='delivered', return_request__isnull=True),
         ),
         return_orders_count=Count(
             'id',
@@ -8016,11 +8011,9 @@ def manage_orders(request):
 
         'products': products,
 
-        'all_orders_count': tab_counts['all_orders_count'],
         'awaiting_payment_count': tab_counts['awaiting_payment_count'],
         'pending_count': tab_counts['pending_count'],
         'in_progress_count': tab_counts['in_progress_count'],
-        'completed_orders_count': tab_counts['completed_orders_count'],
         'return_orders_count': tab_counts['return_orders_count'],
         'cancelled_orders_count': tab_counts['cancelled_orders_count'],
         'processing_count': processing_count,
