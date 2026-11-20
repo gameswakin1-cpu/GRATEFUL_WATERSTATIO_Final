@@ -7471,76 +7471,47 @@ def manage_orders(request):
 
     status_filter = request.GET.get('status')
 
-
-
-
-
-
-
-
+    in_progress_statuses = (
+        'processing',
+        'choose_rider',
+        'send-to-rider',
+        'rider_accepted',
+        'out_for_delivery',
+    )
 
     if status_filter:
-
-
-
-
-
-
 
         if status_filter == 'return':
             orders = orders.filter(return_request__isnull=False)
         elif status_filter == 'delivered':
             orders = orders.filter(status='delivered', return_request__isnull=True)
+        elif status_filter == 'out_for_delivery':
+            orders = orders.filter(status__in=in_progress_statuses)
         else:
             orders = orders.filter(status=status_filter)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    pending_count = Order.objects.filter(status='pending').count()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    awaiting_payment_count = Order.objects.filter(status='awaiting_payment').count()
+    tab_counts = Order.objects.aggregate(
+        all_orders_count=Count('id'),
+        awaiting_payment_count=Count(
+            'id',
+            filter=Q(status='awaiting_payment'),
+        ),
+        pending_count=Count('id', filter=Q(status='pending')),
+        in_progress_count=Count(
+            'id',
+            filter=Q(status__in=in_progress_statuses),
+        ),
+        completed_orders_count=Count(
+            'id',
+            filter=Q(status='delivered', return_request__isnull=True),
+        ),
+        return_orders_count=Count(
+            'id',
+            filter=Q(return_request__isnull=False),
+        ),
+        cancelled_orders_count=Count('id', filter=Q(status='cancelled')),
+    )
 
 
 
@@ -8045,52 +8016,13 @@ def manage_orders(request):
 
         'products': products,
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        'pending_count': pending_count,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        'awaiting_payment_count': awaiting_payment_count,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        'all_orders_count': tab_counts['all_orders_count'],
+        'awaiting_payment_count': tab_counts['awaiting_payment_count'],
+        'pending_count': tab_counts['pending_count'],
+        'in_progress_count': tab_counts['in_progress_count'],
+        'completed_orders_count': tab_counts['completed_orders_count'],
+        'return_orders_count': tab_counts['return_orders_count'],
+        'cancelled_orders_count': tab_counts['cancelled_orders_count'],
         'processing_count': processing_count,
 
 

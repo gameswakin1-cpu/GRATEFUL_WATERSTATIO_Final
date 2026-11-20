@@ -93,10 +93,14 @@
         /* Status tab pills */
         .status-tabs {
             display: flex;
-            gap: 0;
-            padding: .55rem 1.4rem 0;
-            border-bottom: 1px solid var(--border, #e5e7eb);
+            gap: .5rem;
+            padding: .7rem;
+            margin: 0 1.4rem 1rem;
+            border-radius: 12px;
+            background: #f1f5f9;
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
             scrollbar-width: none;
         }
         .status-tabs::-webkit-scrollbar { display: none; }
@@ -104,36 +108,57 @@
             display: inline-flex;
             align-items: center;
             gap: .35rem;
-            padding: .55rem 1rem;
-            font-size: .82rem;
-            font-weight: 500;
-            color: var(--text-muted, #6b7280);
-            border-bottom: 2.5px solid transparent;
+            flex: 0 0 auto;
+            padding: .48rem .8rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            background: #fff;
+            color: #475569;
+            font-size: .78rem;
+            font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
             text-decoration: none;
-            transition: color .15s;
-            margin-bottom: -1px;
+            transition: color .15s, background .15s, border-color .15s, box-shadow .15s;
         }
-        .status-tab:hover { color: var(--primary, #0ea5e9); }
+        .status-tab:hover {
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+            background: #f8fbff;
+        }
         .status-tab.active {
-            color: var(--primary, #0ea5e9);
-            border-bottom-color: var(--primary, #0ea5e9);
+            color: #2563eb;
+            border-color: #3b82f6;
+            background: #fff;
             font-weight: 600;
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, .08);
         }
         .tab-count {
-            background: var(--bg, #f3f4f6);
-            color: var(--text-muted, #6b7280);
-            font-size: .7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            padding: .1rem .4rem;
+            border-radius: 999px;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: .68rem;
             font-weight: 700;
-            padding: .08rem .4rem;
-            border-radius: 10px;
-            min-width: 18px;
-            text-align: center;
         }
         .status-tab.active .tab-count {
-            background: #e0f2fe;
-            color: var(--primary, #0ea5e9);
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        @media (max-width: 520px) {
+            .status-tabs {
+                gap: .4rem;
+                margin: 0 .75rem .85rem;
+                padding: .6rem;
+            }
+            .status-tab {
+                padding: .45rem .68rem;
+                font-size: .75rem;
+            }
         }
 
         /* Clean table inside card */
@@ -1154,47 +1179,43 @@
         <!-- ── Orders Card ── -->
         <div class="orders-card">
 
-            <!-- Card header: title + search + export -->
-            <div class="orders-card-header">
-                <span class="orders-card-title">All Orders</span>
-                
-            </div>
-
             <!-- Status tab pills -->
             <div class="status-tabs">
-                {# Build counts for each tab - counting from the full unfiltered queryset #}
-                {% with all_count=orders.count %}
                 <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=&page=1"
                    class="status-tab {% if not request.GET.status %}active{% endif %}">
-                    All
+                    All <span class="tab-count">{{ all_orders_count }}</span>
                 </a>
                 <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=awaiting_payment&page=1"
                    class="status-tab {% if request.GET.status == 'awaiting_payment' %}active{% endif %}">
                     Awaiting Payment
-                    {% if awaiting_payment_count > 0 %}<span class="tab-count">{{ awaiting_payment_count }}</span>{% endif %}
+                    <span class="tab-count">{{ awaiting_payment_count }}</span>
                 </a>
                 <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=pending&page=1"
                    class="status-tab {% if request.GET.status == 'pending' %}active{% endif %}">
                     Pending
-                    {% if pending_count > 0 %}<span class="tab-count">{{ pending_count }}</span>{% endif %}
+                    <span class="tab-count">{{ pending_count }}</span>
                 </a>
                 <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=out_for_delivery&page=1"
                    class="status-tab {% if request.GET.status == 'out_for_delivery' or request.GET.status == 'processing' or request.GET.status == 'choose_rider' or request.GET.status == 'rider_accepted' or request.GET.status == 'send-to-rider' %}active{% endif %}">
-                    In Progress
+                    In Progress <span class="tab-count">{{ in_progress_count }}</span>
                 </a>
                 <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=delivered&page=1"
                    class="status-tab {% if request.GET.status == 'delivered' %}active{% endif %}">
-                    Completed
+                    Completed <span class="tab-count">{{ completed_orders_count }}</span>
                 </a>
                 <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=return&page=1"
                    class="status-tab {% if request.GET.status == 'return' %}active{% endif %}">
-                    Return
+                    Return <span class="tab-count">{{ return_orders_count }}</span>
                 </a>
                 <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}status=cancelled&page=1"
                    class="status-tab {% if request.GET.status == 'cancelled' %}active{% endif %}">
-                    Cancelled
+                    Cancelled <span class="tab-count">{{ cancelled_orders_count }}</span>
                 </a>
-                {% endwith %}
+            </div>
+
+            <!-- Card header: title + search + export -->
+            <div class="orders-card-header">
+                <span class="orders-card-title">All Orders</span>
             </div>
 
             <!-- Table -->
