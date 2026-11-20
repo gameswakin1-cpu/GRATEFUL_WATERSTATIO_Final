@@ -19,6 +19,7 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 
 from .adapters import CustomSocialAccountAdapter
+from .decorators import customer_required
 from .forms import (
     EmailRegistrationForm,
     GoogleProfileCompletionForm,
@@ -35,6 +36,30 @@ from .models import (
     save_user_profile,
 )
 from . import views
+
+
+class RoleRequiredTests(SimpleTestCase):
+    def test_customer_route_creates_missing_profile(self):
+        request = RequestFactory().get('/accounts/customer/order/')
+        request.user = SimpleNamespace(is_authenticated=True)
+        customer_profile = SimpleNamespace(role='customer')
+
+        @customer_required
+        def customer_view(request):
+            return HttpResponse('ok')
+
+        with patch.object(
+            UserProfile.objects,
+            'get_or_create',
+            return_value=(customer_profile, True),
+        ) as get_or_create:
+            response = customer_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        get_or_create.assert_called_once_with(
+            user=request.user,
+            defaults={'role': 'customer'},
+        )
 
 
 class UserProfileFixtureSignalTests(SimpleTestCase):
