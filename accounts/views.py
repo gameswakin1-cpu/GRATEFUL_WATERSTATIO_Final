@@ -29444,7 +29444,10 @@ def get_maintenance_reports(request):
     """API endpoint to get all maintenance reports"""
 
     # Keep every report in the log, including Resolved and Closed reports.
-    reports = MaintenanceReport.objects.all().order_by('-created_at')
+    reports = MaintenanceReport.objects.select_related(
+        'reported_by',
+        'resolved_by',
+    ).prefetch_related('photos').order_by('-created_at')
     # A completed task's updated_at reflects when it was moved to Completed.
     completed_tasks = MaintenanceTask.objects.filter(
         status='Completed'
@@ -29589,53 +29592,22 @@ def create_maintenance_task(request):
 
 
 
-@admin_required
-
-@require_http_methods(["POST"])
-
-def create_maintenance_report(request):
-
-    """Create a new maintenance report"""
-
-    category = request.POST.get('category', '').strip()
-    description = request.POST.get('description', '').strip()
-    priority = request.POST.get('priority', 'Medium').strip()
-    due_date = parse_date(request.POST.get('due_date', ''))
-    photos = request.FILES.getlist('photos')
-    if not photos and request.FILES.get('photo'):
-        photos = [request.FILES['photo']]
-
-    valid_categories = {value for value, _label in MaintenanceReport.CATEGORY_CHOICES}
-    valid_priorities = {value for value, _label in MaintenanceReport.PRIORITY_CHOICES}
-    if category not in valid_categories:
-        return JsonResponse({'success': False, 'message': 'Please choose a valid maintenance category.'}, status=400)
-    if priority not in valid_priorities:
-        return JsonResponse({'success': False, 'message': 'Please choose a valid priority.'}, status=400)
-    if due_date is None:
-        return JsonResponse({'success': False, 'message': 'Please provide a valid due date.'}, status=400)
-    if due_date < timezone.localdate():
-        return JsonResponse({'success': False, 'message': 'Due date cannot be in the past.'}, status=400)
-
+def _validate_maintenance_report_photos(photos):
     for photo in photos:
         if photo.size > 5 * 1024 * 1024:
-            return JsonResponse({'success': False, 'message': 'Photo must be 5 MB or smaller.'}, status=400)
+            return 'Photo must be 5 MB or smaller.'
         if photo.content_type not in {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}:
-            return JsonResponse({'success': False, 'message': 'Upload a JPEG, PNG, WEBP, or GIF image.'}, status=400)
+            return 'Upload a JPEG, PNG, WEBP, or GIF image.'
         try:
             image = Image.open(photo)
             image.verify()
             photo.seek(0)
         except (UnidentifiedImageError, OSError, ValueError):
-            return JsonResponse({'success': False, 'message': 'The uploaded file is not a valid image.'}, status=400)
+            return 'The uploaded file is not a valid image.'
+    return None
 
-    report = MaintenanceReport.objects.create(
-        category=category,
-        description=description,
-        due_date=due_date,
-        priority=priority,
-        status='Open',
-        reported_by=request.user,
-    )
+
+def _save_maintenance_report_photos(report, photos):
     for photo in photos:
         image = Image.open(photo)
         image.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
@@ -29657,10 +29629,99 @@ def create_maintenance_report(request):
             save=True,
         )
 
+
+@admin_required
+@require_http_methods(["POST"])
+def upload_maintenance_report_photos(request, report_id):
+    report = get_object_or_404(MaintenanceReport, id=report_id)
+    photos = request.FILES.getlist('photos')
+    if not photos:
+        return JsonResponse(
+            {'success': False, 'message': 'Please select at least one photo.'},
+            status=400,
+        )
+
+    error = _validate_maintenance_report_photos(photos)
+    if error:
+        return JsonResponse({'success': False, 'message': error}, status=400)
+
+    _save_maintenance_report_photos(report, photos)
+    report.save(update_fields=['updated_at'])
+    return JsonResponse({'success': True, 'message': 'Photos uploaded successfully.'})
+
+
+@admin_required
+@require_http_methods(["POST"])
+def create_maintenance_report(request):
+
+    """Create a new maintenance report"""
+
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse(
+                {'success': False, 'message': 'Invalid report data.'},
+                status=400,
+            )
+        if not isinstance(data, dict):
+            return JsonResponse(
+                {'success': False, 'message': 'Invalid report data.'},
+                status=400,
+            )
+    else:
+        data = request.POST
+
+    category = str(data.get('category', '')).strip()
+    description = str(data.get('description', '')).strip()
+    priority = str(data.get('priority', 'Medium')).strip()
+    due_date = parse_date(str(data.get('due_date', '') or ''))
+    photos = request.FILES.getlist('photos')
+    if not photos and request.FILES.get('photo'):
+        photos = [request.FILES['photo']]
+
+    valid_categories = {value for value, _label in MaintenanceReport.CATEGORY_CHOICES}
+    valid_priorities = {value for value, _label in MaintenanceReport.PRIORITY_CHOICES}
+    if category not in valid_categories:
+        return JsonResponse({'success': False, 'message': 'Please choose a valid maintenance category.'}, status=400)
+    if priority not in valid_priorities:
+        return JsonResponse({'success': False, 'message': 'Please choose a valid priority.'}, status=400)
+    if due_date is None:
+        return JsonResponse({'success': False, 'message': 'Please provide a valid due date.'}, status=400)
+    if due_date < timezone.localdate():
+        return JsonResponse({'success': False, 'message': 'Due date cannot be in the past.'}, status=400)
+
+    error = _validate_maintenance_report_photos(photos)
+    if error:
+        return JsonResponse({'success': False, 'message': error}, status=400)
+
+    report = MaintenanceReport.objects.create(
+        category=category,
+        description=description,
+        due_date=due_date,
+        priority=priority,
+        status='Open',
+        reported_by=request.user,
+    )
+    if photos:
+        _save_maintenance_report_photos(report, photos)
+
     return JsonResponse({
         'success': True,
         'message': 'Report created successfully',
         'report_id': report.id,
+        'report': {
+            'id': report.id,
+            'category': report.category,
+            'description': report.description,
+            'due_date': report.due_date.isoformat() if report.due_date else '',
+            'photo_urls': [],
+            'priority': report.priority,
+            'status': report.status,
+            'date': report.created_at.strftime('%Y-%m-%d %H:%M'),
+            'reported_by': request.user.username,
+            'staff_name': '',
+        },
     })
 
 

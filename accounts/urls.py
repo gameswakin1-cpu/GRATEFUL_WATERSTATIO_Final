@@ -398,6 +398,7 @@ path('api/maintenance/tasks/', views.get_maintenance_tasks, name='get_maintenanc
 path('api/maintenance/reports/', views.get_maintenance_reports, name='get_maintenance_reports'),
 path('api/maintenance/task/create/', views.create_maintenance_task, name='create_maintenance_task'),
 path('api/maintenance/report/create/', views.create_maintenance_report, name='create_maintenance_report'),
+path('api/maintenance/report/<int:report_id>/photos/', views.upload_maintenance_report_photos, name='upload_maintenance_report_photos'),
 path('api/maintenance/task/<int:task_id>/delete/', views.delete_maintenance_task, name='delete_maintenance_task'),
 path('api/maintenance/report/<int:report_id>/delete/', views.delete_maintenance_report, name='delete_maintenance_report'),
 path('api/maintenance/task/<int:task_id>/status/', views.update_maintenance_task_status, name='update_task_status'),

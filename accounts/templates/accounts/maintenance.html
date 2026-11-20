@@ -830,42 +830,77 @@
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
         
         try {
-            const formData = new FormData();
-            formData.append('category', category);
-            formData.append('priority', priority);
-            formData.append('description', description);
-            formData.append('due_date', dueDate);
-            photos.forEach(photo => formData.append('photos', photo));
-
             const response = await fetch("{% url 'create_maintenance_report' %}", {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
                 },
-                body: formData
+                body: JSON.stringify({category, priority, description, due_date: dueDate})
             });
             const data = await response.json();
-            if (data.success) {
-                closeSchedulingModal();
-                const categorySelect = document.getElementById('maint-category');
-                categorySelect.value = '';
-                updateTaskSelectColor(categorySelect);
-                refreshColorSelect(categorySelect);
-                document.getElementById('maint-priority').value = 'Medium';
-                document.getElementById('maint-description').value = '';
-                document.getElementById('maint-due-date').value = '';
-                photoInput.value = '';
-                await loadReports();
-                showNotification('Maintenance report logged successfully!', 'success');
-            } else {
-                showNotification(data.message || 'Error logging report', 'error');
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Error logging report');
+            }
+
+            reportsData = [data.report, ...reportsData.filter(report => report.id !== data.report.id)];
+            updateMaintenanceTasksPanel();
+            updateMaintenanceOverview();
+            renderCalendar();
+
+            closeSchedulingModal();
+            const categorySelect = document.getElementById('maint-category');
+            categorySelect.value = '';
+            updateTaskSelectColor(categorySelect);
+            refreshColorSelect(categorySelect);
+            document.getElementById('maint-priority').value = 'Medium';
+            document.getElementById('maint-description').value = '';
+            document.getElementById('maint-due-date').value = '';
+            photoInput.value = '';
+            showNotification(
+                photos.length
+                    ? 'Maintenance task logged. Photos are uploading.'
+                    : 'Maintenance task logged successfully!',
+                'success'
+            );
+
+            if (photos.length) {
+                uploadMaintenanceReportPhotos(data.report_id, photos);
             }
         } catch (error) {
-            showNotification('Error logging report', 'error');
+            showNotification(error.message || 'Error logging report', 'error');
             console.error(error);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
+        }
+    }
+
+    async function uploadMaintenanceReportPhotos(reportId, photos) {
+        const formData = new FormData();
+        photos.forEach(photo => formData.append('photos', photo));
+
+        try {
+            const response = await fetch(
+                `{% url 'upload_maintenance_report_photos' 0 %}`.replace('0', reportId),
+                {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': getCookie('csrftoken')},
+                    body: formData
+                }
+            );
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Photo upload failed.');
+            }
+            await loadReports();
+            showNotification('Maintenance task photos uploaded successfully.', 'success');
+        } catch (error) {
+            console.error('Error uploading maintenance task photos:', error);
+            showNotification(
+                `Task was created, but its photos could not be uploaded: ${error.message}`,
+                'error'
+            );
         }
     }
 

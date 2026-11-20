@@ -731,6 +731,7 @@ class MaintenanceReportCreateTests(SimpleTestCase):
     def setUp(self):
         self.admin = SimpleNamespace(
             is_authenticated=True,
+            username='admin',
             profile=SimpleNamespace(role='admin'),
         )
 
@@ -744,7 +745,15 @@ class MaintenanceReportCreateTests(SimpleTestCase):
         )
 
     def test_report_saves_due_date_and_uploaded_photo(self):
-        report = SimpleNamespace(id=45)
+        report = SimpleNamespace(
+            id=45,
+            category='Filter System',
+            description='Filter housing is cracked.',
+            due_date=timezone.localdate(),
+            priority='High',
+            status='Open',
+            created_at=timezone.now(),
+        )
         request = RequestFactory().post(
             '/accounts/api/maintenance/report/create/',
             data={
@@ -761,7 +770,11 @@ class MaintenanceReportCreateTests(SimpleTestCase):
             views.MaintenanceReport.objects,
             'create',
             return_value=report,
-        ) as create_report:
+        ) as create_report, patch.object(
+            views.MaintenanceReportPhoto.objects,
+            'create',
+            return_value=SimpleNamespace(image=Mock()),
+        ) as create_photo:
             response = views.create_maintenance_report(request)
 
         self.assertEqual(response.status_code, 200)
@@ -770,7 +783,64 @@ class MaintenanceReportCreateTests(SimpleTestCase):
             created_fields['due_date'],
             timezone.localdate(),
         )
-        self.assertEqual(created_fields['photo'].name, 'maintenance-issue.png')
+        create_photo.assert_called_once_with(report=report)
+        create_photo.return_value.image.save.assert_called_once()
+        self.assertEqual(json.loads(response.content)['report_id'], report.id)
+
+    def test_json_report_returns_data_for_immediate_display(self):
+        report = SimpleNamespace(
+            id=46,
+            category='Water Pump',
+            description='Pump is leaking.',
+            due_date=timezone.localdate(),
+            priority='High',
+            status='Open',
+            created_at=timezone.now(),
+        )
+        request = RequestFactory().post(
+            '/accounts/api/maintenance/report/create/',
+            data=json.dumps({
+                'category': report.category,
+                'description': report.description,
+                'priority': report.priority,
+                'due_date': report.due_date.isoformat(),
+            }),
+            content_type='application/json',
+        )
+        request.user = self.admin
+
+        with patch.object(
+            views.MaintenanceReport.objects,
+            'create',
+            return_value=report,
+        ), patch.object(views, '_save_maintenance_report_photos') as save_photos:
+            response = views.create_maintenance_report(request)
+
+        self.assertEqual(response.status_code, 200)
+        payload = json.loads(response.content)
+        self.assertEqual(payload['report']['id'], report.id)
+        self.assertEqual(payload['report']['category'], report.category)
+        self.assertEqual(payload['report']['photo_urls'], [])
+        save_photos.assert_not_called()
+
+    def test_report_photo_upload_is_a_separate_request(self):
+        report = SimpleNamespace(id=45, save=Mock())
+        request = RequestFactory().post(
+            '/accounts/api/maintenance/report/45/photos/',
+            data={'photos': self.create_test_image()},
+        )
+        request.user = self.admin
+
+        with patch.object(views, 'get_object_or_404', return_value=report), patch.object(
+            views,
+            '_validate_maintenance_report_photos',
+            return_value=None,
+        ), patch.object(views, '_save_maintenance_report_photos') as save_photos:
+            response = views.upload_maintenance_report_photos(request, report.id)
+
+        self.assertEqual(response.status_code, 200)
+        save_photos.assert_called_once_with(report, request.FILES.getlist('photos'))
+        report.save.assert_called_once_with(update_fields=['updated_at'])
 
     def test_report_requires_due_date(self):
         request = RequestFactory().post(
