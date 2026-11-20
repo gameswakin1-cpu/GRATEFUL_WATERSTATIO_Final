@@ -292,4 +292,17 @@
     .dashboard-profile-link {
         font-size: .72rem;
     }
+
+    .dashboard-notification-panel,
+    .dashboard-settings-menu {
+        position: fixed;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+
+    .dashboard-notification-panel {
+        max-height: min(440px, calc(100vh - 1.5rem));
+        max-height: min(440px, calc(100dvh - 1.5rem));
+    }
 }

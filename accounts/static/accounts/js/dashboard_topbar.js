@@ -4,12 +4,28 @@
     const settingsToggle = document.querySelector('[data-dashboard-settings-toggle]');
     const settingsMenu = document.querySelector('[data-dashboard-settings-menu]');
 
+    function positionMobilePopup(toggle, popup) {
+        if (window.innerWidth > 520) {
+            popup.style.removeProperty('top');
+            return;
+        }
+
+        const toggleRect = toggle.getBoundingClientRect();
+        const popupHeight = popup.getBoundingClientRect().height;
+        const top = Math.max(
+            12,
+            Math.min(toggleRect.bottom + 8, window.innerHeight - popupHeight - 12)
+        );
+        popup.style.top = `${top}px`;
+    }
+
     if (settingsToggle && settingsMenu) {
         settingsToggle.addEventListener('click', event => {
             event.stopPropagation();
             const isOpen = !settingsMenu.hidden;
             settingsMenu.hidden = isOpen;
             settingsToggle.setAttribute('aria-expanded', String(!isOpen));
+            if (!isOpen) positionMobilePopup(settingsToggle, settingsMenu);
         });
         document.addEventListener('click', event => {
             if (!settingsMenu.hidden && !settingsMenu.contains(event.target) && event.target !== settingsToggle) {
@@ -253,7 +269,10 @@
         const opening = panel.hidden;
         panel.hidden = !opening;
         bell.setAttribute('aria-expanded', String(opening));
-        if (opening) loadNotifications();
+        if (opening) {
+            positionMobilePopup(bell, panel);
+            loadNotifications();
+        }
     });
 
     document.addEventListener('click', event => {
@@ -269,6 +288,13 @@
             bell.setAttribute('aria-expanded', 'false');
             bell.focus();
         }
+    });
+
+    window.addEventListener('resize', () => {
+        if (settingsMenu && !settingsMenu.hidden) {
+            positionMobilePopup(settingsToggle, settingsMenu);
+        }
+        if (!panel.hidden) positionMobilePopup(bell, panel);
     });
 
     window.addEventListener('storage', event => {
