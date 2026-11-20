@@ -2049,17 +2049,17 @@
         select.disabled = false;
     }
 
-    let refreshingOrdersTable = false;
-    async function refreshOrdersTableInPlace() {
-        if (refreshingOrdersTable) return;
-        refreshingOrdersTable = true;
+    let ordersTableRefreshId = 0;
+    async function refreshOrdersTableInPlace(url = window.location.href) {
+        const refreshId = ++ordersTableRefreshId;
         try {
-            const response = await fetch(window.location.href, {
+            const response = await fetch(url, {
                 cache: 'no-store',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
             });
             if (!response.ok) throw new Error(`Order refresh failed (${response.status})`);
             const html = await response.text();
+            if (refreshId !== ordersTableRefreshId) return;
             const updatedDocument = new DOMParser().parseFromString(html, 'text/html');
             const currentBody = document.getElementById('ordersTableBody');
             const updatedBody = updatedDocument.getElementById('ordersTableBody');
@@ -2075,11 +2075,26 @@
             bindOrderRowActions(currentBody);
             applyFilters();
         } catch (error) {
+            if (refreshId !== ordersTableRefreshId) return;
             console.error('Unable to update the orders table:', error);
-        } finally {
-            refreshingOrdersTable = false;
         }
     }
+
+    document.addEventListener('click', event => {
+        const statusTab = event.target.closest('.status-tabs .status-tab');
+        if (!statusTab) return;
+
+        event.preventDefault();
+        const targetUrl = new URL(statusTab.href, window.location.href);
+        if (targetUrl.href === window.location.href) return;
+
+        window.history.pushState({}, '', targetUrl.href);
+        refreshOrdersTableInPlace(targetUrl.href);
+    });
+
+    window.addEventListener('popstate', () => {
+        refreshOrdersTableInPlace(window.location.href);
+    });
 
     document.addEventListener('gws:live-update', event => {
         const latestOrder = event.detail?.latest_customer_order;
