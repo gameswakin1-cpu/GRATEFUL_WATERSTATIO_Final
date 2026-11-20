@@ -60,37 +60,6 @@
             align-items: flex-end;
         }
 
-        .inventory-tabs {
-            display: flex;
-            gap: .5rem;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .inventory-tab {
-            padding: .75rem 1rem;
-            border: 0;
-            border-bottom: 3px solid transparent;
-            background: transparent;
-            color: #64748b;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .inventory-tab[aria-selected="true"] {
-            border-bottom-color: #1a7db7;
-            color: #1a7db7;
-        }
-
-        .inventory-tab:focus-visible {
-            outline: 2px solid #1a7db7;
-            outline-offset: 2px;
-        }
-
-        .inventory-panel[hidden] {
-            display: none !important;
-        }
-
         .btn-apply, .btn-reset {
             padding: 10px 20px;
             border: none;
@@ -366,38 +335,7 @@
             {% endfor %}
         {% endif %}
 
-        <div class="inventory-tabs" role="tablist" aria-label="Product type">
-            <button
-                type="button"
-                class="inventory-tab"
-                id="refillTab"
-                role="tab"
-                aria-controls="refillPanel"
-                aria-selected="true"
-                tabindex="0"
-                data-inventory-tab="refill"
-            >Water Refill</button>
-            <button
-                type="button"
-                class="inventory-tab"
-                id="gallonTab"
-                role="tab"
-                aria-controls="gallonPanel"
-                aria-selected="false"
-                tabindex="-1"
-                data-inventory-tab="gallon"
-            >Water Gallon</button>
-        </div>
-
         <!-- Water Refill Products -->
-        <section
-            class="inventory-panel"
-            id="refillPanel"
-            role="tabpanel"
-            aria-labelledby="refillTab"
-            tabindex="0"
-            data-inventory-panel="refill"
-        >
         <div class="data-table">
             <div class="table-header">
                 <h2><i class="fas fa-tint"></i> Water Refill Products</h2>
@@ -447,18 +385,8 @@
                 </table>
             </div>
         </div>
-        </section>
 
         <!-- Inventory Table -->
-        <section
-            class="inventory-panel"
-            id="gallonPanel"
-            role="tabpanel"
-            aria-labelledby="gallonTab"
-            tabindex="0"
-            data-inventory-panel="gallon"
-            hidden
-        >
         <div class="data-table">
             <div class="table-header">
                 <h2><i class="fas fa-boxes"></i> Water Gallon Products</h2>
@@ -521,7 +449,6 @@
                 </table>
             </div>
         </div>
-        </section>
 
     </main>
 </div>
@@ -551,44 +478,6 @@
     const deleteModalCancel = document.getElementById('deleteModalCancel');
     const deleteModalConfirm = document.getElementById('deleteModalConfirm');
     let pendingDeleteForm = null;
-    const inventoryTabs = Array.from(
-        document.querySelectorAll('[data-inventory-tab]')
-    );
-    const inventoryPanels = Array.from(
-        document.querySelectorAll('[data-inventory-panel]')
-    );
-
-    function activateInventoryTab(tab, focus = false) {
-        inventoryTabs.forEach(item => {
-            const isSelected = item === tab;
-            item.setAttribute('aria-selected', String(isSelected));
-            item.tabIndex = isSelected ? 0 : -1;
-        });
-        inventoryPanels.forEach(panel => {
-            panel.hidden = panel.dataset.inventoryPanel !== tab.dataset.inventoryTab;
-        });
-        if (focus) tab.focus();
-    }
-
-    inventoryTabs.forEach((tab, index) => {
-        tab.addEventListener('click', () => activateInventoryTab(tab));
-        tab.addEventListener('keydown', event => {
-            let nextIndex = index;
-            if (event.key === 'ArrowRight') {
-                nextIndex = (index + 1) % inventoryTabs.length;
-            } else if (event.key === 'ArrowLeft') {
-                nextIndex = (index - 1 + inventoryTabs.length) % inventoryTabs.length;
-            } else if (event.key === 'Home') {
-                nextIndex = 0;
-            } else if (event.key === 'End') {
-                nextIndex = inventoryTabs.length - 1;
-            } else {
-                return;
-            }
-            event.preventDefault();
-            activateInventoryTab(inventoryTabs[nextIndex], true);
-        });
-    });
 
     function closeDeleteModal() {
         deleteModal.hidden = true;

@@ -24860,70 +24860,14 @@ def product_edit(request, product_id):
 
 
     product = get_object_or_404(Product, id=product_id)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    edit_product_type = product.product_type
 
     categories = Category.objects.all()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     if request.method == 'POST':
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        form = ProductForm(request.POST, request.FILES, instance=product)
+        post_data = request.POST.copy()
+        post_data['product_type'] = edit_product_type
+        form = ProductForm(post_data, request.FILES, instance=product)
 
 
 
@@ -25091,37 +25035,8 @@ def product_edit(request, product_id):
 
 
         'title': 'Edit Product',
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         'product': product,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        'edit_product_type': edit_product_type,
         'categories': categories,
 
 

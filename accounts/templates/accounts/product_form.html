@@ -188,16 +188,16 @@
 
             <div class="product-type-tabs">
 
-                {% if not product or product.product_type == 'refill' %}
-                <button class="tab-btn {% if form.is_bound %}{% if form.product_type.value == 'refill' %}active{% endif %}{% elif not product or product.product_type == 'refill' %}active{% endif %}" data-tab="water-refill">
+                {% if not product or edit_product_type == 'refill' %}
+                <button class="tab-btn {% if product %}{% if edit_product_type == 'refill' %}active{% endif %}{% elif form.is_bound %}{% if form.product_type.value == 'refill' %}active{% endif %}{% else %}active{% endif %}" data-tab="water-refill">
 
                     <i class="fas fa-tint"></i> Water Refill
 
                 </button>
                 {% endif %}
 
-                {% if not product or product.product_type == 'gallon' %}
-                <button class="tab-btn {% if form.is_bound %}{% if form.product_type.value == 'gallon' %}active{% endif %}{% elif product and product.product_type == 'gallon' %}active{% endif %}" data-tab="water-gallon">
+                {% if not product or edit_product_type == 'gallon' %}
+                <button class="tab-btn {% if product %}{% if edit_product_type == 'gallon' %}active{% endif %}{% elif form.is_bound %}{% if form.product_type.value == 'gallon' %}active{% endif %}{% endif %}" data-tab="water-gallon">
 
                     <i class="fas fa-box"></i> Water Gallon
 
@@ -210,8 +210,8 @@
 
             <!-- Water Refill Form -->
 
-            {% if not product or product.product_type == 'refill' %}
-            <div class="tab-content {% if form.is_bound %}{% if form.product_type.value == 'refill' %}active{% endif %}{% elif not product or product.product_type == 'refill' %}active{% endif %}" id="water-refill">
+            {% if not product or edit_product_type == 'refill' %}
+            <div class="tab-content {% if product %}{% if edit_product_type == 'refill' %}active{% endif %}{% elif form.is_bound %}{% if form.product_type.value == 'refill' %}active{% endif %}{% else %}active{% endif %}" id="water-refill">
 
             <form method="POST" enctype="multipart/form-data" id="waterRefillForm" class="water-refill-form">
 
@@ -396,8 +396,8 @@
 
             <!-- Water Gallon Form -->
 
-            {% if not product or product.product_type == 'gallon' %}
-            <div class="tab-content {% if form.is_bound %}{% if form.product_type.value == 'gallon' %}active{% endif %}{% elif product and product.product_type == 'gallon' %}active{% endif %}" id="water-gallon">
+            {% if not product or edit_product_type == 'gallon' %}
+            <div class="tab-content {% if product %}{% if edit_product_type == 'gallon' %}active{% endif %}{% elif form.is_bound %}{% if form.product_type.value == 'gallon' %}active{% endif %}{% endif %}" id="water-gallon">
 
             <form method="POST" enctype="multipart/form-data" id="waterGallonForm" class="water-gallon-form">
 

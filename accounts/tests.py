@@ -64,6 +64,61 @@ class RoleRequiredTests(SimpleTestCase):
         )
 
 
+class ProductEditTypeTests(SimpleTestCase):
+    def test_edit_keeps_existing_product_type_and_tab(self):
+        for existing_type, submitted_type in (
+            ('refill', 'gallon'),
+            ('gallon', 'refill'),
+        ):
+            with self.subTest(existing_type=existing_type):
+                request = RequestFactory().post(
+                    '/accounts/pos/products/7/edit/',
+                    {'product_type': submitted_type},
+                )
+                request.user = SimpleNamespace(
+                    is_authenticated=True,
+                    profile=SimpleNamespace(role='admin'),
+                )
+                product = SimpleNamespace(id=7, product_type=existing_type)
+                invalid_form = Mock()
+                invalid_form.is_valid.return_value = False
+
+                with (
+                    patch.object(
+                        views,
+                        'get_object_or_404',
+                        return_value=product,
+                    ),
+                    patch.object(
+                        views.Category.objects,
+                        'all',
+                        return_value=[],
+                    ),
+                    patch.object(
+                        views,
+                        'ProductForm',
+                        return_value=invalid_form,
+                    ) as product_form,
+                    patch.object(
+                        views,
+                        'render',
+                        return_value=HttpResponse('form'),
+                    ) as render,
+                ):
+                    response = views.product_edit(request, 7)
+
+                self.assertEqual(response.status_code, 200)
+                submitted_data = product_form.call_args[0][0]
+                self.assertEqual(
+                    submitted_data['product_type'],
+                    existing_type,
+                )
+                self.assertEqual(
+                    render.call_args[0][2]['edit_product_type'],
+                    existing_type,
+                )
+
+
 class VercelPrivateBlobStorageTests(SimpleTestCase):
     def test_order_payment_proof_uses_blob_storage(self):
         self.assertIsInstance(
