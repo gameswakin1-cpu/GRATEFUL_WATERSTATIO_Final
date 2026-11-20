@@ -8667,7 +8667,10 @@ def update_order_status(request, order_id):
             messages.error(request, error)
             return redirect(f'{reverse("manage_orders")}?status=awaiting_payment')
 
-        if new_status == 'choose_rider' and order.status != 'processing':
+        if new_status == 'choose_rider' and order.status not in {
+            'processing',
+            'choose_rider',
+        }:
             error = 'Set the order to Processing before choosing a rider.'
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error}, status=400)

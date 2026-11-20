@@ -1783,6 +1783,56 @@ class CustomerGcashOrderStatusTests(SimpleTestCase):
         self.assertEqual(order.status, 'awaiting_payment')
         order.save.assert_not_called()
 
+    def test_staff_can_reselect_choose_rider_for_an_order_waiting_for_assignment(self):
+        request = RequestFactory().post(
+            '/accounts/update-order-status/1/',
+            data=json.dumps({'status': 'choose_rider'}),
+            content_type='application/json',
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            profile=SimpleNamespace(role='staff'),
+        )
+        order = SimpleNamespace(
+            status='choose_rider',
+            payment_method='cod',
+            order_number='ORD-1000',
+            save=Mock(),
+            get_status_display=Mock(return_value='Choose Rider'),
+        )
+
+        with patch.object(views, 'get_object_or_404', return_value=order):
+            response = views.update_order_status(request, order_id=1)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(json.loads(response.content)['success'])
+        self.assertEqual(order.status, 'choose_rider')
+        order.save.assert_called_once()
+
+    def test_staff_cannot_choose_rider_before_processing(self):
+        request = RequestFactory().post(
+            '/accounts/update-order-status/1/',
+            data=json.dumps({'status': 'choose_rider'}),
+            content_type='application/json',
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            profile=SimpleNamespace(role='staff'),
+        )
+        order = SimpleNamespace(
+            status='pending',
+            payment_method='cod',
+            order_number='ORD-1000',
+            save=Mock(),
+        )
+
+        with patch.object(views, 'get_object_or_404', return_value=order):
+            response = views.update_order_status(request, order_id=1)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(json.loads(response.content)['success'])
+        order.save.assert_not_called()
+
 
 class OnTheWayRiderAssignmentTests(SimpleTestCase):
     def test_staff_cannot_reassign_rider_after_order_is_on_the_way(self):
