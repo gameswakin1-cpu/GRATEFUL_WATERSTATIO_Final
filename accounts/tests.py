@@ -65,15 +65,15 @@ class RoleRequiredTests(SimpleTestCase):
 
 
 class ProductEditTypeTests(SimpleTestCase):
-    def test_edit_keeps_existing_product_type_and_tab(self):
-        for existing_type, submitted_type in (
+    def test_edit_uses_inventory_section_type_for_tab_and_update(self):
+        for requested_type, existing_type in (
             ('refill', 'gallon'),
             ('gallon', 'refill'),
         ):
-            with self.subTest(existing_type=existing_type):
+            with self.subTest(requested_type=requested_type):
                 request = RequestFactory().post(
-                    '/accounts/pos/products/7/edit/',
-                    {'product_type': submitted_type},
+                    f'/accounts/pos/products/7/edit/?product_type={requested_type}',
+                    {'product_type': existing_type},
                 )
                 request.user = SimpleNamespace(
                     is_authenticated=True,
@@ -111,11 +111,11 @@ class ProductEditTypeTests(SimpleTestCase):
                 submitted_data = product_form.call_args[0][0]
                 self.assertEqual(
                     submitted_data['product_type'],
-                    existing_type,
+                    requested_type,
                 )
                 self.assertEqual(
                     render.call_args[0][2]['edit_product_type'],
-                    existing_type,
+                    requested_type,
                 )
 
 

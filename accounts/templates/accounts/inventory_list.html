@@ -361,7 +361,7 @@
                             <td><span class="status-badge completed">Active</span></td>
                             {% if request.user.profile.role == 'admin' %}
                             <td class="actions inventory-actions">
-                                <a href="{% url 'product_edit' product.id %}" class="btn-edit" title="Edit Product">
+                                <a href="{% url 'product_edit' product.id %}?product_type=refill" class="btn-edit" title="Edit Product">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
                                 <form method="POST" action="{% url 'product_delete' product.id %}" class="action-delete-form" data-product-name="{{ product.name }}">
@@ -422,7 +422,7 @@
                             </td>
                             {% if request.user.profile.role == 'admin' %}
                             <td class="actions inventory-actions">
-                                <a href="{% url 'product_edit' product.id %}" class="btn-edit" title="Edit Product">
+                                <a href="{% url 'product_edit' product.id %}?product_type=gallon" class="btn-edit" title="Edit Product">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
                                 <form method="POST" action="{% url 'product_delete' product.id %}" class="action-delete-form" data-product-name="{{ product.name }}">

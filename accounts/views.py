@@ -24845,22 +24845,13 @@ def product_edit(request, product_id):
 
     """Edit a product"""
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     product = get_object_or_404(Product, id=product_id)
-    edit_product_type = product.product_type
+    requested_product_type = request.GET.get('product_type')
+    edit_product_type = (
+        requested_product_type
+        if requested_product_type in {'refill', 'gallon'}
+        else product.product_type
+    )
 
     categories = Category.objects.all()
 
