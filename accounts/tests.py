@@ -27,6 +27,7 @@ from .forms import (
     StaffUserCreationForm,
 )
 from .middleware import NoStoreCacheMiddleware
+from .storage import VercelPrivateBlobStorage
 from .models import (
     Consumer,
     Order,
@@ -60,6 +61,81 @@ class RoleRequiredTests(SimpleTestCase):
             user=request.user,
             defaults={'role': 'customer'},
         )
+
+
+class VercelPrivateBlobStorageTests(SimpleTestCase):
+    def test_order_payment_proof_uses_blob_storage(self):
+        self.assertIsInstance(
+            Order._meta.get_field('payment_proof').storage,
+            VercelPrivateBlobStorage,
+        )
+
+    def test_save_uses_private_blob_storage_and_returns_blob_path(self):
+        storage = VercelPrivateBlobStorage()
+        blob_client = Mock()
+        blob_client.put_blob.return_value.pathname = (
+            'payment_proofs/proof-random.png'
+        )
+        uploaded_file = SimpleUploadedFile(
+            'proof.png',
+            b'proof-data',
+            content_type='image/png',
+        )
+
+        with patch.object(storage, '_blob', return_value=blob_client):
+            saved_name = storage._save('payment_proofs/proof.png', uploaded_file)
+
+        self.assertEqual(saved_name, 'payment_proofs/proof-random.png')
+        blob_client.put_blob.assert_called_once()
+        args, kwargs = blob_client.put_blob.call_args
+        self.assertEqual(args[0], 'payment_proofs/proof.png')
+        self.assertEqual(b''.join(args[1]), b'proof-data')
+        self.assertEqual(kwargs, {
+            'access': 'private',
+            'content_length': 10,
+            'content_type': 'image/png',
+            'add_random_suffix': True,
+        })
+
+    def test_payment_proof_view_requires_staff_access(self):
+        request = RequestFactory().get(
+            '/accounts/private-payment-proof/payment_proofs/proof.png'
+        )
+        request.user = SimpleNamespace(is_authenticated=False)
+
+        response = views.private_payment_proof(
+            request,
+            'payment_proofs/proof.png',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/accounts/login/')
+
+    def test_staff_can_view_private_payment_proof(self):
+        request = RequestFactory().get(
+            '/accounts/private-payment-proof/payment_proofs/proof.png'
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            profile=SimpleNamespace(role='staff'),
+        )
+        proof_content = BytesIO(b'proof-data')
+        payment_proof = SimpleNamespace(open=Mock(return_value=proof_content))
+        order = SimpleNamespace(payment_proof=payment_proof)
+        queryset = Mock()
+        queryset.first.return_value = order
+
+        with patch.object(views.Order.objects, 'filter', return_value=queryset) as filter_orders:
+            response = views.private_payment_proof(
+                request,
+                'payment_proofs/proof.png',
+            )
+
+        filter_orders.assert_called_once_with(
+            payment_proof='payment_proofs/proof.png'
+        )
+        self.assertEqual(b''.join(response.streaming_content), b'proof-data')
+        self.assertEqual(response['Cache-Control'], 'private, no-store')
 
 
 class UserProfileFixtureSignalTests(SimpleTestCase):

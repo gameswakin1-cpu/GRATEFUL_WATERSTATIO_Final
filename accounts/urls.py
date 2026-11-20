@@ -11,7 +11,11 @@ from . import views
 
 urlpatterns = [
 
-
+    path(
+        'private-payment-proof/<path:path>',
+        views.private_payment_proof,
+        name='private_payment_proof',
+    ),
 
     # Authentication
 

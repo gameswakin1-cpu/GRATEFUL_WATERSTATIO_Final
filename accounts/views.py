@@ -15,6 +15,7 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 
 import json
+import mimetypes
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -32,7 +33,7 @@ from django.utils.dateparse import parse_date
 
 from django.views.decorators.http import require_POST
 
-from django.http import Http404, JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from urllib.parse import urlsplit
 
 from datetime import datetime, timedelta
@@ -9815,6 +9816,25 @@ def customer_order_page(request):
 
 
     return render(request, 'accounts/customer_order.html', context)
+
+
+@staff_required
+@require_http_methods(['GET'])
+def private_payment_proof(request, path):
+    order = Order.objects.filter(payment_proof=path).first()
+    if not order or not order.payment_proof:
+        raise Http404
+
+    try:
+        proof = order.payment_proof.open('rb')
+    except FileNotFoundError as exc:
+        raise Http404 from exc
+
+    content_type = mimetypes.guess_type(path)[0] or 'application/octet-stream'
+    response = FileResponse(proof, content_type=content_type)
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 

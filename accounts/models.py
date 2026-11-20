@@ -8,6 +8,7 @@ import random
 import string
 from decimal import Decimal
 import uuid
+from .storage import vercel_payment_proof_storage
 
 
 # ==================== POS MODELS ====================
@@ -397,7 +398,12 @@ class Order(models.Model):
     
     # Delivery fields
     delivery_image = models.ImageField(upload_to='', blank=True, null=True)
-    payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
+    payment_proof = models.ImageField(
+        upload_to='payment_proofs/',
+        blank=True,
+        null=True,
+        storage=vercel_payment_proof_storage,
+    )
     delivered_at = models.DateTimeField(blank=True, null=True)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='cod')
     
