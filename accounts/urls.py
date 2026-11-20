@@ -13,8 +13,13 @@ urlpatterns = [
 
     path(
         'private-payment-proof/<path:path>',
-        views.private_payment_proof,
+        views.private_media,
         name='private_payment_proof',
+    ),
+    path(
+        'private-media/<path:path>',
+        views.private_media,
+        name='private_media',
     ),
 
     # Authentication

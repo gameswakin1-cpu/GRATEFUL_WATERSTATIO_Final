@@ -9821,15 +9821,85 @@ def customer_order_page(request):
     return render(request, 'accounts/customer_order.html', context)
 
 
-@staff_required
+@login_required
 @require_http_methods(['GET'])
-def private_payment_proof(request, path):
+def private_media(request, path):
+    profile = getattr(request.user, 'profile', None)
+    is_staff = (
+        getattr(request.user, 'is_superuser', False)
+        or getattr(profile, 'role', None) in {'admin', 'staff'}
+    )
+    media = None
+
     order = Order.objects.filter(payment_proof=path).first()
-    if not order or not order.payment_proof:
-        raise Http404
+    if order and order.payment_proof:
+        if not is_staff:
+            raise Http404
+        media = order.payment_proof
+    else:
+        order = Order.objects.filter(delivery_image=path).first()
+        if order and order.delivery_image:
+            if not is_staff and request.user.pk not in {
+                order.customer_id,
+                order.rider_id,
+            }:
+                raise Http404
+            media = order.delivery_image
+
+    if media is None:
+        return_request = ReturnRequest.objects.filter(
+            evidence_image=path,
+        ).select_related('order').first()
+        if return_request and return_request.evidence_image:
+            if not is_staff and request.user.pk not in {
+                return_request.order.customer_id,
+                return_request.order.rider_id,
+                return_request.pickup_rider_id,
+            }:
+                raise Http404
+            media = return_request.evidence_image
+        else:
+            evidence = ReturnRequestImage.objects.filter(
+                image=path,
+            ).select_related('return_request__order').first()
+            if not evidence:
+                raise Http404
+            return_request = evidence.return_request
+            if not is_staff and request.user.pk not in {
+                return_request.order.customer_id,
+                return_request.order.rider_id,
+                return_request.pickup_rider_id,
+            }:
+                raise Http404
+            media = evidence.image
+
+    if media is None:
+        product_image = ProductImage.objects.filter(image=path).first()
+        if product_image:
+            media = product_image.image
+        else:
+            announcement_image = AdminAnnouncementImage.objects.filter(
+                image=path,
+            ).first()
+            if announcement_image:
+                media = announcement_image.image
+
+    if media is None:
+        report_photo = MaintenanceReportPhoto.objects.filter(
+            image=path,
+        ).first()
+        if report_photo:
+            if not is_staff:
+                raise Http404
+            media = report_photo.image
+        else:
+            report = MaintenanceReport.objects.filter(photo=path).first()
+            if not report or not report.photo or not is_staff:
+                raise Http404
+            media = report.photo
 
     try:
-        proof = order.payment_proof.open('rb')
+        proof = media.open('rb')
     except FileNotFoundError as exc:
         raise Http404 from exc
 

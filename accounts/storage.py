@@ -10,7 +10,7 @@ class VercelPrivateBlobStorage(Storage):
             from vercel.blob import sync as blob
         except ImportError as exc:
             raise ImproperlyConfigured(
-                'Install vercel-blob to use Vercel Blob for payment proofs.'
+                'Install vercel-blob to use Vercel Blob for private media.'
             ) from exc
         return blob
 
@@ -45,8 +45,12 @@ class VercelPrivateBlobStorage(Storage):
         return self._blob().head_blob(name).size
 
     def url(self, name):
-        return reverse('private_payment_proof', kwargs={'path': name})
+        return reverse('private_media', kwargs={'path': name})
 
 
 def vercel_payment_proof_storage():
+    return VercelPrivateBlobStorage()
+
+
+def vercel_private_blob_storage():
     return VercelPrivateBlobStorage()

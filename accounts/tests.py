@@ -32,6 +32,7 @@ from .models import (
     Consumer,
     Order,
     ReturnRequest,
+    ReturnRequestImage,
     UserProfile,
     create_user_profile,
     save_user_profile,
@@ -69,6 +70,28 @@ class VercelPrivateBlobStorageTests(SimpleTestCase):
             Order._meta.get_field('payment_proof').storage,
             VercelPrivateBlobStorage,
         )
+        self.assertIsInstance(
+            Order._meta.get_field('delivery_image').storage,
+            VercelPrivateBlobStorage,
+        )
+        self.assertIsInstance(
+            ReturnRequest._meta.get_field('evidence_image').storage,
+            VercelPrivateBlobStorage,
+        )
+        self.assertIsInstance(
+            ReturnRequestImage._meta.get_field('image').storage,
+            VercelPrivateBlobStorage,
+        )
+        for model, field_name in (
+            (views.ProductImage, 'image'),
+            (views.AdminAnnouncementImage, 'image'),
+            (views.MaintenanceReport, 'photo'),
+            (views.MaintenanceReportPhoto, 'image'),
+        ):
+            self.assertIsInstance(
+                model._meta.get_field(field_name).storage,
+                VercelPrivateBlobStorage,
+            )
 
     def test_save_uses_private_blob_storage_and_returns_blob_path(self):
         storage = VercelPrivateBlobStorage()
@@ -99,21 +122,24 @@ class VercelPrivateBlobStorageTests(SimpleTestCase):
 
     def test_payment_proof_view_requires_staff_access(self):
         request = RequestFactory().get(
-            '/accounts/private-payment-proof/payment_proofs/proof.png'
+            '/accounts/private-media/payment_proofs/proof.png'
         )
         request.user = SimpleNamespace(is_authenticated=False)
 
-        response = views.private_payment_proof(
+        response = views.private_media(
             request,
             'payment_proofs/proof.png',
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'], '/accounts/login/')
+        self.assertEqual(
+            response['Location'],
+            '/accounts/login/?next=/accounts/private-media/payment_proofs/proof.png',
+        )
 
     def test_staff_can_view_private_payment_proof(self):
         request = RequestFactory().get(
-            '/accounts/private-payment-proof/payment_proofs/proof.png'
+            '/accounts/private-media/payment_proofs/proof.png'
         )
         request.user = SimpleNamespace(
             is_authenticated=True,
@@ -126,7 +152,7 @@ class VercelPrivateBlobStorageTests(SimpleTestCase):
         queryset.first.return_value = order
 
         with patch.object(views.Order.objects, 'filter', return_value=queryset) as filter_orders:
-            response = views.private_payment_proof(
+            response = views.private_media(
                 request,
                 'payment_proofs/proof.png',
             )
@@ -136,6 +162,78 @@ class VercelPrivateBlobStorageTests(SimpleTestCase):
         )
         self.assertEqual(b''.join(response.streaming_content), b'proof-data')
         self.assertEqual(response['Cache-Control'], 'private, no-store')
+
+    def test_customer_can_view_own_delivery_photo(self):
+        request = RequestFactory().get('/accounts/private-media/delivery.png')
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            is_superuser=False,
+            pk=12,
+            profile=SimpleNamespace(role='customer'),
+        )
+        delivery_image = SimpleNamespace(
+            name='delivery.png',
+            open=Mock(return_value=BytesIO(b'delivery-data')),
+        )
+        order = SimpleNamespace(
+            payment_proof=None,
+            delivery_image=delivery_image,
+            customer_id=12,
+            rider_id=34,
+        )
+        no_match = Mock()
+        no_match.first.return_value = None
+        matching_order = Mock()
+        matching_order.first.return_value = order
+
+        with patch.object(
+            views.Order.objects,
+            'filter',
+            side_effect=[no_match, matching_order],
+        ):
+            response = views.private_media(request, 'delivery.png')
+
+        self.assertEqual(b''.join(response.streaming_content), b'delivery-data')
+
+    def test_customer_can_view_evidence_for_own_return(self):
+        request = RequestFactory().get(
+            '/accounts/private-media/return_evidence/evidence.png'
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            is_superuser=False,
+            pk=12,
+            profile=SimpleNamespace(role='customer'),
+        )
+        evidence_image = SimpleNamespace(
+            name='return_evidence/evidence.png',
+            open=Mock(return_value=BytesIO(b'evidence-data')),
+        )
+        return_request = SimpleNamespace(
+            evidence_image=evidence_image,
+            order=SimpleNamespace(customer_id=12, rider_id=34),
+            pickup_rider_id=None,
+        )
+        no_match = Mock()
+        no_match.first.return_value = None
+        matching_return = Mock()
+        matching_return.first.return_value = return_request
+        matching_return.select_related.return_value = matching_return
+
+        with (
+            patch.object(views.Order.objects, 'filter', return_value=no_match),
+            patch.object(
+                views.ReturnRequest.objects,
+                'filter',
+                return_value=matching_return,
+            ),
+        ):
+            response = views.private_media(
+                request,
+                'return_evidence/evidence.png',
+            )
+
+        self.assertEqual(b''.join(response.streaming_content), b'evidence-data')
 
 
 class UserProfileFixtureSignalTests(SimpleTestCase):

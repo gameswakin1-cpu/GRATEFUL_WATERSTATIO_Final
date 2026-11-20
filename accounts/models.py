@@ -8,7 +8,7 @@ import random
 import string
 from decimal import Decimal
 import uuid
-from .storage import vercel_payment_proof_storage
+from .storage import vercel_payment_proof_storage, vercel_private_blob_storage
 
 
 # ==================== POS MODELS ====================
@@ -40,7 +40,11 @@ class AdminAnnouncementImage(models.Model):
         ('reminder', 'Customer Reminder'),
     )
 
-    image = models.ImageField(upload_to='admin_announcements/', blank=True)
+    image = models.ImageField(
+        upload_to='admin_announcements/',
+        blank=True,
+        storage=vercel_private_blob_storage,
+    )
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='important')
     headline = models.CharField(max_length=120, blank=True)
     description = models.CharField(max_length=280, blank=True)
@@ -132,7 +136,10 @@ class Product(models.Model):
 class ProductImage(models.Model):
     """Product images for gallery"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='products/')
+    image = models.ImageField(
+        upload_to='products/',
+        storage=vercel_private_blob_storage,
+    )
     is_main = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -397,7 +404,12 @@ class Order(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     # Delivery fields
-    delivery_image = models.ImageField(upload_to='', blank=True, null=True)
+    delivery_image = models.ImageField(
+        upload_to='',
+        blank=True,
+        null=True,
+        storage=vercel_private_blob_storage,
+    )
     payment_proof = models.ImageField(
         upload_to='payment_proofs/',
         blank=True,
@@ -443,7 +455,12 @@ class ReturnRequest(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='return_request')
     reason = models.CharField(max_length=30, choices=REASON_CHOICES)
     details = models.TextField(blank=True)
-    evidence_image = models.ImageField(upload_to='return_evidence/', blank=True, null=True)
+    evidence_image = models.ImageField(
+        upload_to='return_evidence/',
+        blank=True,
+        null=True,
+        storage=vercel_private_blob_storage,
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     reviewed_by = models.ForeignKey(
         User,
@@ -521,7 +538,10 @@ class ReturnRequestImage(models.Model):
         on_delete=models.CASCADE,
         related_name='evidence_images',
     )
-    image = models.ImageField(upload_to='return_evidence/')
+    image = models.ImageField(
+        upload_to='return_evidence/',
+        storage=vercel_private_blob_storage,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -686,7 +706,12 @@ class MaintenanceReport(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     description = models.TextField(blank=True)
     due_date = models.DateField(blank=True, null=True)
-    photo = models.ImageField(upload_to='maintenance_reports/', blank=True, null=True)
+    photo = models.ImageField(
+        upload_to='maintenance_reports/',
+        blank=True,
+        null=True,
+        storage=vercel_private_blob_storage,
+    )
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='Medium')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
     resolution_notes = models.TextField(blank=True, null=True)
@@ -709,7 +734,10 @@ class MaintenanceReportPhoto(models.Model):
         on_delete=models.CASCADE,
         related_name='photos',
     )
-    image = models.ImageField(upload_to='maintenance_reports/')
+    image = models.ImageField(
+        upload_to='maintenance_reports/',
+        storage=vercel_private_blob_storage,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
